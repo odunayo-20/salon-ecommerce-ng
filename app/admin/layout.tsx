@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Scissors, Package, Calendar, Users, UserCog, Star, PenTool, BarChart3, Bell, Menu, X } from "lucide-react";
+import { LayoutDashboard, Scissors, Package, Calendar, Users, UserCog, Star, PenTool, BarChart3, Bell, Menu, X, FolderTree } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 
 const adminLinks = [
   { label: "Dashboard", href: "/admin", icon: LayoutDashboard },
+  { label: "Categories", href: "/admin/categories", icon: FolderTree },
   { label: "Services", href: "/admin/services", icon: Scissors },
   { label: "Products", href: "/admin/products", icon: Package },
   { label: "Appointments", href: "/admin/appointments", icon: Calendar },
