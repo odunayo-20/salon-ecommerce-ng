@@ -1,84 +1,125 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-export async function GET(request: NextRequest) {
+export async function GET(request: Request) {
   try {
-    const searchParams = request.nextUrl.searchParams;
-    const category = searchParams.get("category");
+    const { searchParams } = new URL(request.url);
+    const categoryId = searchParams.get("categoryId");
+    const isActive = searchParams.get("isActive");
+    const isFeatured = searchParams.get("isFeatured");
     const search = searchParams.get("search");
-    const sort = searchParams.get("sort") || "newest";
     const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "24");
+    const limit = parseInt(searchParams.get("limit") || "50");
 
-    const where: Record<string, unknown> = {
-      isActive: true,
-    };
-
-    if (category && category !== "all") {
-      const cat = await prisma.category.findUnique({ where: { slug: category } });
-      if (cat) where.categoryId = cat.id;
-    }
-
+    const where: Record<string, unknown> = {};
+    if (categoryId) where.categoryId = categoryId;
+    if (isActive !== null && isActive !== undefined) where.isActive = isActive === "true";
+    if (isFeatured !== null && isFeatured !== undefined) where.isFeatured = isFeatured === "true";
     if (search) {
       where.OR = [
         { name: { contains: search, mode: "insensitive" } },
         { description: { contains: search, mode: "insensitive" } },
-        { tags: { contains: search, mode: "insensitive" } },
+        { sku: { contains: search, mode: "insensitive" } },
       ];
-    }
-
-    let orderBy: Record<string, string>;
-    switch (sort) {
-      case "price-asc":
-        orderBy = { price: "asc" };
-        break;
-      case "price-desc":
-        orderBy = { price: "desc" };
-        break;
-      case "popular":
-        orderBy = { name: "desc" };
-        break;
-      default:
-        orderBy = { createdAt: "desc" };
     }
 
     const [products, total] = await Promise.all([
       prisma.product.findMany({
         where,
         include: {
-          category: { select: { name: true, slug: true } },
-          reviews: { select: { rating: true } },
+          category: { select: { id: true, name: true, slug: true } },
+          variants: { select: { id: true, name: true, price: true, stock: true, isActive: true } },
+          _count: { select: { reviews: true, orderItems: true, wishlist: true } },
         },
-        orderBy,
+        orderBy: { name: "asc" },
         skip: (page - 1) * limit,
         take: limit,
       }),
       prisma.product.count({ where }),
     ]);
 
-    const productsWithRating = (products as (typeof products extends (infer T)[] ? T : never)[]).map((product) => ({
-      ...product,
-      rating:
-        product.reviews.length > 0
-          ? product.reviews.reduce((sum, r) => sum + r.rating, 0) / product.reviews.length
-          : 0,
-      reviewCount: product.reviews.length,
+    const productsClean = products.map((p) => ({
+      ...p,
+      price: Number(p.price),
+      comparePrice: p.comparePrice ? Number(p.comparePrice) : null,
+      weight: p.weight ? Number(p.weight) : null,
+      reviewCount: p._count.reviews,
+      orderCount: p._count.orderItems,
+      wishlistCount: p._count.wishlist,
+      variantCount: p.variants.length,
     }));
 
-    return NextResponse.json({
-      products: productsWithRating,
-      pagination: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
+    return NextResponse.json({ products: productsClean, total, page, totalPages: Math.ceil(total / limit) });
+  } catch (error) {
+    console.error("Failed to fetch products:", error);
+    return NextResponse.json({ error: "Failed to fetch products" }, { status: 500 });
+  }
+}
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+    const {
+      name, slug, description, shortDesc, price, comparePrice, sku, barcode,
+      images, videoUrl, categoryId, stock, lowStock, weight, isActive, isFeatured,
+      tags, hairTexture, hairLength, hairColor, metadata,
+    } = body;
+
+    if (!name || !slug || price === undefined || !categoryId) {
+      return NextResponse.json({ error: "Name, slug, price, and category are required" }, { status: 400 });
+    }
+
+    const existingSlug = await prisma.product.findUnique({ where: { slug } });
+    if (existingSlug) {
+      return NextResponse.json({ error: "A product with this slug already exists" }, { status: 409 });
+    }
+
+    if (sku) {
+      const existingSku = await prisma.product.findUnique({ where: { sku } });
+      if (existingSku) {
+        return NextResponse.json({ error: "A product with this SKU already exists" }, { status: 409 });
+      }
+    }
+
+    const categoryExists = await prisma.category.findUnique({ where: { id: categoryId } });
+    if (!categoryExists) {
+      return NextResponse.json({ error: "Category not found" }, { status: 404 });
+    }
+
+    const product = await prisma.product.create({
+      data: {
+        name,
+        slug,
+        description: description || null,
+        shortDesc: shortDesc || null,
+        price,
+        comparePrice: comparePrice || null,
+        sku: sku || null,
+        barcode: barcode || null,
+        images: images ? JSON.stringify(images) : "[]",
+        videoUrl: videoUrl || null,
+        categoryId,
+        stock: stock || 0,
+        lowStock: lowStock || 5,
+        weight: weight || null,
+        isActive: isActive !== undefined ? isActive : true,
+        isFeatured: isFeatured || false,
+        tags: tags ? JSON.stringify(tags) : "[]",
+        hairTexture: hairTexture || null,
+        hairLength: hairLength || null,
+        hairColor: hairColor || null,
+        metadata: metadata ? JSON.stringify(metadata) : "{}",
+      },
+      include: {
+        category: { select: { id: true, name: true, slug: true } },
       },
     });
+
+    return NextResponse.json({
+      product: { ...product, price: Number(product.price), comparePrice: product.comparePrice ? Number(product.comparePrice) : null },
+    }, { status: 201 });
   } catch (error) {
-    console.error("Fetch products error:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch products" },
-      { status: 500 }
-    );
+    console.error("Failed to create product:", error);
+    return NextResponse.json({ error: "Failed to create product" }, { status: 500 });
   }
 }
