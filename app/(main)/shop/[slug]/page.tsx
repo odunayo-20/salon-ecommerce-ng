@@ -1,12 +1,59 @@
 "use client";
 
-import { useState } from "react";
+import { useState, use } from "react";
 import Link from "next/link";
 import { Minus, Plus, Heart, Truck, Shield, RotateCcw, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ProductCard } from "@/components/shop/product-card";
 import { useCartStore, useWishlistStore } from "@/store";
 import { cn } from "@/lib/utils";
+
+const productsData: Record<string, {
+  id: string; name: string; price: number; comparePrice?: number; category: string;
+  rating: number; reviewCount: number; stock: number; description: string;
+  features: string[]; tags: string[]; images: string[];
+}> = {
+  "silk-press-kit": {
+    id: "p1", name: "Silk Press Styling Kit", price: 25000, comparePrice: 32000,
+    category: "Hair Care", rating: 4.8, reviewCount: 124, stock: 40,
+    description: "Professional-grade silk press kit with heat protectant, smoothing serum, and silk finish spray for salon-quality results at home.",
+    features: ["Heat protectant spray", "Smoothing serum", "Silk finish spray", "Instruction card"],
+    tags: ["Hair Care", "Styling", "Heat Protection"],
+    images: ["/images/silk-press-1.jpg", "/images/silk-press-2.jpg", "/images/silk-press-3.jpg", "/images/silk-press-4.jpg"],
+  },
+  "raw-clipper-bundles": {
+    id: "p2", name: "Raw Brazilian Clipper Bundles", price: 85000, comparePrice: 95000,
+    category: "Hair Extensions", rating: 4.9, reviewCount: 89, stock: 15,
+    description: "100% raw Brazilian hair collected directly from a single donor. Unprocessed, Cuticle aligned, and double wefted for maximum longevity.",
+    features: ["Single donor hair", "Cuticle aligned", "Double wefted", "Lasts 2-3 years"],
+    tags: ["Brazilian", "Raw Hair", "Bundles"],
+    images: ["/images/bundles-1.jpg", "/images/bundles-2.jpg", "/images/bundles-3.jpg", "/images/bundles-4.jpg"],
+  },
+  "lace-frontal-wig": {
+    id: "p3", name: "HD Lace Frontal Wig — Body Wave", price: 120000, comparePrice: 145000,
+    category: "Wigs", rating: 4.7, reviewCount: 156, stock: 8,
+    description: "Invisible HD lace frontal wig with pre-plucked hairline and baby hairs. Ready to install and style for a flawless, undetectable look.",
+    features: ["13x4 HD lace frontal", "Pre-plucked hairline", "Baby hairs included", "Adjustable straps"],
+    tags: ["Wig", "HD Lace", "Body Wave"],
+    images: ["/images/wig-1.jpg", "/images/wig-2.jpg", "/images/wig-3.jpg", "/images/wig-4.jpg"],
+  },
+  "argan-oil-serum": {
+    id: "p4", name: "Moroccan Argan Oil Serum", price: 8500, category: "Hair Care",
+    rating: 4.6, reviewCount: 203, stock: 60,
+    description: "Lightweight argan oil serum that tames frizz, adds shine, and nourishes hair without weighing it down. Suitable for all hair types.",
+    features: ["Frizz control", "UV protection", "Non-greasy formula", "All hair types"],
+    tags: ["Argan Oil", "Serum", "Frizz Control"],
+    images: ["/images/serum-1.jpg", "/images/serum-2.jpg", "/images/serum-3.jpg", "/images/serum-4.jpg"],
+  },
+  "gel-nail-polish-set": {
+    id: "p5", name: "Premium Gel Polish Set — 12 Colors", price: 15000, comparePrice: 20000,
+    category: "Nail Care", rating: 4.5, reviewCount: 67, stock: 30,
+    description: "Long-lasting gel polish set featuring 12 curated shades from nude to bold. Chip-resistant and UV-cured for up to 3 weeks of wear.",
+    features: ["12 curated shades", "Chip-resistant formula", "UV/LED compatible", "Up to 3 weeks wear"],
+    tags: ["Gel Polish", "Nail Art", "Long Lasting"],
+    images: ["/images/nails-1.jpg", "/images/nails-2.jpg", "/images/nails-3.jpg", "/images/nails-4.jpg"],
+  },
+};
 
 const relatedProducts = [
   { id: "r1", name: "Growth Oil Serum", slug: "growth-oil-serum", price: 4500, image: "", rating: 4.7, reviewCount: 312, stock: 100 },
@@ -20,13 +67,24 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
   const addItem = useCartStore((s) => s.addItem);
   const { toggleItem, items: wishlistItems } = useWishlistStore();
 
-  const product = {
-    id: "p1", name: "Premium Brazilian Hair Bundle", slug: "premium-brazilian-hair",
-    price: 45000, comparePrice: 55000, image: "", rating: 4.9, reviewCount: 128, stock: 25,
-    description: "Sourced directly from ethical donors, meticulously processed to maintain natural softness and luster. This versatile hair can be curled, straightened, and styled to your preference.",
-    hairTexture: "Body Wave", hairLength: "12\" - 30\"", hairColor: "Natural Black",
-    tags: ["Brazilian", "Human Hair", "Body Wave"], images: ["", "", "", ""],
-  };
+  const { slug } = use(params);
+  const product = productsData[slug];
+
+  if (!product) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <h1 className="font-heading text-2xl font-bold text-charcoal">Product not found</h1>
+          <p className="text-muted-foreground">The product you&apos;re looking for doesn&apos;t exist.</p>
+          <Link href="/shop" className="inline-block">
+            <Button className="bg-charcoal text-white hover:bg-charcoal-light rounded-full px-8 text-xs font-semibold tracking-wider uppercase">
+              Back to Shop
+            </Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   const isInWishlist = wishlistItems.includes(product.id);
   const discount = product.comparePrice ? Math.round(((product.comparePrice - product.price) / product.comparePrice) * 100) : 0;
@@ -65,13 +123,16 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
               </div>
             </div>
             <p className="text-muted-foreground leading-relaxed">{product.description}</p>
-            <div className="grid grid-cols-2 gap-4">
-              {[["Texture", product.hairTexture], ["Length", product.hairLength], ["Color", product.hairColor], ["Stock", `${product.stock} available`]].map(([label, value]) => (
-                <div key={label} className="bg-cream rounded-lg p-3">
-                  <span className="text-xs text-muted-foreground uppercase tracking-wider">{label}</span>
-                  <p className="text-sm font-medium text-charcoal mt-1">{value}</p>
-                </div>
-              ))}
+            <div className="bg-cream rounded-lg p-4 space-y-2">
+              <span className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Features</span>
+              <ul className="space-y-1.5">
+                {product.features.map((f) => (
+                  <li key={f} className="text-sm text-charcoal flex items-center gap-2">
+                    <span className="h-1.5 w-1.5 rounded-full bg-gold shrink-0" />
+                    {f}
+                  </li>
+                ))}
+              </ul>
             </div>
             <div className="flex items-center gap-4">
               <div className="flex items-center border border-border rounded-full">
@@ -79,7 +140,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
                 <span className="w-12 text-center text-sm font-medium">{quantity}</span>
                 <button onClick={() => setQuantity(Math.min(product.stock, quantity + 1))} className="h-10 w-10 flex items-center justify-center text-muted-foreground hover:text-charcoal"><Plus className="h-4 w-4" /></button>
               </div>
-              <Button onClick={() => addItem({ productId: product.id, name: product.name, price: product.price, image: product.image, quantity, maxStock: product.stock })} className="flex-1 bg-charcoal text-white hover:bg-charcoal-light rounded-full py-6 text-xs font-semibold tracking-wider uppercase">
+              <Button onClick={() => { console.log("Add to cart:", product, "qty:", quantity); }} className="flex-1 bg-charcoal text-white hover:bg-charcoal-light rounded-full py-6 text-xs font-semibold tracking-wider uppercase">
                 Add to Bag — ₦{(product.price * quantity).toLocaleString()}
               </Button>
               <Button onClick={() => toggleItem(product.id)} variant="outline" size="icon" className="h-12 w-12 rounded-full border-border">
@@ -106,8 +167,8 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
             ))}
           </div>
           <div className="py-8">
-            {selectedTab === "details" && <p className="text-sm text-muted-foreground leading-relaxed max-w-2xl">{product.description} Each bundle weighs approximately 100g and comes with a satisfaction guarantee.</p>}
-            {selectedTab === "reviews" && <div className="space-y-6">{[1, 2, 3].map((i) => (<div key={i} className="border-b border-border pb-6"><div className="flex items-center gap-2 mb-2"><div className="flex gap-0.5">{[...Array(5)].map((_, j) => <Star key={j} className="h-3 w-3 fill-gold text-gold" />)}</div><span className="text-sm font-medium text-charcoal">Customer {i}</span></div><p className="text-sm text-muted-foreground">Absolutely love this hair! The quality is amazing and it came beautifully packaged.</p></div>))}</div>}
+            {selectedTab === "details" && <p className="text-sm text-muted-foreground leading-relaxed max-w-2xl">{product.description}</p>}
+            {selectedTab === "reviews" && <div className="space-y-6">{[1, 2, 3].map((i) => (<div key={i} className="border-b border-border pb-6"><div className="flex items-center gap-2 mb-2"><div className="flex gap-0.5">{[...Array(5)].map((_, j) => <Star key={j} className="h-3 w-3 fill-gold text-gold" />)}</div><span className="text-sm font-medium text-charcoal">Customer {i}</span></div><p className="text-sm text-muted-foreground">Absolutely love this product! The quality is amazing and it came beautifully packaged.</p></div>))}</div>}
             {selectedTab === "shipping" && <div className="max-w-2xl space-y-4 text-sm text-muted-foreground leading-relaxed"><p><strong className="text-charcoal">Shipping:</strong> Free delivery on orders over ₦30,000 within Lagos.</p><p><strong className="text-charcoal">Returns:</strong> 7-day return policy for unopened products.</p><p><strong className="text-charcoal">International:</strong> We ship worldwide.</p></div>}
           </div>
         </div>

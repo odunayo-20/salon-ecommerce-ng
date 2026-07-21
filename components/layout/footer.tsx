@@ -9,7 +9,7 @@ const footerLinks = {
     { label: "Wig Installation", href: "/book/hair/wig-installation" },
     { label: "Silk Press", href: "/book/hair/silk-press" },
     { label: "Loc Maintenance", href: "/book/hair/loc-maintenance" },
-    { label: "Nail Services", href: "/book/nails" },
+    { label: "Nail Services", href: "/book/nails/acrylic" },
   ],
   shop: [
     { label: "Hair Extensions", href: "/shop/hair-extensions" },

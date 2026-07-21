@@ -1,20 +1,54 @@
 "use client";
 
 import { useState } from "react";
-import { Upload, Send } from "lucide-react";
+import { Upload, Send, Loader2, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 export default function ConsultationPage() {
   const [formData, setFormData] = useState({ hairConcerns: "", desiredHairstyle: "", hairType: "", additionalNotes: "" });
   const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setError("");
+    try {
+      const res = await fetch("/api/consultations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          concerns: [formData.hairConcerns],
+          desiredStyle: formData.desiredHairstyle,
+          hairType: formData.hairType,
+          notes: formData.additionalNotes,
+          referenceImages: [],
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to submit consultation");
+      setSubmitted(true);
+    } catch {
+      setError("Something went wrong. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   if (submitted) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-cream">
         <div className="text-center max-w-md mx-auto px-4">
-          <div className="h-20 w-20 rounded-full bg-gold/10 flex items-center justify-center mx-auto mb-6"><Send className="h-8 w-8 text-gold" /></div>
-          <h1 className="font-heading text-3xl font-bold text-charcoal mb-3">Request Submitted</h1>
-          <p className="text-muted-foreground leading-relaxed">Our hair experts will review your submission and get back to you within 24 hours with personalized recommendations.</p>
+          <div className="h-20 w-20 rounded-full bg-gold/10 flex items-center justify-center mx-auto mb-6"><CheckCircle className="h-8 w-8 text-gold" /></div>
+          <h1 className="font-heading text-3xl font-bold text-charcoal mb-3">Consultation Request Submitted!</h1>
+          <p className="text-muted-foreground leading-relaxed mb-8">Our hair specialists will review your profile and contact you within 24 hours.</p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button asChild className="bg-gold text-white hover:bg-gold-dark rounded-full px-8 py-6 text-xs font-semibold tracking-wider uppercase">
+              <Link href="/book">Book Appointment</Link>
+            </Button>
+            <Link href="/" className="text-muted-foreground hover:text-charcoal text-sm underline underline-offset-4">Back to Home</Link>
+          </div>
         </div>
       </div>
     );
@@ -28,7 +62,7 @@ export default function ConsultationPage() {
           <p className="text-white/60 mt-2">Tell us about your hair and we&apos;ll recommend the perfect service and products.</p>
         </div>
       </div>
-      <form onSubmit={(e) => { e.preventDefault(); setSubmitted(true); }} className="max-w-3xl mx-auto px-4 sm:px-6 py-12 space-y-8">
+      <form onSubmit={handleSubmit} className="max-w-3xl mx-auto px-4 sm:px-6 py-12 space-y-8">
         <div className="bg-white border border-border rounded-xl p-6">
           <label className="block font-heading font-semibold text-charcoal mb-2">What are your main hair concerns? *</label>
           <textarea value={formData.hairConcerns} onChange={(e) => setFormData({ ...formData, hairConcerns: e.target.value })} placeholder="e.g., My hair has been experiencing breakage at the edges..." className="w-full bg-cream border border-border rounded-lg px-4 py-3 text-sm text-charcoal placeholder:text-muted-foreground/60 focus:outline-none focus:border-gold resize-none h-32" required />
@@ -58,7 +92,11 @@ export default function ConsultationPage() {
           <label className="block font-heading font-semibold text-charcoal mb-2">Anything else?</label>
           <textarea value={formData.additionalNotes} onChange={(e) => setFormData({ ...formData, additionalNotes: e.target.value })} placeholder="Allergies, budget, previous treatments..." className="w-full bg-cream border border-border rounded-lg px-4 py-3 text-sm text-charcoal placeholder:text-muted-foreground/60 focus:outline-none focus:border-gold resize-none h-24" />
         </div>
-        <Button type="submit" className="w-full bg-gold text-white hover:bg-gold-dark rounded-full py-6 text-xs font-semibold tracking-wider uppercase">Submit Consultation Request</Button>
+        {error && <p className="text-red-500 text-sm text-center">{error}</p>}
+        <Button type="submit" disabled={isSubmitting} className="w-full bg-gold text-white hover:bg-gold-dark rounded-full py-6 text-xs font-semibold tracking-wider uppercase">
+          {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+          {isSubmitting ? "Submitting..." : "Submit Consultation Request"}
+        </Button>
       </form>
     </div>
   );

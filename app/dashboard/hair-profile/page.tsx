@@ -1,9 +1,34 @@
 "use client";
 
 import { useState } from "react";
+import { Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export default function HairProfilePage() {
   const [profile, setProfile] = useState({ hairType: "KINKY_COILY", hairLength: "Shoulder Length", density: "Medium", scalpCondition: "Normal", allergies: "", notes: "" });
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    setError("");
+    setSaveSuccess(false);
+    try {
+      const res = await fetch("/api/hair-profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(profile),
+      });
+      if (!res.ok) throw new Error("Failed to save profile");
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000);
+    } catch {
+      setError("Something went wrong. Please try again.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   return (
     <div className="bg-white border border-border rounded-xl p-6">
@@ -37,7 +62,12 @@ export default function HairProfilePage() {
         </div>
         <div><label className="block text-sm font-medium text-charcoal mb-1.5">Allergies</label><input type="text" value={profile.allergies} onChange={(e) => setProfile({ ...profile, allergies: e.target.value })} placeholder="Any known allergies..." className="w-full bg-cream border border-border rounded-lg px-4 py-2.5 text-sm text-charcoal placeholder:text-muted-foreground/60 focus:outline-none focus:border-gold" /></div>
         <div><label className="block text-sm font-medium text-charcoal mb-1.5">Notes</label><textarea value={profile.notes} onChange={(e) => setProfile({ ...profile, notes: e.target.value })} placeholder="Additional notes about your hair..." className="w-full bg-cream border border-border rounded-lg px-4 py-2.5 text-sm text-charcoal placeholder:text-muted-foreground/60 focus:outline-none focus:border-gold resize-none h-24" /></div>
-        <button className="bg-charcoal text-white hover:bg-charcoal-light rounded-full px-8 py-2.5 text-xs font-semibold tracking-wider uppercase">Save Profile</button>
+        {error && <p className="text-red-500 text-sm">{error}</p>}
+        {saveSuccess && <p className="text-green-600 text-sm">Hair profile saved successfully!</p>}
+        <Button onClick={handleSave} disabled={isSaving} className="bg-charcoal text-white hover:bg-charcoal-light rounded-full px-8 py-2.5 text-xs font-semibold tracking-wider uppercase">
+          {isSaving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+          {isSaving ? "Saving..." : "Save Profile"}
+        </Button>
       </div>
     </div>
   );

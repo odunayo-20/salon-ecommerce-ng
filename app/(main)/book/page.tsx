@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Loader2, CheckCircle } from "lucide-react";
 
 const categories = [
   {
@@ -48,6 +49,9 @@ export default function BookPage() {
   const [selectedTime, setSelectedTime] = useState("");
   const [notes, setNotes] = useState("");
   const [paymentOption, setPaymentOption] = useState<"deposit" | "full" | "later">("later");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [bookingConfirmed, setBookingConfirmed] = useState(false);
+  const [bookingError, setBookingError] = useState("");
 
   const activeCategory = categories.find((c) => c.id === selectedCategory);
   const activeService = activeCategory?.services.find((s) => s.slug === selectedService);
@@ -61,6 +65,72 @@ export default function BookPage() {
     calendarDays.push(d);
   }
   const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+  const handleSubmitBooking = async () => {
+    setIsSubmitting(true);
+    setBookingError("");
+    try {
+      const res = await fetch("/api/bookings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          serviceId: activeService?.slug || "",
+          stylistId: activeStylist?.id || null,
+          date: selectedDate,
+          time: selectedTime,
+          notes,
+          paymentMethod: paymentOption,
+        }),
+      });
+      if (!res.ok) throw new Error("Booking failed. Please try again.");
+      setBookingConfirmed(true);
+    } catch (err) {
+      setBookingError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (bookingConfirmed) {
+    return (
+      <div className="min-h-screen bg-cream">
+        <div className="bg-charcoal py-12">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">
+            <h1 className="font-heading text-3xl md:text-4xl font-bold text-white tracking-tight">Booking Confirmed!</h1>
+            <p className="text-white/60 mt-2">Your appointment has been successfully booked.</p>
+          </div>
+        </div>
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-12">
+          <div className="bg-white border border-border rounded-2xl p-8 text-center space-y-6">
+            <CheckCircle className="h-16 w-16 text-gold mx-auto" />
+            <h2 className="font-heading text-2xl font-bold text-charcoal">Booking Confirmed!</h2>
+            <p className="text-muted-foreground">Thank you for booking with us. Here&apos;s a summary of your appointment:</p>
+            <div className="max-w-sm mx-auto space-y-3 text-left">
+              {[
+                ["Service", activeService?.name],
+                ["Stylist", activeStylist?.name || "No preference"],
+                ["Date", selectedDate],
+                ["Time", selectedTime],
+              ].filter(([, v]) => v).map(([label, value]) => (
+                <div key={label} className="flex justify-between py-2 border-b border-border/50">
+                  <span className="text-sm text-muted-foreground">{label}</span>
+                  <span className="text-sm font-medium text-charcoal">{value}</span>
+                </div>
+              ))}
+            </div>
+            <div className="flex items-center justify-center gap-4 pt-4">
+              <Link href="/dashboard">
+                <Button className="bg-charcoal text-white hover:bg-charcoal-light rounded-full px-8 text-xs font-semibold tracking-wider uppercase">View Dashboard</Button>
+              </Link>
+              <Link href="/book">
+                <Button variant="outline" className="rounded-full px-8 text-xs font-semibold tracking-wider uppercase">Book Another</Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-cream">
@@ -246,9 +316,14 @@ export default function BookPage() {
                 ))}
               </div>
             </div>
+            {bookingError && (
+              <p className="text-sm text-red-600 text-center">{bookingError}</p>
+            )}
             <div className="flex justify-between">
               <Button onClick={() => setStep(3)} variant="outline" className="rounded-full px-8 text-xs font-semibold tracking-wider uppercase">Back</Button>
-              <Button className="bg-gold text-white hover:bg-gold-dark rounded-full px-8 text-xs font-semibold tracking-wider uppercase">Confirm Booking</Button>
+              <Button onClick={handleSubmitBooking} disabled={isSubmitting} className="bg-gold text-white hover:bg-gold-dark rounded-full px-8 text-xs font-semibold tracking-wider uppercase disabled:opacity-50">
+                {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing...</> : "Confirm Booking"}
+              </Button>
             </div>
           </div>
         )}
