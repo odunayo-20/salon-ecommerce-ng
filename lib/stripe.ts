@@ -1,16 +1,22 @@
 import Stripe from "stripe";
 
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2025-05-28.basil",
-  typescript: true,
-});
+let _stripe: Stripe | null = null;
+
+export function getStripe() {
+  if (!_stripe) {
+    _stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "sk_placeholder", {
+      typescript: true,
+    });
+  }
+  return _stripe;
+}
 
 export async function createPaymentIntent(
   amount: number,
   currency: string = "ngn",
   metadata?: Record<string, string>
 ) {
-  return stripe.paymentIntents.create({
+  return getStripe().paymentIntents.create({
     amount,
     currency,
     metadata,
@@ -27,7 +33,7 @@ export async function createCheckoutSession(params: {
   metadata?: Record<string, string>;
   customerEmail?: string;
 }) {
-  return stripe.checkout.sessions.create({
+  return getStripe().checkout.sessions.create({
     mode: "payment",
     line_items: params.lineItems,
     success_url: params.successUrl,
@@ -41,14 +47,14 @@ export async function createCheckoutSession(params: {
 }
 
 export async function retrievePaymentIntent(id: string) {
-  return stripe.paymentIntents.retrieve(id);
+  return getStripe().paymentIntents.retrieve(id);
 }
 
 export async function createRefund(
   paymentIntentId: string,
   amount?: number
 ) {
-  return stripe.refunds.create({
+  return getStripe().refunds.create({
     payment_intent: paymentIntentId,
     amount,
   });
@@ -58,7 +64,7 @@ export function constructWebhookEvent(
   payload: Buffer,
   signature: string
 ) {
-  return stripe.webhooks.constructEvent(
+  return getStripe().webhooks.constructEvent(
     payload,
     signature,
     process.env.STRIPE_WEBHOOK_SECRET!

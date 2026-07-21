@@ -1,6 +1,13 @@
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+let _resend: Resend | null = null;
+
+function getResend() {
+  if (!_resend) {
+    _resend = new Resend(process.env.RESEND_API_KEY || "re_placeholder");
+  }
+  return _resend;
+}
 
 interface EmailParams {
   to: string;
@@ -10,7 +17,7 @@ interface EmailParams {
 }
 
 export async function sendEmail({ to, subject, html, from }: EmailParams) {
-  return resend.emails.send({
+  return getResend().emails.send({
     from: from || `${process.env.NEXT_PUBLIC_APP_NAME} <noreply@${process.env.NEXT_PUBLIC_APP_URL?.replace(/^https?:\/\//, "").split("/")[0] || "mecbilltechsalon.com"}>`,
     to,
     subject,

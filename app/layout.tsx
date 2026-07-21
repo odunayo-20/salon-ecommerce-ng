@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 import { Playfair_Display, Inter, Cormorant_Garamond } from "next/font/google";
+import { Toaster } from "sonner";
 import "./globals.css";
 
 const playfair = Playfair_Display({
   variable: "--font-heading",
   subsets: ["latin"],
   display: "swap",
+  weight: ["400", "500", "600", "700"],
 });
 
 const inter = Inter({
@@ -17,40 +19,39 @@ const inter = Inter({
 const cormorant = Cormorant_Garamond({
   variable: "--font-serif",
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
   display: "swap",
+  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
   title: {
-    default: "MecBill Tech Salon | Luxury Hair & Beauty Experiences",
+    default: "MecBill Tech Salon | Luxury Hair & Beauty",
     template: "%s | MecBill Tech Salon",
   },
   description:
-    "Premium natural hair care, protective styling, luxury extensions and beauty services crafted for your confidence. Book your transformation today.",
+    "Premium natural hair care, protective styling, luxury extensions and beauty services. Crafted for your confidence.",
   keywords: [
-    "salon Lagos",
-    "natural hair salon",
-    "braids salon",
-    "wig installation",
-    "hair extensions",
-    "luxury hair salon",
-    "beauty salon Nigeria",
-    "protective styles",
-    "silk press",
-    "hair treatment",
+    "salon",
+    "hair salon",
+    "natural hair",
+    "braids",
+    "wigs",
+    "extensions",
+    "beauty salon",
+    "Lagos salon",
+    "luxury hair",
   ],
   openGraph: {
     type: "website",
     locale: "en_US",
     siteName: "MecBill Tech Salon",
-    title: "MecBill Tech Salon | Luxury Hair & Beauty Experiences",
+    title: "MecBill Tech Salon | Luxury Hair & Beauty",
     description:
       "Premium natural hair care, protective styling, luxury extensions and beauty services.",
   },
   twitter: {
     card: "summary_large_image",
-    title: "MecBill Tech Salon | Luxury Hair & Beauty Experiences",
+    title: "MecBill Tech Salon | Luxury Hair & Beauty",
     description:
       "Premium natural hair care, protective styling, luxury extensions and beauty services.",
   },
@@ -81,28 +82,21 @@ export default function RootLayout({
               description:
                 "Premium natural hair care, protective styling, luxury extensions and beauty services.",
               url: process.env.NEXT_PUBLIC_APP_URL || "https://mecbilltechsalon.com",
-              telephone: process.env.WHATSAPP_BUSINESS_NUMBER || "",
+              priceRange: "$$",
               address: {
                 "@type": "PostalAddress",
                 addressLocality: "Lagos",
                 addressRegion: "Lagos",
                 addressCountry: "NG",
               },
-              priceRange: "$$$",
-              openingHoursSpecification: [
-                {
-                  "@type": "OpeningHoursSpecification",
-                  dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
-                  opens: "09:00",
-                  closes: "19:00",
-                },
-              ],
+              sameAs: [],
             }),
           }}
         />
       </head>
-      <body className="min-h-full flex flex-col bg-background text-foreground">
+      <body className="min-h-full flex flex-col">
         {children}
+        <Toaster position="top-right" richColors closeButton />
       </body>
     </html>
   );

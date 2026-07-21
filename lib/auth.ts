@@ -1,15 +1,12 @@
 import NextAuth from "next-auth";
+import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
+import { getServerSession } from "next-auth";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 
-export const {
-  handlers: { GET, POST },
-  auth,
-  signIn,
-  signOut,
-} = NextAuth({
+export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
       name: "credentials",
@@ -81,4 +78,10 @@ export const {
     signIn: "/auth/signin",
   },
   secret: process.env.NEXTAUTH_SECRET,
-});
+};
+
+export async function auth() {
+  return getServerSession(authOptions);
+}
+
+export default NextAuth(authOptions);

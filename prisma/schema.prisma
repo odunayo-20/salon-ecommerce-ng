@@ -274,6 +274,7 @@ model Service {
   category     Category         @relation(fields: [categoryId], references: [id])
   appointments Appointment[]
   stylists     StylistService[]
+  reviews      Review[]
 
   @@index([slug])
   @@index([categoryId])
