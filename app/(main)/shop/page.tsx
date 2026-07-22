@@ -1,48 +1,55 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
-import { Search, Grid3X3, LayoutGrid } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { Search, Grid3X3, LayoutGrid, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ProductCard } from "@/components/shop/product-card";
 import { cn } from "@/lib/utils";
 
-const shopCategories = [
-  { name: "All", slug: "all" },
-  { name: "Hair Extensions", slug: "hair-extensions" },
-  { name: "Wigs", slug: "wigs" },
-  { name: "Closures & Frontals", slug: "closures-frontals" },
-  { name: "Hair Care", slug: "hair-care" },
-  { name: "Beauty", slug: "beauty" },
-];
-
-const allProducts = [
-  { id: "p1", name: "Premium Brazilian Hair Bundle", slug: "premium-brazilian-hair", price: 45000, comparePrice: 55000, image: "", rating: 4.9, reviewCount: 128, stock: 25, category: "hair-extensions" },
-  { id: "p2", name: "Raw Cambodian Hair Bundle", slug: "raw-cambodian-bundle", price: 65000, image: "", rating: 4.8, reviewCount: 89, stock: 15, category: "hair-extensions" },
-  { id: "p3", name: "Full Lace Wig - Body Wave", slug: "full-lace-wig-body-wave", price: 85000, comparePrice: 95000, image: "", rating: 5, reviewCount: 234, stock: 10, category: "wigs" },
-  { id: "p4", name: "Lace Front Wig - Straight", slug: "lace-front-wig-straight", price: 55000, image: "", rating: 4.7, reviewCount: 167, stock: 20, category: "wigs" },
-  { id: "p5", name: "5x5 HD Closure", slug: "5x5-hd-closure", price: 25000, image: "", rating: 4.8, reviewCount: 95, stock: 30, category: "closures-frontals" },
-  { id: "p6", name: "13x4 HD Frontal", slug: "13x4-hd-frontal", price: 35000, image: "", rating: 4.6, reviewCount: 78, stock: 18, category: "closures-frontals" },
-  { id: "p7", name: "Growth Oil Serum", slug: "growth-oil-serum", price: 4500, image: "", rating: 4.7, reviewCount: 312, stock: 100, category: "hair-care" },
-  { id: "p8", name: "Deep Conditioning Treatment", slug: "deep-conditioning", price: 3500, comparePrice: 4500, image: "", rating: 4.9, reviewCount: 200, stock: 80, category: "hair-care" },
-  { id: "p9", name: "Silk Press Treatment Kit", slug: "silk-press-kit", price: 8500, image: "", rating: 4.8, reviewCount: 156, stock: 40, category: "hair-care" },
-  { id: "p10", name: "Nail Polish Collection Set", slug: "nail-polish-set", price: 6000, image: "", rating: 4.5, reviewCount: 89, stock: 50, category: "beauty" },
-  { id: "p11", name: "Edge Control Gel", slug: "edge-control", price: 2500, image: "", rating: 4.6, reviewCount: 234, stock: 120, category: "hair-care" },
-  { id: "p12", name: "Kanekalon Braiding Hair", slug: "kanekalon-braiding", price: 3500, image: "", rating: 4.4, reviewCount: 178, stock: 200, category: "hair-extensions" },
-];
+interface ShopCategory { id: string; name: string; slug: string; }
+interface ShopProduct {
+  id: string; name: string; slug: string; price: number; comparePrice?: number | null;
+  images: string[]; stock: number; category: { id: string; name: string; slug: string };
+  reviewCount: number; rating?: number; isFeatured: boolean; isActive: boolean;
+}
 
 export default function ShopPage() {
+  const [products, setProducts] = useState<ShopProduct[]>([]);
+  const [categories, setCategories] = useState<ShopCategory[]>([]);
+  const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState("all");
   const [sortBy, setSortBy] = useState("newest");
   const [searchQuery, setSearchQuery] = useState("");
   const [gridSize, setGridSize] = useState<3 | 4>(3);
 
-  const filtered = allProducts.filter((p) => {
-    if (activeCategory !== "all" && p.category !== activeCategory) return false;
+  const fetchData = useCallback(async () => {
+    try {
+      const [prodRes, catRes] = await Promise.all([
+        fetch("/api/products?isActive=true&limit=100"),
+        fetch("/api/categories?type=product"),
+      ]);
+      const prodData = await prodRes.json();
+      const catData = await catRes.json();
+      setProducts(prodData.products || []);
+      setCategories(catData.categories || []);
+    } catch { /* silent */ }
+    finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  const filtered = products.filter((p) => {
+    if (activeCategory !== "all" && p.category?.slug !== activeCategory) return false;
     if (searchQuery && !p.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
     return true;
+  }).sort((a, b) => {
+    if (sortBy === "price-asc") return a.price - b.price;
+    if (sortBy === "price-desc") return b.price - a.price;
+    return 0;
   });
+
+  const allCategories = [{ id: "", name: "All", slug: "all" }, ...categories];
 
   return (
     <div className="min-h-screen">
@@ -75,22 +82,33 @@ export default function ShopPage() {
           </div>
         </div>
         <div className="flex gap-2 overflow-x-auto pb-4 mb-8">
-          {shopCategories.map((cat) => (
+          {allCategories.map((cat) => (
             <button key={cat.slug} onClick={() => setActiveCategory(cat.slug)} className={cn("px-5 py-2 rounded-full text-sm font-medium whitespace-nowrap border shrink-0 transition-all", activeCategory === cat.slug ? "bg-charcoal text-white border-charcoal" : "bg-white text-charcoal border-border hover:border-charcoal")}>
               {cat.name}
             </button>
           ))}
         </div>
-        <div className={cn("grid gap-4 md:gap-6", gridSize === 4 ? "grid-cols-2 lg:grid-cols-4" : "grid-cols-2 lg:grid-cols-3")}>
-          {filtered.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
-        {filtered.length === 0 && (
-          <div className="text-center py-20">
-            <p className="text-muted-foreground">No products found.</p>
-            <Button onClick={() => { setActiveCategory("all"); setSearchQuery(""); }} variant="ghost" className="mt-4 text-gold">Clear Filters</Button>
-          </div>
+        {loading ? (
+          <div className="py-20 text-center"><Loader2 className="h-8 w-8 text-gold animate-spin mx-auto" /><p className="text-muted-foreground mt-4 text-sm">Loading products...</p></div>
+        ) : (
+          <>
+            <div className={cn("grid gap-4 md:gap-6", gridSize === 4 ? "grid-cols-2 lg:grid-cols-4" : "grid-cols-2 lg:grid-cols-3")}>
+              {filtered.map((product) => (
+                <ProductCard key={product.id} product={{
+                  id: product.id, name: product.name, slug: product.slug,
+                  price: product.price, comparePrice: product.comparePrice ?? undefined,
+                  image: product.images?.[0] ?? undefined, rating: product.rating ?? 0,
+                  reviewCount: product.reviewCount, stock: product.stock,
+                }} />
+              ))}
+            </div>
+            {filtered.length === 0 && (
+              <div className="text-center py-20">
+                <p className="text-muted-foreground">No products found.</p>
+                <Button onClick={() => { setActiveCategory("all"); setSearchQuery(""); }} variant="ghost" className="mt-4 text-gold">Clear Filters</Button>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

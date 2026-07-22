@@ -5,11 +5,51 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const categoryId = searchParams.get("categoryId");
+    const slug = searchParams.get("slug");
     const isActive = searchParams.get("isActive");
     const isFeatured = searchParams.get("isFeatured");
     const search = searchParams.get("search");
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "50");
+
+    if (slug) {
+      const product = await prisma.product.findUnique({
+        where: { slug },
+        include: {
+          category: { select: { id: true, name: true, slug: true } },
+          variants: true,
+          reviews: { select: { rating: true, comment: true, createdAt: true, user: { select: { name: true, image: true } } } },
+          _count: { select: { orderItems: true, wishlist: true } },
+        },
+      });
+      if (!product) return NextResponse.json({ error: "Product not found" }, { status: 404 });
+      const ratings = product.reviews.map((r) => r.rating);
+      const avgRating = ratings.length > 0 ? ratings.reduce((a, b) => a + b, 0) / ratings.length : 0;
+      const related = await prisma.product.findMany({
+        where: { isActive: true, categoryId: product.categoryId, id: { not: product.id } },
+        include: { _count: { select: { reviews: true } } },
+        take: 4,
+      });
+      return NextResponse.json({
+        product: {
+          ...product,
+          price: Number(product.price),
+          comparePrice: product.comparePrice ? Number(product.comparePrice) : null,
+          weight: product.weight ? Number(product.weight) : null,
+          variants: product.variants.map((v) => ({ ...v, price: Number(v.price) })),
+          tags: JSON.parse(product.tags || "[]"),
+          rating: Math.round(avgRating * 10) / 10,
+          reviewCount: ratings.length,
+          reviews: product.reviews.map((r) => ({ ...r, createdAt: r.createdAt.toISOString() })),
+        },
+        related: related.map((p) => ({
+          ...p, slug: p.slug, price: Number(p.price),
+          comparePrice: p.comparePrice ? Number(p.comparePrice) : null,
+          image: JSON.parse(p.images || "[]")[0] || null,
+          rating: 0, reviewCount: p._count.reviews,
+        })),
+      });
+    }
 
     const where: Record<string, unknown> = {};
     if (categoryId) where.categoryId = categoryId;
@@ -40,6 +80,8 @@ export async function GET(request: Request) {
 
     const productsClean = products.map((p) => ({
       ...p,
+      images: JSON.parse(p.images || "[]"),
+      tags: JSON.parse(p.tags || "[]"),
       price: Number(p.price),
       comparePrice: p.comparePrice ? Number(p.comparePrice) : null,
       weight: p.weight ? Number(p.weight) : null,

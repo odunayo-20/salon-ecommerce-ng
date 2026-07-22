@@ -5,11 +5,46 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const categoryId = searchParams.get("categoryId");
+    const slug = searchParams.get("slug");
     const isActive = searchParams.get("isActive");
     const isPopular = searchParams.get("isPopular");
     const search = searchParams.get("search");
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "50");
+
+    if (slug) {
+      const service = await prisma.service.findUnique({
+        where: { slug },
+        include: {
+          category: { select: { id: true, name: true, slug: true, type: true } },
+          stylists: {
+            include: { stylist: { include: { user: { select: { name: true, image: true } } } } },
+          },
+          reviews: { select: { rating: true, comment: true, createdAt: true, user: { select: { name: true } } } },
+          _count: { select: { reviews: true, appointments: true } },
+        },
+      });
+      if (!service) return NextResponse.json({ error: "Service not found" }, { status: 404 });
+      const ratings = service.reviews.map((r) => r.rating);
+      const avgRating = ratings.length > 0 ? ratings.reduce((a, b) => a + b, 0) / ratings.length : 0;
+      return NextResponse.json({
+        service: {
+          ...service,
+          price: Number(service.price),
+          depositAmount: service.depositAmount ? Number(service.depositAmount) : null,
+          rating: Math.round(avgRating * 10) / 10,
+          reviewCount: ratings.length,
+          stylists: service.stylists.map((ss) => ({
+            id: ss.stylist.id,
+            name: ss.stylist.user.name,
+            image: ss.stylist.user.image,
+            specialties: JSON.parse(ss.stylist.specialties || "[]"),
+            experience: ss.stylist.experience,
+          })),
+          reviews: service.reviews.map((r) => ({ ...r, createdAt: r.createdAt.toISOString() })),
+        },
+      });
+    }
 
     const where: Record<string, unknown> = {};
     if (categoryId) where.categoryId = categoryId;

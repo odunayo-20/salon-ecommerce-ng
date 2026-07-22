@@ -1,85 +1,65 @@
 "use client";
 
-import { useState, use } from "react";
+import { useState, useEffect, use } from "react";
 import Link from "next/link";
-import { Minus, Plus, Heart, Truck, Shield, RotateCcw, Star } from "lucide-react";
+import Image from "next/image";
+import { Minus, Plus, Heart, Truck, Shield, RotateCcw, Star, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ProductCard } from "@/components/shop/product-card";
 import { useCartStore, useWishlistStore } from "@/store";
 import { cn } from "@/lib/utils";
 
-const productsData: Record<string, {
-  id: string; name: string; price: number; comparePrice?: number; category: string;
-  rating: number; reviewCount: number; stock: number; description: string;
-  features: string[]; tags: string[]; images: string[];
-}> = {
-  "silk-press-kit": {
-    id: "p1", name: "Silk Press Styling Kit", price: 25000, comparePrice: 32000,
-    category: "Hair Care", rating: 4.8, reviewCount: 124, stock: 40,
-    description: "Professional-grade silk press kit with heat protectant, smoothing serum, and silk finish spray for salon-quality results at home.",
-    features: ["Heat protectant spray", "Smoothing serum", "Silk finish spray", "Instruction card"],
-    tags: ["Hair Care", "Styling", "Heat Protection"],
-    images: ["/images/silk-press-1.jpg", "/images/silk-press-2.jpg", "/images/silk-press-3.jpg", "/images/silk-press-4.jpg"],
-  },
-  "raw-clipper-bundles": {
-    id: "p2", name: "Raw Brazilian Clipper Bundles", price: 85000, comparePrice: 95000,
-    category: "Hair Extensions", rating: 4.9, reviewCount: 89, stock: 15,
-    description: "100% raw Brazilian hair collected directly from a single donor. Unprocessed, Cuticle aligned, and double wefted for maximum longevity.",
-    features: ["Single donor hair", "Cuticle aligned", "Double wefted", "Lasts 2-3 years"],
-    tags: ["Brazilian", "Raw Hair", "Bundles"],
-    images: ["/images/bundles-1.jpg", "/images/bundles-2.jpg", "/images/bundles-3.jpg", "/images/bundles-4.jpg"],
-  },
-  "lace-frontal-wig": {
-    id: "p3", name: "HD Lace Frontal Wig — Body Wave", price: 120000, comparePrice: 145000,
-    category: "Wigs", rating: 4.7, reviewCount: 156, stock: 8,
-    description: "Invisible HD lace frontal wig with pre-plucked hairline and baby hairs. Ready to install and style for a flawless, undetectable look.",
-    features: ["13x4 HD lace frontal", "Pre-plucked hairline", "Baby hairs included", "Adjustable straps"],
-    tags: ["Wig", "HD Lace", "Body Wave"],
-    images: ["/images/wig-1.jpg", "/images/wig-2.jpg", "/images/wig-3.jpg", "/images/wig-4.jpg"],
-  },
-  "argan-oil-serum": {
-    id: "p4", name: "Moroccan Argan Oil Serum", price: 8500, category: "Hair Care",
-    rating: 4.6, reviewCount: 203, stock: 60,
-    description: "Lightweight argan oil serum that tames frizz, adds shine, and nourishes hair without weighing it down. Suitable for all hair types.",
-    features: ["Frizz control", "UV protection", "Non-greasy formula", "All hair types"],
-    tags: ["Argan Oil", "Serum", "Frizz Control"],
-    images: ["/images/serum-1.jpg", "/images/serum-2.jpg", "/images/serum-3.jpg", "/images/serum-4.jpg"],
-  },
-  "gel-nail-polish-set": {
-    id: "p5", name: "Premium Gel Polish Set — 12 Colors", price: 15000, comparePrice: 20000,
-    category: "Nail Care", rating: 4.5, reviewCount: 67, stock: 30,
-    description: "Long-lasting gel polish set featuring 12 curated shades from nude to bold. Chip-resistant and UV-cured for up to 3 weeks of wear.",
-    features: ["12 curated shades", "Chip-resistant formula", "UV/LED compatible", "Up to 3 weeks wear"],
-    tags: ["Gel Polish", "Nail Art", "Long Lasting"],
-    images: ["/images/nails-1.jpg", "/images/nails-2.jpg", "/images/nails-3.jpg", "/images/nails-4.jpg"],
-  },
-};
+interface Product {
+  id: string; name: string; slug: string; price: number; comparePrice?: number | null;
+  description: string | null; images: string[]; tags: string[];
+  stock: number; rating: number; reviewCount: number;
+  category: { id: string; name: string; slug: string };
+  reviews: { rating: number; comment: string | null; createdAt: string; user: { name: string | null } }[];
+  variants: { id: string; name: string; price: number; stock: number }[];
+}
 
-const relatedProducts = [
-  { id: "r1", name: "Growth Oil Serum", slug: "growth-oil-serum", price: 4500, image: "", rating: 4.7, reviewCount: 312, stock: 100 },
-  { id: "r2", name: "Deep Conditioning Treatment", slug: "deep-conditioning", price: 3500, image: "", rating: 4.9, reviewCount: 200, stock: 80 },
-  { id: "r3", name: "Edge Control Gel", slug: "edge-control", price: 2500, image: "", rating: 4.6, reviewCount: 234, stock: 120 },
-];
+interface RelatedProduct {
+  id: string; name: string; slug: string; price: number; comparePrice?: number | null;
+  image: string | null; reviewCount: number; stock: number;
+}
 
 export default function ProductDetailPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = use(params);
+  const [product, setProduct] = useState<Product | null>(null);
+  const [related, setRelated] = useState<RelatedProduct[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [selectedTab, setSelectedTab] = useState<"details" | "reviews" | "shipping">("details");
+  const [selectedImage, setSelectedImage] = useState(0);
   const addItem = useCartStore((s) => s.addItem);
   const { toggleItem, items: wishlistItems } = useWishlistStore();
 
-  const { slug } = use(params);
-  const product = productsData[slug];
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch(`/api/products?slug=${slug}`);
+        if (!res.ok) { setNotFound(true); return; }
+        const data = await res.json();
+        setProduct(data.product);
+        setRelated(data.related || []);
+      } catch { setNotFound(true); }
+      finally { setLoading(false); }
+    })();
+  }, [slug]);
 
-  if (!product) {
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center"><Loader2 className="h-8 w-8 text-gold animate-spin" /></div>;
+  }
+
+  if (notFound || !product) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center space-y-4">
           <h1 className="font-heading text-2xl font-bold text-charcoal">Product not found</h1>
           <p className="text-muted-foreground">The product you&apos;re looking for doesn&apos;t exist.</p>
           <Link href="/shop" className="inline-block">
-            <Button className="bg-charcoal text-white hover:bg-charcoal-light rounded-full px-8 text-xs font-semibold tracking-wider uppercase">
-              Back to Shop
-            </Button>
+            <Button className="bg-charcoal text-white hover:bg-charcoal-light rounded-full px-8 text-xs font-semibold tracking-wider uppercase">Back to Shop</Button>
           </Link>
         </div>
       </div>
@@ -88,6 +68,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
 
   const isInWishlist = wishlistItems.includes(product.id);
   const discount = product.comparePrice ? Math.round(((product.comparePrice - product.price) / product.comparePrice) * 100) : 0;
+  const displayImages = product.images.length > 0 ? product.images : [];
 
   return (
     <div className="min-h-screen">
@@ -95,53 +76,69 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
         <nav className="text-sm text-muted-foreground mb-8">
           <Link href="/shop" className="hover:text-gold transition-colors">Shop</Link>
           <span className="mx-2">/</span>
+          {product.category && <><Link href="/shop" className="hover:text-gold transition-colors">{product.category.name}</Link><span className="mx-2">/</span></>}
           <span className="text-charcoal">{product.name}</span>
         </nav>
         <div className="grid lg:grid-cols-2 gap-12">
           <div className="space-y-4">
-            <div className="aspect-square bg-cream rounded-2xl overflow-hidden flex items-center justify-center text-muted-foreground text-sm">Product Image</div>
-            <div className="grid grid-cols-4 gap-3">
-              {product.images.map((_, i) => (
-                <button key={i} className="aspect-square bg-cream rounded-lg border-2 border-transparent hover:border-gold transition-colors flex items-center justify-center text-muted-foreground text-xs">{i + 1}</button>
-              ))}
-            </div>
+            {displayImages.length > 0 ? (
+              <div className="aspect-square bg-cream rounded-2xl overflow-hidden relative">
+                <Image src={displayImages[selectedImage]} alt={product.name} fill className="object-cover" sizes="(max-width: 1024px) 100vw, 50vw" />
+              </div>
+            ) : (
+              <div className="aspect-square bg-cream rounded-2xl flex items-center justify-center text-muted-foreground text-sm">No image</div>
+            )}
+            {displayImages.length > 1 && (
+              <div className="grid grid-cols-4 gap-3">
+                {displayImages.map((img, i) => (
+                  <button key={i} onClick={() => setSelectedImage(i)} className={cn("aspect-square bg-cream rounded-lg border-2 overflow-hidden relative transition-colors", selectedImage === i ? "border-gold" : "border-transparent hover:border-gold/50")}>
+                    <Image src={img} alt={`${product.name} ${i + 1}`} fill className="object-cover" sizes="100px" />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
           <div className="space-y-6">
             <div>
               <div className="flex items-center gap-2 mb-2">
                 {discount > 0 && <span className="bg-gold/10 text-gold text-xs font-bold px-2.5 py-1 rounded-full">-{discount}%</span>}
-                {product.stock <= 10 && <span className="bg-amber-50 text-amber-700 text-xs font-bold px-2.5 py-1 rounded-full">Low Stock</span>}
+                {product.stock <= 10 && product.stock > 0 && <span className="bg-amber-50 text-amber-700 text-xs font-bold px-2.5 py-1 rounded-full">Low Stock</span>}
+                {product.stock === 0 && <span className="bg-red-50 text-red-600 text-xs font-bold px-2.5 py-1 rounded-full">Out of Stock</span>}
               </div>
               <h1 className="font-heading text-2xl md:text-3xl font-bold text-charcoal tracking-tight">{product.name}</h1>
               <div className="flex items-center gap-3 mt-3">
                 <div className="flex items-center gap-1">{[...Array(5)].map((_, i) => <Star key={i} className={cn("h-4 w-4", i < Math.floor(product.rating) ? "fill-gold text-gold" : "text-gray-200")} />)}</div>
-                <span className="text-sm text-muted-foreground">{product.rating} ({product.reviewCount} reviews)</span>
+                <span className="text-sm text-muted-foreground">{product.rating > 0 ? product.rating : "New"} ({product.reviewCount} reviews)</span>
               </div>
               <div className="flex items-baseline gap-3 mt-4">
                 <span className="text-3xl font-heading font-bold text-charcoal">₦{product.price.toLocaleString()}</span>
                 {product.comparePrice && <span className="text-lg text-muted-foreground line-through">₦{product.comparePrice.toLocaleString()}</span>}
               </div>
             </div>
-            <p className="text-muted-foreground leading-relaxed">{product.description}</p>
-            <div className="bg-cream rounded-lg p-4 space-y-2">
-              <span className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Features</span>
-              <ul className="space-y-1.5">
-                {product.features.map((f) => (
-                  <li key={f} className="text-sm text-charcoal flex items-center gap-2">
-                    <span className="h-1.5 w-1.5 rounded-full bg-gold shrink-0" />
-                    {f}
-                  </li>
-                ))}
-              </ul>
-            </div>
+            {product.description && <p className="text-muted-foreground leading-relaxed">{product.description}</p>}
+            {product.variants.length > 0 && (
+              <div className="bg-cream rounded-lg p-4">
+                <span className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Options</span>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {product.variants.map((v) => (
+                    <span key={v.id} className="text-sm text-charcoal bg-white border border-border rounded-full px-3 py-1">{v.name} — ₦{v.price.toLocaleString()}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+            {product.tags.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {product.tags.map((tag) => <span key={tag} className="text-[10px] bg-cream px-3 py-1 rounded-full text-muted-foreground font-medium">{tag}</span>)}
+              </div>
+            )}
             <div className="flex items-center gap-4">
               <div className="flex items-center border border-border rounded-full">
                 <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="h-10 w-10 flex items-center justify-center text-muted-foreground hover:text-charcoal"><Minus className="h-4 w-4" /></button>
                 <span className="w-12 text-center text-sm font-medium">{quantity}</span>
                 <button onClick={() => setQuantity(Math.min(product.stock, quantity + 1))} className="h-10 w-10 flex items-center justify-center text-muted-foreground hover:text-charcoal"><Plus className="h-4 w-4" /></button>
               </div>
-              <Button onClick={() => { console.log("Add to cart:", product, "qty:", quantity); }} className="flex-1 bg-charcoal text-white hover:bg-charcoal-light rounded-full py-6 text-xs font-semibold tracking-wider uppercase">
-                Add to Bag — ₦{(product.price * quantity).toLocaleString()}
+              <Button onClick={() => addItem({ productId: product.id, name: product.name, price: product.price, image: product.images?.[0] ?? undefined, quantity, maxStock: product.stock })} disabled={product.stock === 0} className="flex-1 bg-charcoal text-white hover:bg-charcoal-light rounded-full py-6 text-xs font-semibold tracking-wider uppercase">
+                {product.stock === 0 ? "Out of Stock" : `Add to Bag — ₦${(product.price * quantity).toLocaleString()}`}
               </Button>
               <Button onClick={() => toggleItem(product.id)} variant="outline" size="icon" className="h-12 w-12 rounded-full border-border">
                 <Heart className={cn("h-5 w-5", isInWishlist ? "fill-gold text-gold" : "text-charcoal")} />
@@ -167,17 +164,39 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
             ))}
           </div>
           <div className="py-8">
-            {selectedTab === "details" && <p className="text-sm text-muted-foreground leading-relaxed max-w-2xl">{product.description}</p>}
-            {selectedTab === "reviews" && <div className="space-y-6">{[1, 2, 3].map((i) => (<div key={i} className="border-b border-border pb-6"><div className="flex items-center gap-2 mb-2"><div className="flex gap-0.5">{[...Array(5)].map((_, j) => <Star key={j} className="h-3 w-3 fill-gold text-gold" />)}</div><span className="text-sm font-medium text-charcoal">Customer {i}</span></div><p className="text-sm text-muted-foreground">Absolutely love this product! The quality is amazing and it came beautifully packaged.</p></div>))}</div>}
-            {selectedTab === "shipping" && <div className="max-w-2xl space-y-4 text-sm text-muted-foreground leading-relaxed"><p><strong className="text-charcoal">Shipping:</strong> Free delivery on orders over ₦30,000 within Lagos.</p><p><strong className="text-charcoal">Returns:</strong> 7-day return policy for unopened products.</p><p><strong className="text-charcoal">International:</strong> We ship worldwide.</p></div>}
+            {selectedTab === "details" && <p className="text-sm text-muted-foreground leading-relaxed max-w-2xl">{product.description || "No additional details available."}</p>}
+            {selectedTab === "reviews" && (
+              <div className="space-y-6">
+                {product.reviews.length === 0 ? (
+                  <p className="text-muted-foreground text-sm">No reviews yet. Be the first to review this product!</p>
+                ) : product.reviews.map((review, i) => (
+                  <div key={i} className="border-b border-border pb-6">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="flex gap-0.5">{[...Array(5)].map((_, j) => <Star key={j} className={cn("h-3 w-3", j < review.rating ? "fill-gold text-gold" : "text-gray-200")} />)}</div>
+                      <span className="text-sm font-medium text-charcoal">{review.user?.name || "Customer"}</span>
+                    </div>
+                    {review.comment && <p className="text-sm text-muted-foreground">{review.comment}</p>}
+                  </div>
+                ))}
+              </div>
+            )}
+            {selectedTab === "shipping" && (
+              <div className="max-w-2xl space-y-4 text-sm text-muted-foreground leading-relaxed">
+                <p><strong className="text-charcoal">Shipping:</strong> Free delivery on orders over ₦30,000 within Lagos.</p>
+                <p><strong className="text-charcoal">Returns:</strong> 7-day return policy for unopened products.</p>
+                <p><strong className="text-charcoal">International:</strong> We ship worldwide.</p>
+              </div>
+            )}
           </div>
         </div>
-        <div className="mt-16">
-          <h2 className="font-heading text-2xl font-bold text-charcoal mb-6">You May Also Like</h2>
-          <div className="grid sm:grid-cols-3 gap-6">
-            {relatedProducts.map((p) => <ProductCard key={p.id} product={p} />)}
+        {related.length > 0 && (
+          <div className="mt-16">
+            <h2 className="font-heading text-2xl font-bold text-charcoal mb-6">You May Also Like</h2>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {related.map((p) => <ProductCard key={p.id} product={{ ...p, comparePrice: p.comparePrice ?? undefined, image: p.image ?? undefined, rating: 0 }} />)}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
