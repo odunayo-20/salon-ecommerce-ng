@@ -37,6 +37,10 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Payment not found" }, { status: 404 });
       }
 
+      if (payment.status === "PAID") {
+        return NextResponse.json({ success: true, message: "Already processed" });
+      }
+
       await prisma.payment.update({
         where: { id: payment.id },
         data: {
