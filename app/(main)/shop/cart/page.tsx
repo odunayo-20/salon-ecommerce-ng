@@ -74,7 +74,9 @@ export default function CartPage() {
                   <div className="border-t border-border pt-3 flex justify-between"><span className="font-semibold text-charcoal">Total</span><span className="font-heading text-lg font-bold text-charcoal">₦{grandTotal.toLocaleString()}</span></div>
                 </div>
                 {total < 30000 && <p className="text-xs text-gold mt-3 text-center">Add ₦{(30000 - total).toLocaleString()} more for free shipping!</p>}
-                <Button className="w-full mt-6 bg-gold text-white hover:bg-gold-dark rounded-full py-6 text-xs font-semibold tracking-wider uppercase">Proceed to Checkout</Button>
+                <Button asChild className="w-full mt-6 bg-gold text-white hover:bg-gold-dark rounded-full py-6 text-xs font-semibold tracking-wider uppercase">
+                  <Link href="/shop/checkout">Proceed to Checkout</Link>
+                </Button>
               </div>
             </div>
           </div>
