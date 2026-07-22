@@ -1,50 +1,40 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Loader2, CheckCircle } from "lucide-react";
 
-const categories = [
-  {
-    id: "hair",
-    name: "Hair Services",
-    services: [
-      { name: "Braids", slug: "braids", price: 20000, duration: 150 },
-      { name: "Knotless Braids", slug: "knotless-braids", price: 25000, duration: 180, popular: true },
-      { name: "Loc Maintenance", slug: "loc-maintenance", price: 15000, duration: 120 },
-      { name: "Wig Installation", slug: "wig-installation", price: 15000, duration: 120 },
-      { name: "Natural Hair Treatment", slug: "natural-hair-treatment", price: 8000, duration: 60 },
-      { name: "Silk Press", slug: "silk-press", price: 12000, duration: 90, popular: true },
-    ],
-  },
-  {
-    id: "nails",
-    name: "Nail Services",
-    services: [
-      { name: "Acrylic Nails", slug: "acrylic", price: 5000, duration: 60 },
-      { name: "Gel Nails", slug: "gel", price: 4500, duration: 45 },
-      { name: "Manicure", slug: "manicure", price: 3000, duration: 30 },
-      { name: "Pedicure", slug: "pedicure", price: 4000, duration: 40 },
-    ],
-  },
-];
+interface Service {
+  id: string;
+  name: string;
+  slug: string;
+  price: number;
+  duration: number;
+  isPopular: boolean;
+  category: { id: string; name: string; slug: string; type: string };
+}
 
-const stylists = [
-  { id: "s1", name: "Amara Johnson", specialties: ["Braids", "Knotless Braids", "Natural Hair"], experience: 8, availableDays: [1, 2, 3, 4, 5, 6] },
-  { id: "s2", name: "Chioma Obi", specialties: ["Wig Installation", "Silk Press", "Color"], experience: 6, availableDays: [1, 2, 3, 5, 6] },
-  { id: "s3", name: "Fatima Ali", specialties: ["Natural Hair Treatment", "Loc Maintenance", "Deep Conditioning"], experience: 10, availableDays: [1, 3, 4, 5, 6] },
-  { id: "s4", name: "Zainab Okafor", specialties: ["Acrylic", "Gel", "Manicure", "Pedicure"], experience: 5, availableDays: [1, 2, 3, 4, 5, 6] },
-];
+interface Stylist {
+  id: string;
+  user: { id: string; name: string | null; image: string | null };
+  specialties: string[];
+  experience: number | null;
+  services: { service: { id: string } }[];
+}
 
 const timeSlots = ["09:00","09:30","10:00","10:30","11:00","11:30","12:00","12:30","13:00","13:30","14:00","14:30","15:00","15:30","16:00","16:30","17:00","17:30"];
 
 export default function BookPage() {
+  const { data: session } = useSession();
+  const router = useRouter();
   const [step, setStep] = useState(1);
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [selectedService, setSelectedService] = useState<string | null>(null);
-  const [selectedStylist, setSelectedStylist] = useState<string | null>(null);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+  const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
+  const [selectedStylistId, setSelectedStylistId] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedTime, setSelectedTime] = useState("");
   const [notes, setNotes] = useState("");
@@ -52,10 +42,45 @@ export default function BookPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [bookingConfirmed, setBookingConfirmed] = useState(false);
   const [bookingError, setBookingError] = useState("");
+  const [createdRef, setCreatedRef] = useState("");
 
-  const activeCategory = categories.find((c) => c.id === selectedCategory);
-  const activeService = activeCategory?.services.find((s) => s.slug === selectedService);
-  const activeStylist = stylists.find((s) => s.id === selectedStylist);
+  const [allServices, setAllServices] = useState<Service[]>([]);
+  const [stylists, setStylists] = useState<Stylist[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchData = useCallback(async () => {
+    try {
+      const [svcRes, styRes] = await Promise.all([
+        fetch("/api/services?isActive=true&limit=100"),
+        fetch("/api/stylists?isActive=true"),
+      ]);
+      const svcData = await svcRes.json();
+      const styData = await styRes.json();
+      setAllServices(svcData.services || []);
+      setStylists(styData.stylists || []);
+    } catch {
+      // silent
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  const categories = allServices.reduce((acc, svc) => {
+    if (svc.category.type !== "service") return acc;
+    const existing = acc.find((c) => c.id === svc.category.id);
+    if (existing) {
+      existing.services.push(svc);
+    } else {
+      acc.push({ id: svc.category.id, name: svc.category.name, services: [svc] });
+    }
+    return acc;
+  }, [] as { id: string; name: string; services: Service[] }[]);
+
+  const activeCategory = categories.find((c) => c.id === selectedCategoryId);
+  const activeService = activeCategory?.services.find((s) => s.id === selectedServiceId);
+  const activeStylist = stylists.find((s) => s.id === selectedStylistId);
 
   const today = new Date();
   const calendarDays: Date[] = [];
@@ -67,6 +92,9 @@ export default function BookPage() {
   const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
   const handleSubmitBooking = async () => {
+    if (!session) { router.push("/auth/signin"); return; }
+    if (!activeService) return;
+
     setIsSubmitting(true);
     setBookingError("");
     try {
@@ -74,15 +102,17 @@ export default function BookPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          serviceId: activeService?.slug || "",
-          stylistId: activeStylist?.id || null,
+          serviceId: activeService.id,
+          stylistId: selectedStylistId || undefined,
           date: selectedDate,
-          time: selectedTime,
-          notes,
+          startTime: selectedTime,
+          notes: notes || undefined,
           paymentMethod: paymentOption,
         }),
       });
-      if (!res.ok) throw new Error("Booking failed. Please try again.");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Booking failed. Please try again.");
+      setCreatedRef(data.appointment?.reference || "");
       setBookingConfirmed(true);
     } catch (err) {
       setBookingError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
@@ -90,6 +120,14 @@ export default function BookPage() {
       setIsSubmitting(false);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-cream flex items-center justify-center">
+        <Loader2 className="h-6 w-6 text-gold animate-spin" />
+      </div>
+    );
+  }
 
   if (bookingConfirmed) {
     return (
@@ -104,11 +142,12 @@ export default function BookPage() {
           <div className="bg-white border border-border rounded-2xl p-8 text-center space-y-6">
             <CheckCircle className="h-16 w-16 text-gold mx-auto" />
             <h2 className="font-heading text-2xl font-bold text-charcoal">Booking Confirmed!</h2>
-            <p className="text-muted-foreground">Thank you for booking with us. Here&apos;s a summary of your appointment:</p>
+            {createdRef && <p className="text-sm text-muted-foreground">Reference: <span className="font-mono font-semibold text-charcoal">{createdRef}</span></p>}
+            <p className="text-muted-foreground">Thank you for booking with us. A confirmation email has been sent.</p>
             <div className="max-w-sm mx-auto space-y-3 text-left">
               {[
                 ["Service", activeService?.name],
-                ["Stylist", activeStylist?.name || "No preference"],
+                ["Stylist", activeStylist?.user.name || "No preference"],
                 ["Date", selectedDate],
                 ["Time", selectedTime],
               ].filter(([, v]) => v).map(([label, value]) => (
@@ -158,9 +197,9 @@ export default function BookPage() {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 pb-20">
         {step === 1 && (
           <div className="space-y-8">
-            <div className="flex gap-3">
+            <div className="flex gap-3 flex-wrap">
               {categories.map((cat) => (
-                <button key={cat.id} onClick={() => { setSelectedCategory(cat.id); setSelectedService(null); }} className={cn("px-6 py-3 rounded-full text-sm font-medium transition-all border", selectedCategory === cat.id ? "bg-charcoal text-white border-charcoal" : "bg-white text-charcoal border-border hover:border-charcoal")}>
+                <button key={cat.id} onClick={() => { setSelectedCategoryId(cat.id); setSelectedServiceId(null); }} className={cn("px-6 py-3 rounded-full text-sm font-medium transition-all border", selectedCategoryId === cat.id ? "bg-charcoal text-white border-charcoal" : "bg-white text-charcoal border-border hover:border-charcoal")}>
                   {cat.name}
                 </button>
               ))}
@@ -168,10 +207,10 @@ export default function BookPage() {
             {activeCategory && (
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {activeCategory.services.map((service) => (
-                  <button key={service.slug} onClick={() => setSelectedService(service.slug)} className={cn("bg-white border rounded-xl p-5 text-left transition-all hover:shadow-md", selectedService === service.slug ? "border-gold shadow-md ring-1 ring-gold/20" : "border-border hover:border-gold/30")}>
+                  <button key={service.id} onClick={() => setSelectedServiceId(service.id)} className={cn("bg-white border rounded-xl p-5 text-left transition-all hover:shadow-md", selectedServiceId === service.id ? "border-gold shadow-md ring-1 ring-gold/20" : "border-border hover:border-gold/30")}>
                     <div className="flex items-start justify-between">
                       <h3 className="font-heading font-semibold text-charcoal">{service.name}</h3>
-                      {service.popular && <span className="text-[10px] bg-gold/10 text-gold px-2 py-0.5 rounded-full font-bold">Popular</span>}
+                      {service.isPopular && <span className="text-[10px] bg-gold/10 text-gold px-2 py-0.5 rounded-full font-bold">Popular</span>}
                     </div>
                     <div className="flex items-center gap-3 mt-2 text-sm text-muted-foreground">
                       <span>{service.duration} min</span>
@@ -182,7 +221,7 @@ export default function BookPage() {
                 ))}
               </div>
             )}
-            {selectedService && (
+            {selectedServiceId && (
               <div className="flex justify-end">
                 <Button onClick={() => setStep(2)} className="bg-charcoal text-white hover:bg-charcoal-light rounded-full px-8 text-xs font-semibold tracking-wider uppercase">Continue</Button>
               </div>
@@ -193,25 +232,28 @@ export default function BookPage() {
         {step === 2 && (
           <div className="space-y-6">
             <div className="grid sm:grid-cols-2 gap-4">
-              {stylists.map((stylist) => (
-                <button key={stylist.id} onClick={() => setSelectedStylist(stylist.id)} className={cn("bg-white border rounded-xl p-5 text-left transition-all hover:shadow-md", selectedStylist === stylist.id ? "border-gold shadow-md ring-1 ring-gold/20" : "border-border hover:border-gold/30")}>
-                  <div className="flex items-start gap-4">
-                    <div className="h-16 w-16 rounded-full bg-cream flex items-center justify-center shrink-0">
-                      <span className="font-heading text-xl font-semibold text-gold">{stylist.name.charAt(0)}</span>
-                    </div>
-                    <div>
-                      <h3 className="font-heading font-semibold text-charcoal">{stylist.name}</h3>
-                      <p className="text-xs text-muted-foreground mt-0.5">{stylist.experience} years experience</p>
-                      <div className="flex flex-wrap gap-1.5 mt-2">
-                        {stylist.specialties.map((spec) => (
-                          <span key={spec} className="text-[10px] bg-cream px-2 py-0.5 rounded-full text-muted-foreground">{spec}</span>
-                        ))}
+              {stylists.map((stylist) => {
+                const canDoService = activeService ? stylist.services.some((ss) => ss.service.id === activeService.id) : true;
+                return (
+                  <button key={stylist.id} onClick={() => setSelectedStylistId(stylist.id)} className={cn("bg-white border rounded-xl p-5 text-left transition-all hover:shadow-md", selectedStylistId === stylist.id ? "border-gold shadow-md ring-1 ring-gold/20" : "border-border hover:border-gold/30", !canDoService && "opacity-50")}>
+                    <div className="flex items-start gap-4">
+                      <div className="h-16 w-16 rounded-full bg-cream flex items-center justify-center shrink-0 overflow-hidden">
+                        {stylist.user.image ? <img src={stylist.user.image} alt="" className="h-full w-full object-cover" /> : <span className="font-heading text-xl font-semibold text-gold">{(stylist.user.name || "?").charAt(0)}</span>}
+                      </div>
+                      <div>
+                        <h3 className="font-heading font-semibold text-charcoal">{stylist.user.name}</h3>
+                        {stylist.experience && <p className="text-xs text-muted-foreground mt-0.5">{stylist.experience} years experience</p>}
+                        <div className="flex flex-wrap gap-1.5 mt-2">
+                          {stylist.specialties.slice(0, 3).map((spec) => (
+                            <span key={spec} className="text-[10px] bg-cream px-2 py-0.5 rounded-full text-muted-foreground">{spec}</span>
+                          ))}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </button>
-              ))}
-              <button onClick={() => setSelectedStylist(null)} className={cn("bg-white border rounded-xl p-5 text-left transition-all hover:shadow-md", selectedStylist === null ? "border-gold shadow-md ring-1 ring-gold/20" : "border-border hover:border-gold/30")}>
+                  </button>
+                );
+              })}
+              <button onClick={() => setSelectedStylistId(null)} className={cn("bg-white border rounded-xl p-5 text-left transition-all hover:shadow-md", selectedStylistId === null ? "border-gold shadow-md ring-1 ring-gold/20" : "border-border hover:border-gold/30")}>
                 <h3 className="font-heading font-semibold text-charcoal">No Preference</h3>
                 <p className="text-sm text-muted-foreground mt-1">We&apos;ll match you with the best available stylist</p>
               </button>
@@ -238,10 +280,8 @@ export default function BookPage() {
                   const dateStr = date.toISOString().split("T")[0];
                   const isSelected = selectedDate === dateStr;
                   const isToday = date.toDateString() === today.toDateString();
-                  const dayOfWeek = date.getDay();
-                  const available = activeStylist ? activeStylist.availableDays.includes(dayOfWeek) : true;
                   return (
-                    <button key={dateStr} onClick={() => available && setSelectedDate(dateStr)} disabled={!available} className={cn("h-10 rounded-lg text-sm font-medium transition-all", isSelected ? "bg-gold text-white" : available ? "hover:bg-cream text-charcoal" : "text-muted-foreground/40 cursor-not-allowed", isToday && !isSelected && "ring-1 ring-gold")}>
+                    <button key={dateStr} onClick={() => setSelectedDate(dateStr)} className={cn("h-10 rounded-lg text-sm font-medium transition-all", isSelected ? "bg-gold text-white" : "hover:bg-cream text-charcoal", isToday && !isSelected && "ring-1 ring-gold")}>
                       {date.getDate()}
                     </button>
                   );
@@ -279,7 +319,7 @@ export default function BookPage() {
                 {[
                   ["Service", activeService?.name],
                   ["Duration", activeService ? `${activeService.duration} min` : undefined],
-                  ["Stylist", activeStylist?.name || "No preference"],
+                  ["Stylist", activeStylist?.user.name || "No preference"],
                   ["Date", selectedDate],
                   ["Time", selectedTime],
                 ].filter(([, v]) => v).map(([label, value]) => (
@@ -316,6 +356,11 @@ export default function BookPage() {
                 ))}
               </div>
             </div>
+            {!session && (
+              <div className="bg-amber-50 border border-amber-200 text-amber-700 text-sm rounded-lg px-4 py-3 text-center">
+                You&apos;ll need to <Link href="/auth/signin" className="font-semibold underline">sign in</Link> to complete your booking.
+              </div>
+            )}
             {bookingError && (
               <p className="text-sm text-red-600 text-center">{bookingError}</p>
             )}

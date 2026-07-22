@@ -26,7 +26,7 @@ export async function GET(request: Request) {
       prisma.service.findMany({
         where,
         include: {
-          category: { select: { id: true, name: true, slug: true } },
+          category: { select: { id: true, name: true, slug: true, type: true } },
           _count: { select: { reviews: true, appointments: true } },
         },
         orderBy: [{ sortOrder: "asc" }, { name: "asc" }],

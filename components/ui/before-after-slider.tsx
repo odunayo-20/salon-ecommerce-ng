@@ -46,13 +46,15 @@ export function BeforeAfterSlider({
     >
       {/* After Image (full) */}
       <div className="absolute inset-0">
-        <Image
-          src={afterImage}
-          alt={afterAlt}
-          fill
-          className="object-cover"
-          sizes="100vw"
-        />
+        {afterImage && (
+          <Image
+            src={afterImage}
+            alt={afterAlt}
+            fill
+            className="object-cover"
+            sizes="100vw"
+          />
+        )}
       </div>
 
       {/* Before Image (clipped) */}
@@ -60,14 +62,16 @@ export function BeforeAfterSlider({
         className="absolute inset-0 overflow-hidden"
         style={{ width: `${sliderPosition}%` }}
       >
-        <Image
-          src={beforeImage}
-          alt={beforeAlt}
-          fill
-          className="object-cover"
-          sizes="100vw"
-          style={{ width: "100%", maxWidth: "none", objectPosition: "left center" }}
-        />
+        {beforeImage && (
+          <Image
+            src={beforeImage}
+            alt={beforeAlt}
+            fill
+            className="object-cover"
+            sizes="100vw"
+            style={{ width: "100%", maxWidth: "none", objectPosition: "left center" }}
+          />
+        )}
       </div>
 
       {/* Slider Line */}

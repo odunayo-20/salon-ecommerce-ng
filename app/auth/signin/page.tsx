@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { signIn } from "next-auth/react";
+import { getSession, signIn } from "next-auth/react";
 import { Eye, EyeOff, Mail, Lock, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -26,27 +26,38 @@ export default function SignInPage() {
     setLoading(true);
     setError("");
 
-    try {
-      const result = await signIn("credentials", {
-        email: email.trim().toLowerCase(),
-        password,
-        redirect: false,
-      });
+  try {
+  const result = await signIn("credentials", {
+    email: email.trim().toLowerCase(),
+    password,
+    redirect: false,
+  });
 
-      if (result?.error) {
-        setError("Invalid email or password. Please try again.");
-        return;
-      }
+  if (result?.error) {
+    setError("Invalid email or password. Please try again.");
+    return;
+  }
 
-      toast.success("Welcome back!", { description: "You've been signed in successfully." });
-      router.push("/dashboard");
-      router.refresh();
-    } catch {
-      setError("Something went wrong. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Get the updated session
+  const session = await getSession();
+
+  toast.success("Welcome back!", {
+    description: "You've been signed in successfully.",
+  });
+
+  if (session?.user?.role === "ADMIN") {
+    router.push("/admin");
+  } else {
+    router.push("/dashboard");
+  }
+
+  router.refresh();
+} catch {
+  setError("Something went wrong. Please try again.");
+} finally {
+  setLoading(false);
+}
+  }
 
   return (
     <div className="min-h-screen flex">

@@ -1,47 +1,313 @@
 "use client";
 
-const appointments = [
-  { id: "APT-001", customer: "Adaeze O.", service: "Knotless Braids", stylist: "Amara J.", date: "2024-01-28", time: "10:00 AM", status: "confirmed", amount: 25000 },
-  { id: "APT-002", customer: "Folake M.", service: "Silk Press", stylist: "Chioma O.", date: "2024-01-28", time: "11:30 AM", status: "in_progress", amount: 12000 },
-  { id: "APT-003", customer: "Ngozi A.", service: "Wig Installation", stylist: "Chioma O.", date: "2024-01-28", time: "1:00 PM", status: "pending", amount: 15000 },
-  { id: "APT-004", customer: "Blessing E.", service: "Gel Manicure", stylist: "Zainab O.", date: "2024-01-28", time: "2:30 PM", status: "completed", amount: 4500 },
-];
+import { useState, useEffect, useCallback } from "react";
+import { Button } from "@/components/ui/button";
+import { Search, X, Loader2, Calendar, Clock, User, Eye, XCircle, CheckCircle, RefreshCw, Trash2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-const statusColors: Record<string, string> = { confirmed: "bg-emerald-50 text-emerald-700", in_progress: "bg-blue-50 text-blue-700", pending: "bg-amber-50 text-amber-700", completed: "bg-gray-50 text-gray-600", cancelled: "bg-red-50 text-red-600" };
+interface Appointment {
+  id: string;
+  reference: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  status: string;
+  notes: string | null;
+  totalAmount: number;
+  depositPaid: number;
+  cancelledAt: string | null;
+  cancelReason: string | null;
+  isRescheduled: boolean;
+  service: { id: string; name: string; duration: number; price: number };
+  stylist: { id: string; user: { id: string; name: string | null; image: string | null } } | null;
+  customerProfile: { user: { id: string; name: string | null; email: string | null; phone: string | null; image: string | null } };
+  payments?: { id: string; amount: number; status: string }[];
+}
+
+const statusColors: Record<string, string> = {
+  PENDING: "bg-amber-50 text-amber-700",
+  CONFIRMED: "bg-emerald-50 text-emerald-700",
+  IN_PROGRESS: "bg-blue-50 text-blue-700",
+  COMPLETED: "bg-gray-50 text-gray-600",
+  CANCELLED: "bg-red-50 text-red-600",
+  NO_SHOW: "bg-red-50 text-red-600",
+};
+
+const statusLabels: Record<string, string> = {
+  PENDING: "Pending",
+  CONFIRMED: "Confirmed",
+  IN_PROGRESS: "In Progress",
+  COMPLETED: "Completed",
+  CANCELLED: "Cancelled",
+  NO_SHOW: "No Show",
+};
 
 export default function AdminAppointmentsPage() {
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [filterDate, setFilterDate] = useState("");
+  const [selected, setSelected] = useState<Appointment | null>(null);
+  const [showDetail, setShowDetail] = useState(false);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState("");
+  const [errorMsg, setErrorMsg] = useState("");
+
+  const fetchAppointments = useCallback(async () => {
+    try {
+      const params = new URLSearchParams();
+      if (filterStatus !== "all") params.set("status", filterStatus);
+      if (search) params.set("search", search);
+      if (filterDate) params.set("date", filterDate);
+      const res = await fetch(`/api/admin/appointments?${params}`);
+      const data = await res.json();
+      setAppointments(data.appointments || []);
+    } catch {
+      setErrorMsg("Failed to load appointments");
+    } finally {
+      setLoading(false);
+    }
+  }, [filterStatus, search, filterDate]);
+
+  useEffect(() => { fetchAppointments(); }, [fetchAppointments]);
+  useEffect(() => { if (successMsg) { const t = setTimeout(() => setSuccessMsg(""), 3000); return () => clearTimeout(t); } }, [successMsg]);
+
+  const updateStatus = async (id: string, status: string, cancelReason?: string) => {
+    setUpdatingId(id);
+    try {
+      const res = await fetch(`/api/admin/appointments/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status, cancelReason }),
+      });
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
+      setSuccessMsg(`Appointment ${status.toLowerCase()}`);
+      fetchAppointments();
+      if (selected?.id === id) { setShowDetail(false); setSelected(null); }
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : "Failed to update");
+    } finally { setUpdatingId(null); }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Delete this appointment? This cannot be undone.")) return;
+    try {
+      const res = await fetch(`/api/admin/appointments/${id}`, { method: "DELETE" });
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
+      setSuccessMsg("Appointment deleted");
+      fetchAppointments();
+      if (selected?.id === id) { setShowDetail(false); setSelected(null); }
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : "Failed to delete");
+    }
+  };
+
+  const formatDate = (d: string) => new Date(d).toLocaleDateString("en-NG", { weekday: "short", year: "numeric", month: "short", day: "numeric" });
+
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="font-heading text-2xl font-bold text-charcoal">Appointments</h1>
-        <div className="flex gap-2">
-          <select className="px-4 py-2 bg-white border border-border rounded-full text-sm text-charcoal focus:outline-none focus:border-gold">
-            <option>All Status</option>
-            <option>Confirmed</option>
-            <option>Pending</option>
-            <option>Completed</option>
-          </select>
+    <div className="space-y-6">
+      <div>
+        <h1 className="font-heading text-2xl font-bold text-charcoal tracking-tight">Appointments</h1>
+        <p className="text-sm text-muted-foreground mt-1">Manage all customer bookings</p>
+      </div>
+
+      {successMsg && <div className="bg-green-50 border border-green-200 text-green-700 text-sm rounded-lg px-4 py-3 flex items-center justify-between"><span>{successMsg}</span><button onClick={() => setSuccessMsg("")}><X className="h-4 w-4" /></button></div>}
+      {errorMsg && <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3 flex items-center justify-between"><span>{errorMsg}</span><button onClick={() => setErrorMsg("")}><X className="h-4 w-4" /></button></div>}
+
+      {/* Filters */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by ref, customer, or service..." className="w-full bg-white border border-border rounded-lg pl-10 pr-4 py-2.5 text-sm text-charcoal placeholder:text-muted-foreground focus:outline-none focus:border-gold" />
+        </div>
+        <input type="date" value={filterDate} onChange={(e) => setFilterDate(e.target.value)} className="bg-white border border-border rounded-lg px-4 py-2.5 text-sm text-charcoal focus:outline-none focus:border-gold" />
+        <div className="flex gap-1 bg-white border border-border rounded-lg p-1 flex-wrap">
+          {["all", "pending", "confirmed", "in_progress", "completed", "cancelled"].map((s) => (
+            <button key={s} onClick={() => setFilterStatus(s)} className={cn("px-3 py-1.5 rounded-md text-xs font-medium transition-all capitalize", filterStatus === s ? "bg-charcoal text-white" : "text-muted-foreground hover:text-charcoal")}>{s === "all" ? "All" : statusLabels[s] || s}</button>
+          ))}
         </div>
       </div>
-      <div className="bg-white border border-border rounded-xl overflow-hidden">
-        <table className="w-full text-sm">
-          <thead><tr className="border-b border-border bg-cream/50">{["Ref", "Customer", "Service", "Stylist", "Date", "Time", "Status", "Amount"].map((h) => <th key={h} className="text-left px-5 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">{h}</th>)}</tr></thead>
-          <tbody>
-            {appointments.map((a) => (
-              <tr key={a.id} className="border-b border-border/50 last:border-0 hover:bg-cream/30">
-                <td className="px-5 py-4 font-medium text-charcoal">{a.id}</td>
-                <td className="px-5 py-4 text-muted-foreground">{a.customer}</td>
-                <td className="px-5 py-4 text-charcoal">{a.service}</td>
-                <td className="px-5 py-4 text-muted-foreground">{a.stylist}</td>
-                <td className="px-5 py-4 text-muted-foreground">{a.date}</td>
-                <td className="px-5 py-4 text-muted-foreground">{a.time}</td>
-                <td className="px-5 py-4"><span className={`inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider ${statusColors[a.status]}`}>{a.status.replace("_", " ")}</span></td>
-                <td className="px-5 py-4 font-medium text-charcoal">₦{a.amount.toLocaleString()}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+
+      {/* Table */}
+      {loading ? (
+        <div className="bg-white border border-border rounded-2xl p-12 text-center">
+          <Loader2 className="h-6 w-6 text-gold animate-spin mx-auto" />
+          <p className="text-sm text-muted-foreground mt-3">Loading appointments...</p>
+        </div>
+      ) : appointments.length === 0 ? (
+        <div className="bg-white border border-border rounded-2xl p-12 text-center">
+          <Calendar className="h-10 w-10 text-border mx-auto mb-3" />
+          <p className="text-muted-foreground">No appointments found</p>
+        </div>
+      ) : (
+        <div className="bg-white border border-border rounded-xl overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border bg-cream/50">
+                  {["Ref", "Customer", "Service", "Stylist", "Date & Time", "Status", "Amount", "Actions"].map((h) => (
+                    <th key={h} className="text-left px-5 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {appointments.map((a) => (
+                  <tr key={a.id} className="border-b border-border/50 last:border-0 hover:bg-cream/30">
+                    <td className="px-5 py-4 font-mono text-xs font-medium text-charcoal">{a.reference}</td>
+                    <td className="px-5 py-4">
+                      <div className="flex items-center gap-2">
+                        <div className="h-7 w-7 rounded-full bg-cream flex items-center justify-center text-[10px] font-bold text-charcoal shrink-0">
+                          {a.customerProfile.user.image ? <img src={a.customerProfile.user.image} alt="" className="h-full w-full rounded-full object-cover" /> : (a.customerProfile.user.name || "?").charAt(0)}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-charcoal truncate">{a.customerProfile.user.name}</p>
+                          <p className="text-[10px] text-muted-foreground truncate">{a.customerProfile.user.email}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-5 py-4 text-charcoal">{a.service.name}</td>
+                    <td className="px-5 py-4 text-muted-foreground">{a.stylist?.user.name || "—"}</td>
+                    <td className="px-5 py-4">
+                      <p className="text-charcoal">{formatDate(a.date)}</p>
+                      <p className="text-[10px] text-muted-foreground">{a.startTime} — {a.endTime}</p>
+                    </td>
+                    <td className="px-5 py-4">
+                      <span className={cn("inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider", statusColors[a.status])}>
+                        {statusLabels[a.status] || a.status}
+                      </span>
+                    </td>
+                    <td className="px-5 py-4 font-medium text-charcoal">₦{a.totalAmount.toLocaleString()}</td>
+                    <td className="px-5 py-4">
+                      <div className="flex items-center gap-1">
+                        <button onClick={() => { setSelected(a); setShowDetail(true); }} className="p-1.5 rounded-lg text-muted-foreground hover:text-charcoal hover:bg-cream transition-colors" title="View details"><Eye className="h-4 w-4" /></button>
+                        {a.status === "PENDING" && (
+                          <button onClick={() => updateStatus(a.id, "CONFIRMED")} disabled={updatingId === a.id} className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50 transition-colors" title="Confirm"><CheckCircle className="h-4 w-4" /></button>
+                        )}
+                        {["PENDING", "CONFIRMED"].includes(a.status) && (
+                          <button onClick={() => updateStatus(a.id, "CANCELLED")} disabled={updatingId === a.id} className="p-1.5 rounded-lg text-red-500 hover:bg-red-50 transition-colors" title="Cancel"><XCircle className="h-4 w-4" /></button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Detail Modal */}
+      {showDetail && selected && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/50" onClick={() => setShowDetail(false)} />
+          <div className="relative bg-white rounded-2xl max-w-lg w-full shadow-xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border sticky top-0 bg-white z-10">
+              <div>
+                <h2 className="font-heading text-lg font-semibold text-charcoal">Appointment Details</h2>
+                <p className="text-xs text-muted-foreground font-mono">{selected.reference}</p>
+              </div>
+              <button onClick={() => setShowDetail(false)} className="p-1 rounded-lg text-muted-foreground hover:text-charcoal hover:bg-cream"><X className="h-5 w-5" /></button>
+            </div>
+
+            <div className="px-6 py-5 space-y-5">
+              {/* Status */}
+              <div className="flex items-center gap-3">
+                <span className={cn("inline-flex px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider", statusColors[selected.status])}>{statusLabels[selected.status]}</span>
+                {selected.isRescheduled && <span className="text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-medium">Rescheduled</span>}
+              </div>
+
+              {/* Info Grid */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-cream rounded-lg p-3">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Service</p>
+                  <p className="text-sm font-medium text-charcoal mt-0.5">{selected.service.name}</p>
+                  <p className="text-[10px] text-muted-foreground">{selected.service.duration} min</p>
+                </div>
+                <div className="bg-cream rounded-lg p-3">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Stylist</p>
+                  <p className="text-sm font-medium text-charcoal mt-0.5">{selected.stylist?.user.name || "No preference"}</p>
+                </div>
+                <div className="bg-cream rounded-lg p-3">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Date & Time</p>
+                  <p className="text-sm font-medium text-charcoal mt-0.5">{formatDate(selected.date)}</p>
+                  <p className="text-[10px] text-muted-foreground">{selected.startTime} — {selected.endTime}</p>
+                </div>
+                <div className="bg-cream rounded-lg p-3">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Payment</p>
+                  <p className="text-sm font-medium text-charcoal mt-0.5">₦{selected.totalAmount.toLocaleString()}</p>
+                  <p className="text-[10px] text-muted-foreground">Deposit: ₦{selected.depositPaid.toLocaleString()}</p>
+                </div>
+              </div>
+
+              {/* Customer */}
+              <div>
+                <p className="text-xs font-semibold text-charcoal uppercase tracking-wider mb-2">Customer</p>
+                <div className="flex items-center gap-3 bg-cream rounded-lg p-3">
+                  <div className="h-10 w-10 rounded-full bg-white flex items-center justify-center text-xs font-bold text-charcoal shrink-0">
+                    {selected.customerProfile.user.image ? <img src={selected.customerProfile.user.image} alt="" className="h-full w-full rounded-full object-cover" /> : (selected.customerProfile.user.name || "?").charAt(0)}
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-charcoal">{selected.customerProfile.user.name}</p>
+                    <p className="text-xs text-muted-foreground">{selected.customerProfile.user.email}</p>
+                    {selected.customerProfile.user.phone && <p className="text-xs text-muted-foreground">{selected.customerProfile.user.phone}</p>}
+                  </div>
+                </div>
+              </div>
+
+              {/* Notes */}
+              {selected.notes && (
+                <div>
+                  <p className="text-xs font-semibold text-charcoal uppercase tracking-wider mb-1">Notes</p>
+                  <p className="text-sm text-muted-foreground bg-cream rounded-lg p-3">{selected.notes}</p>
+                </div>
+              )}
+
+              {/* Cancellation */}
+              {selected.cancelledAt && selected.cancelReason && (
+                <div className="bg-red-50 rounded-lg p-3">
+                  <p className="text-xs font-semibold text-red-600 uppercase tracking-wider mb-1">Cancellation Reason</p>
+                  <p className="text-sm text-red-700">{selected.cancelReason}</p>
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="flex flex-wrap gap-2 pt-2">
+                {selected.status === "PENDING" && (
+                  <Button onClick={() => updateStatus(selected.id, "CONFIRMED")} disabled={updatingId === selected.id} className="bg-emerald-600 text-white hover:bg-emerald-700 rounded-full text-xs font-semibold tracking-wider uppercase">
+                    <CheckCircle className="h-3 w-3 mr-1" />Confirm
+                  </Button>
+                )}
+                {selected.status === "CONFIRMED" && (
+                  <Button onClick={() => updateStatus(selected.id, "IN_PROGRESS")} disabled={updatingId === selected.id} className="bg-blue-600 text-white hover:bg-blue-700 rounded-full text-xs font-semibold tracking-wider uppercase">
+                    <RefreshCw className="h-3 w-3 mr-1" />Start
+                  </Button>
+                )}
+                {selected.status === "IN_PROGRESS" && (
+                  <Button onClick={() => updateStatus(selected.id, "COMPLETED")} disabled={updatingId === selected.id} className="bg-charcoal text-white hover:bg-charcoal-light rounded-full text-xs font-semibold tracking-wider uppercase">
+                    <CheckCircle className="h-3 w-3 mr-1" />Complete
+                  </Button>
+                )}
+                {["PENDING", "CONFIRMED"].includes(selected.status) && (
+                  <Button onClick={() => updateStatus(selected.id, "NO_SHOW")} disabled={updatingId === selected.id} variant="outline" className="rounded-full text-xs font-semibold tracking-wider uppercase text-orange-600 border-orange-200 hover:bg-orange-50">
+                    No Show
+                  </Button>
+                )}
+                {["PENDING", "CONFIRMED"].includes(selected.status) && (
+                  <Button onClick={() => { const r = prompt("Cancel reason:"); if (r !== null) updateStatus(selected.id, "CANCELLED", r); }} disabled={updatingId === selected.id} variant="outline" className="rounded-full text-xs font-semibold tracking-wider uppercase text-red-500 border-red-200 hover:bg-red-50">
+                    <XCircle className="h-3 w-3 mr-1" />Cancel
+                  </Button>
+                )}
+                {!selected.payments?.length && (
+                  <Button onClick={() => handleDelete(selected.id)} variant="outline" className="rounded-full text-xs font-semibold tracking-wider uppercase text-red-500 border-red-200 hover:bg-red-50 ml-auto">
+                    <Trash2 className="h-3 w-3 mr-1" />Delete
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -74,12 +74,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const customerProfile = await prisma.customerProfile.findUnique({
+    let customerProfile = await prisma.customerProfile.findUnique({
       where: { userId: session.user.id },
     });
 
     if (!customerProfile) {
-      return NextResponse.json({ error: "Customer profile not found" }, { status: 404 });
+      customerProfile = await prisma.customerProfile.create({
+        data: { userId: session.user.id },
+      });
     }
 
     const totalAmount = Number(service.price);

@@ -272,12 +272,14 @@ export function Navbar() {
                 asChild
               >
                 <Link href="/shop/cart">
-                  <ShoppingBag className="h-5 w-5" />
-                  {itemCount > 0 && (
-                    <span className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full bg-gold text-white text-[10px] font-bold flex items-center justify-center">
-                      {itemCount}
-                    </span>
-                  )}
+                  <span className="relative inline-flex">
+                    <ShoppingBag className="h-5 w-5" />
+                    {itemCount > 0 && (
+                      <span className="absolute -top-1.5 -right-2 h-4 w-4 rounded-full bg-gold text-white text-[10px] font-bold flex items-center justify-center">
+                        {itemCount}
+                      </span>
+                    )}
+                  </span>
                   <span className="sr-only">Cart</span>
                 </Link>
               </Button>
