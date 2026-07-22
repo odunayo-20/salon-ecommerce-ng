@@ -10,7 +10,7 @@ export default cloudinary;
 
 export async function uploadImage(
   file: string,
-  folder: string = "salon",
+  folder: string = "e_salon",
   options?: Record<string, unknown>
 ) {
   return cloudinary.uploader.upload(file, {

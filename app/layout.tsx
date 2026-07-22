@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Playfair_Display, Inter, Cormorant_Garamond } from "next/font/google";
 import { Toaster } from "sonner";
+import Providers from "@/components/providers";
 import "./globals.css";
 
 const playfair = Playfair_Display({
@@ -95,8 +96,10 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-full flex flex-col">
-        {children}
-        <Toaster position="top-right" richColors closeButton />
+        <Providers>
+          {children}
+          <Toaster position="top-right" richColors closeButton />
+        </Providers>
       </body>
     </html>
   );

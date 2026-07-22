@@ -2,19 +2,20 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useSession, signOut } from "next-auth/react";
 import {
   Menu,
   X,
-  Search,
   ShoppingBag,
   User,
   Heart,
   Phone,
   ChevronDown,
+  LogOut,
+  LayoutDashboard,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useCartStore, useUIStore } from "@/store";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -51,7 +52,10 @@ const navLinks = [
 export function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+  const [showAccountMenu, setShowAccountMenu] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
+  const { data: session } = useSession();
   const itemCount = useCartStore((s) => s.getItemCount());
   const { isMobileMenuOpen, setMobileMenuOpen } = useUIStore();
 
@@ -64,6 +68,7 @@ export function Navbar() {
   useEffect(() => {
     setMobileMenuOpen(false);
     setOpenDropdown(null);
+    setShowAccountMenu(false);
   }, [pathname, setMobileMenuOpen]);
 
   return (
@@ -160,9 +165,22 @@ export function Navbar() {
                       </div>
                     </nav>
                     <div className="p-6 border-t border-border">
-                      <Button asChild className="w-full bg-charcoal text-white hover:bg-charcoal-light">
-                        <Link href="/book">Book Appointment</Link>
-                      </Button>
+                      {session ? (
+                        <div className="space-y-3">
+                          <div className="text-sm">
+                            <p className="font-medium text-charcoal">{session.user.name}</p>
+                            <p className="text-xs text-muted-foreground truncate">{session.user.email}</p>
+                          </div>
+                          <Button asChild className="w-full bg-charcoal text-white hover:bg-charcoal-light">
+                            <Link href="/dashboard">Dashboard</Link>
+                          </Button>
+                          <button onClick={async () => { setMobileMenuOpen(false); await signOut({ redirect: false }); router.push("/"); router.refresh(); }} className="w-full text-sm text-red-500 py-2">Sign Out</button>
+                        </div>
+                      ) : (
+                        <Button asChild className="w-full bg-charcoal text-white hover:bg-charcoal-light">
+                          <Link href="/auth/signin">Sign In</Link>
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </SheetContent>
@@ -264,17 +282,45 @@ export function Navbar() {
                 </Link>
               </Button>
 
-              <Button
-                variant="ghost"
-                size="icon"
-                className="hidden md:flex text-charcoal hover:text-gold"
-                asChild
-              >
-                <Link href="/auth/signin">
-                  <User className="h-5 w-5" />
+              <div className="relative">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="hidden md:flex text-charcoal hover:text-gold"
+                  onClick={() => session ? setShowAccountMenu(!showAccountMenu) : router.push("/auth/signin")}
+                >
+                  {session?.user?.image ? (
+                    <img src={session.user.image} alt="" className="h-6 w-6 rounded-full object-cover" />
+                  ) : (
+                    <User className="h-5 w-5" />
+                  )}
                   <span className="sr-only">Account</span>
-                </Link>
-              </Button>
+                </Button>
+                {showAccountMenu && session && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setShowAccountMenu(false)} />
+                    <div className="absolute right-0 top-full mt-2 z-50">
+                      <div className="bg-white rounded-xl shadow-lg border border-border p-2 min-w-[200px]">
+                        <div className="px-3 py-2 border-b border-border/50 mb-1">
+                          <p className="text-sm font-medium text-charcoal">{session.user.name}</p>
+                          <p className="text-xs text-muted-foreground truncate">{session.user.email}</p>
+                        </div>
+                        <Link href="/dashboard" onClick={() => setShowAccountMenu(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-charcoal hover:bg-cream rounded-lg transition-colors">
+                          <LayoutDashboard className="h-4 w-4" />Dashboard
+                        </Link>
+                        {session.user.role === "ADMIN" && (
+                          <Link href="/admin" onClick={() => setShowAccountMenu(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-charcoal hover:bg-cream rounded-lg transition-colors">
+                            <LayoutDashboard className="h-4 w-4" />Admin Panel
+                          </Link>
+                        )}
+                        <button onClick={async () => { setShowAccountMenu(false); await signOut({ redirect: false }); router.push("/"); router.refresh(); }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                          <LogOut className="h-4 w-4" />Sign Out
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
 
               <Button
                 asChild

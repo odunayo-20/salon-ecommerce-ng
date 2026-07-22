@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
@@ -179,6 +180,27 @@ async function main() {
     }
 
     console.log(`  Created: ${s.name}`);
+  }
+
+  // --- Test Accounts ---
+  console.log("\nSeeding test accounts...");
+  const testPassword = await bcrypt.hash("password123", 12);
+
+  const testAccounts = [
+    { name: "Admin User", email: "admin@mecbill.com", role: "ADMIN" as const },
+    { name: "Demo Customer", email: "customer@mecbill.com", role: "CUSTOMER" as const },
+  ];
+
+  for (const acct of testAccounts) {
+    const existing = await prisma.user.findUnique({ where: { email: acct.email } });
+    if (!existing) {
+      await prisma.user.create({
+        data: { name: acct.name, email: acct.email, password: testPassword, role: acct.role },
+      });
+      console.log(`  Created: ${acct.email} (${acct.role}) — password: password123`);
+    } else {
+      console.log(`  Exists:  ${acct.email}`);
+    }
   }
 
   console.log("\nDone!");
