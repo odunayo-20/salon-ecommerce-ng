@@ -5,11 +5,23 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const slug = searchParams.get("slug");
+    const id = searchParams.get("id");
     const category = searchParams.get("category");
     const isPublished = searchParams.get("isPublished");
     const search = searchParams.get("search");
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "50");
+
+    if (id) {
+      const post = await prisma.blogPost.findUnique({
+        where: { id },
+        include: { author: { select: { id: true, name: true, image: true } } },
+      });
+      if (!post) return NextResponse.json({ error: "Post not found" }, { status: 404 });
+      return NextResponse.json({
+        post: { ...post, tags: JSON.parse(post.tags || "[]") },
+      });
+    }
 
     if (slug) {
       const post = await prisma.blogPost.findUnique({
@@ -83,5 +95,73 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Blog create error:", error);
     return NextResponse.json({ error: "Failed to create post" }, { status: 500 });
+  }
+}
+
+export async function PATCH(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { id, title, slug, excerpt, content, coverImage, category, tags, isPublished, isFeatured } = body;
+
+    if (!id) {
+      return NextResponse.json({ error: "Post id is required" }, { status: 400 });
+    }
+
+    const existing = await prisma.blogPost.findUnique({ where: { id } });
+    if (!existing) return NextResponse.json({ error: "Post not found" }, { status: 404 });
+
+    if (slug && slug !== existing.slug) {
+      const slugTaken = await prisma.blogPost.findUnique({ where: { slug } });
+      if (slugTaken) return NextResponse.json({ error: "Slug already in use" }, { status: 409 });
+    }
+
+    const publishedAt = isPublished !== undefined
+      ? isPublished && !existing.isPublished
+        ? new Date()
+        : existing.publishedAt
+      : existing.publishedAt;
+
+    const post = await prisma.blogPost.update({
+      where: { id },
+      data: {
+        ...(title !== undefined && { title }),
+        ...(slug !== undefined && { slug }),
+        ...(excerpt !== undefined && { excerpt: excerpt || null }),
+        ...(content !== undefined && { content }),
+        ...(coverImage !== undefined && { coverImage: coverImage || null }),
+        ...(category !== undefined && { category }),
+        ...(tags !== undefined && { tags: JSON.stringify(tags) }),
+        ...(isPublished !== undefined && { isPublished }),
+        ...(isFeatured !== undefined && { isFeatured }),
+        publishedAt,
+      },
+      include: { author: { select: { id: true, name: true } } },
+    });
+
+    return NextResponse.json({ post: { ...post, tags: JSON.parse(post.tags || "[]") } });
+  } catch (error) {
+    console.error("Blog update error:", error);
+    return NextResponse.json({ error: "Failed to update post" }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get("id");
+
+    if (!id) {
+      return NextResponse.json({ error: "Post id is required" }, { status: 400 });
+    }
+
+    const existing = await prisma.blogPost.findUnique({ where: { id } });
+    if (!existing) return NextResponse.json({ error: "Post not found" }, { status: 404 });
+
+    await prisma.blogPost.delete({ where: { id } });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Blog delete error:", error);
+    return NextResponse.json({ error: "Failed to delete post" }, { status: 500 });
   }
 }

@@ -2,27 +2,28 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { Calendar, Clock, ArrowRight, Loader2 } from "lucide-react";
+import { Calendar, ArrowRight, Loader2 } from "lucide-react";
 
 interface BlogPost { id: string; title: string; slug: string; excerpt: string | null; category: string; coverImage: string | null; createdAt: string; author: { name: string | null }; viewCount: number; }
 
 export default function BlogPage() {
   const [posts, setPosts] = useState<BlogPost[]>([]);
-  const [categories, setCategories] = useState<string[]>([]);
+  const [categories, setCategories] = useState<string[]>(["All"]);
   const [activeCategory, setActiveCategory] = useState("All");
   const [loading, setLoading] = useState(true);
 
   const fetchPosts = useCallback(async () => {
+    setLoading(true);
     try {
       const params = new URLSearchParams({ isPublished: "true", limit: "50" });
       if (activeCategory !== "All") params.set("category", activeCategory);
       const res = await fetch(`/api/blog?${params}`);
       const data = await res.json();
-      setPosts(data.posts || []);
-      if (!data.posts?.length && activeCategory === "All") {
-        const allRes = await fetch("/api/blog?isPublished=true&limit=50");
-        const allData = await allRes.json();
-        const cats: string[] = [...new Set((allData.posts || []).map((p: BlogPost) => p.category).filter(Boolean))] as string[];
+      const fetched: BlogPost[] = data.posts || [];
+      setPosts(fetched);
+
+      if (activeCategory === "All" && fetched.length > 0) {
+        const cats = [...new Set(fetched.map((p) => p.category).filter(Boolean))];
         setCategories(["All", ...cats]);
       }
     } catch { /* silent */ }
@@ -31,15 +32,7 @@ export default function BlogPage() {
 
   useEffect(() => { fetchPosts(); }, [fetchPosts]);
 
-  useEffect(() => {
-    if (categories.length <= 1 && posts.length > 0) {
-      const cats = [...new Set(posts.map((p) => p.category))];
-      setCategories(["All", ...cats]);
-    }
-  }, [posts, categories.length]);
-
   const formatDate = (d: string) => new Date(d).toLocaleDateString("en-NG", { month: "short", day: "numeric", year: "numeric" });
-  const readTime = (text: string) => `${Math.max(1, Math.ceil(text.split(" ").length / 200))} min`;
 
   return (
     <div className="min-h-screen">
@@ -60,13 +53,22 @@ export default function BlogPage() {
         {loading ? (
           <div className="py-20 text-center"><Loader2 className="h-8 w-8 text-gold animate-spin mx-auto" /></div>
         ) : posts.length === 0 ? (
-          <div className="py-20 text-center"><p className="text-muted-foreground">No blog posts yet. Check back soon!</p></div>
+          <div className="py-20 text-center">
+            <p className="text-muted-foreground mb-2">
+              {activeCategory !== "All" ? `No posts in "${activeCategory}" yet.` : "No blog posts yet. Check back soon!"}
+            </p>
+            {activeCategory !== "All" && (
+              <button onClick={() => setActiveCategory("All")} className="text-gold text-sm font-medium hover:underline">View all posts</button>
+            )}
+          </div>
         ) : (
           <>
             {posts[0] && (
               <Link href={`/blog/${posts[0].slug}`} className="group block mb-12">
                 <div className="grid md:grid-cols-2 gap-8 bg-cream rounded-2xl overflow-hidden">
-                  <div className="aspect-[4/3] bg-border/30 flex items-center justify-center text-muted-foreground text-sm">{posts[0].coverImage ? <img src={posts[0].coverImage} alt={posts[0].title} className="w-full h-full object-cover" /> : "Featured Image"}</div>
+                  <div className="aspect-[4/3] bg-border/30 flex items-center justify-center text-muted-foreground text-sm overflow-hidden">
+                    {posts[0].coverImage ? <img src={posts[0].coverImage} alt={posts[0].title} className="w-full h-full object-cover" /> : "Featured Image"}
+                  </div>
                   <div className="flex flex-col justify-center p-8">
                     <span className="text-gold text-xs font-semibold tracking-wider uppercase mb-3">{posts[0].category}</span>
                     <h2 className="font-heading text-2xl md:text-3xl font-bold text-charcoal group-hover:text-gold transition-colors">{posts[0].title}</h2>
@@ -84,7 +86,9 @@ export default function BlogPage() {
               {posts.slice(1).map((post) => (
                 <Link key={post.id} href={`/blog/${post.slug}`} className="group">
                   <article className="bg-white border border-border rounded-xl overflow-hidden hover:shadow-md transition-all">
-                    <div className="aspect-[16/10] bg-cream flex items-center justify-center text-muted-foreground text-sm">{post.coverImage ? <img src={post.coverImage} alt={post.title} className="w-full h-full object-cover" /> : "Image"}</div>
+                    <div className="aspect-[16/10] bg-cream flex items-center justify-center text-muted-foreground text-sm overflow-hidden">
+                      {post.coverImage ? <img src={post.coverImage} alt={post.title} className="w-full h-full object-cover" /> : "Image"}
+                    </div>
                     <div className="p-5">
                       <div className="flex items-center gap-3 mb-3">
                         <span className="text-[10px] font-semibold text-gold bg-gold/10 px-2.5 py-1 rounded-full uppercase tracking-wider">{post.category}</span>
