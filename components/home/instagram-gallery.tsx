@@ -20,13 +20,19 @@ export function InstagramGallery({ images }: InstagramGalleryProps) {
           rel="noopener noreferrer"
           className="relative aspect-square group overflow-hidden"
         >
-          <Image
-            src={image.src}
-            alt={image.alt}
-            fill
-            className="object-cover transition-transform duration-500 group-hover:scale-110"
-            sizes="(max-width: 768px) 50vw, (max-width: 1024px) 25vw, 16vw"
-          />
+          {image.src ? (
+            <Image
+              src={image.src}
+              alt={image.alt}
+              fill
+              className="object-cover transition-transform duration-500 group-hover:scale-110"
+              sizes="(max-width: 768px) 50vw, (max-width: 1024px) 25vw, 16vw"
+            />
+          ) : (
+            <div className="absolute inset-0 bg-cream flex items-center justify-center text-muted-foreground text-xs">
+              {image.alt}
+            </div>
+          )}
           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors duration-300 flex items-center justify-center">
             <span className="text-white text-xs font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-300 uppercase tracking-wider">
               View

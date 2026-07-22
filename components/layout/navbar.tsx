@@ -53,11 +53,14 @@ export function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [showAccountMenu, setShowAccountMenu] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
   const { data: session } = useSession();
   const itemCount = useCartStore((s) => s.getItemCount());
   const { isMobileMenuOpen, setMobileMenuOpen } = useUIStore();
+
+  useEffect(() => { setMounted(true); }, []);
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 20);
@@ -274,7 +277,7 @@ export function Navbar() {
                 <Link href="/shop/cart">
                   <span className="relative inline-flex">
                     <ShoppingBag className="h-5 w-5" />
-                    {itemCount > 0 && (
+                    {mounted && itemCount > 0 && (
                       <span className="absolute -top-1.5 -right-2 h-4 w-4 rounded-full bg-gold text-white text-[10px] font-bold flex items-center justify-center">
                         {itemCount}
                       </span>
@@ -340,11 +343,14 @@ export function Navbar() {
 
 export function MobileBottomNav() {
   const pathname = usePathname();
+  const [mounted, setMounted] = useState(false);
   const itemCount = useCartStore((s) => s.getItemCount());
+
+  useEffect(() => { setMounted(true); }, []);
 
   const items = [
     { icon: Phone, label: "Book", href: "/book" },
-    { icon: ShoppingBag, label: "Shop", href: "/shop", badge: itemCount },
+    { icon: ShoppingBag, label: "Shop", href: "/shop", badge: mounted ? itemCount : 0 },
     { icon: Heart, label: "Wishlist", href: "/dashboard/wishlist" },
     { icon: User, label: "Account", href: "/dashboard" },
   ];
