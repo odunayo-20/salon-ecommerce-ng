@@ -139,6 +139,48 @@ async function main() {
     }
   }
 
+  // --- Stylists ---
+  console.log("\nSeeding stylists...");
+
+  const stylistData = [
+    { name: "Amara Johnson", email: "amara@mecbill.com", phone: "+234 801 234 5678", bio: "Master braider with 12 years of experience. Specializes in knotless braids and protective styles.", specialties: ["Braids", "Knotless Braids", "Feed-in Braids", "Cornrows"], experience: 12, serviceSlugs: ["box-braids", "knotless-braids", "feed-in-braids"] },
+    { name: "Chidinma Okafor", email: "chidinma@mecbill.com", phone: "+234 802 345 6789", bio: "Natural hair specialist and silk press queen. Passionate about helping clients embrace their natural texture.", specialties: ["Silk Press", "Natural Hair", "Deep Conditioning"], experience: 8, serviceSlugs: ["silk-press", "natural-hair-treatment", "blowout-style", "deep-conditioning"] },
+    { name: "Fatima Bello", email: "fatima@mecbill.com", phone: "+234 803 456 7890", bio: "Wig and weave specialist. Expert in HD lace installations and custom wig styling.", specialties: ["Wig Installation", "Wig Maintenance", "Weave", "Lace Frontal"], experience: 6, serviceSlugs: ["wig-installation", "wig-maintenance", "weave-installation"] },
+    { name: "Ngozi Eze", email: "ngozi@mecbill.com", phone: "+234 804 567 8901", bio: "Senior colorist and loc specialist. Creates stunning color transformations and maintains beautiful locs.", specialties: ["Color", "Highlights", "Locs", "Loc Retwist"], experience: 10, serviceSlugs: ["hair-coloring", "loc-installation", "loc-retwist"] },
+    { name: "Yetunde Adams", email: "yetunde@mecbill.com", phone: "+234 805 678 9012", bio: "Creative nail artist with a passion for intricate designs. Certified in acrylics and gel extensions.", specialties: ["Acrylic", "Gel Nails", "Manicure", "Pedicure"], experience: 5, serviceSlugs: ["gel-manicure", "acrylic-nails", "spa-pedicure"] },
+  ];
+
+  for (const s of stylistData) {
+    const existing = await prisma.user.findUnique({ where: { email: s.email } });
+    if (existing) {
+      console.log(`  Exists:  ${s.name}`);
+      continue;
+    }
+
+    const user = await prisma.user.create({
+      data: { name: s.name, email: s.email, phone: s.phone, role: "STYLIST" },
+    });
+
+    const profile = await prisma.stylistProfile.create({
+      data: {
+        userId: user.id,
+        bio: s.bio,
+        specialties: JSON.stringify(s.specialties),
+        experience: s.experience,
+        isActive: true,
+      },
+    });
+
+    for (const slug of s.serviceSlugs) {
+      const svc = await prisma.service.findUnique({ where: { slug } });
+      if (svc) {
+        await prisma.stylistService.create({ data: { stylistId: profile.id, serviceId: svc.id } });
+      }
+    }
+
+    console.log(`  Created: ${s.name}`);
+  }
+
   console.log("\nDone!");
 }
 
