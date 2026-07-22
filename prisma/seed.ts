@@ -46,6 +46,27 @@ const services = [
   { name: "Deep Conditioning", slug: "deep-conditioning", description: "Intensive deep conditioning treatment for damaged or dry hair. Restores moisture and shine.", duration: 45, price: 5000, depositAmount: 0, categorySlug: "color-treatment", isPopular: false, sortOrder: 51 },
 ];
 
+const products = [
+  { name: "Raw Brazilian Clipper Bundles", slug: "raw-brazilian-clipper-bundles", description: "100% raw virgin Brazilian hair. Silky, tangle-free, and can be dyed. Available in 12-30 inches.", shortDesc: "Premium raw Brazilian hair bundles", price: 85000, comparePrice: 95000, sku: "EXT-BRA-001", categorySlug: "hair-extensions", stock: 45, isFeatured: true, hairTexture: "Straight/Wavy", hairLength: "12-30 inches", hairColor: "Natural Black" },
+  { name: "Raw Peruvian Body Wave Bundles", slug: "raw-peruvian-body-wave", description: "Luxurious raw Peruvian hair with a natural body wave pattern. Minimal shedding, maximum volume.", shortDesc: "Natural body wave Peruvian hair", price: 75000, comparePrice: 0, sku: "EXT-PER-001", categorySlug: "hair-extensions", stock: 30, isFeatured: false, hairTexture: "Body Wave", hairLength: "14-28 inches", hairColor: "Natural Black" },
+  { name: "Clip-In Human Hair Extensions", slug: "clip-in-extensions", description: "Quick and easy clip-in extensions for instant volume and length. 7-piece set with 120g weight.", shortDesc: "Easy clip-in hair extensions", price: 35000, comparePrice: 42000, sku: "EXT-CLI-001", categorySlug: "hair-extensions", stock: 60, isFeatured: false, hairTexture: "Straight", hairLength: "16-22 inches", hairColor: "Natural Black" },
+
+  { name: "HD Lace Frontal Wig — Body Wave", slug: "hd-lace-frontal-wig", description: "Premium HD lace frontal wig with transparent lace. Pre-plucked hairline, natural density. 150% density.", shortDesc: "HD lace frontal body wave wig", price: 120000, comparePrice: 140000, sku: "WIG-HD-001", categorySlug: "wigs", stock: 20, isFeatured: true, hairTexture: "Body Wave", hairLength: "18-26 inches", hairColor: "Natural Black" },
+  { name: "5x5 HD Closure Wig — Straight", slug: "5x5-hd-closure-wig", description: "Glueless 5x5 HD closure wig for easy install. Bleached knots, pre-plucked, baby hairs included.", shortDesc: "Glueless HD closure wig", price: 85000, comparePrice: 0, sku: "WIG-HD-002", categorySlug: "wigs", stock: 25, isFeatured: false, hairTexture: "Straight", hairLength: "16-24 inches", hairColor: "Natural Black" },
+  { name: "Full Lace Wig — Curly", slug: "full-lace-curly-wig", description: "Full lace wig with tight curly pattern. Versatile styling, can be put in high ponytail. 180% density.", shortDesc: "Full lace curly wig", price: 110000, comparePrice: 125000, sku: "WIG-FL-001", categorySlug: "wigs", stock: 15, isFeatured: false, hairTexture: "Deep Curly", hairLength: "16-22 inches", hairColor: "Natural Black" },
+
+  { name: "Argan Oil Hair Serum", slug: "argan-oil-serum", description: "Moroccan argan oil serum for frizz control and shine. Heat protectant up to 230°C.", shortDesc: "Frizz control argan oil serum", price: 8500, comparePrice: 10000, sku: "HC-ARG-001", categorySlug: "hair-care", stock: 120, isFeatured: true, hairTexture: null, hairLength: null, hairColor: null },
+  { name: "Shea Moisture Deep Conditioner", slug: "shea-moisture-deep-conditioner", description: "Intensive deep conditioning mask with shea butter and honey. Repairs damage, restores moisture.", shortDesc: "Deep conditioning hair mask", price: 5500, comparePrice: 0, sku: "HC-SMD-001", categorySlug: "hair-care", stock: 85, isFeatured: false, hairTexture: null, hairLength: null, hairColor: null },
+  { name: "Edge Control Gel — Extra Hold", slug: "edge-control-gel", description: "Extra strong hold edge control gel. Lays edges smoothly without flaking. 48-hour hold.", shortDesc: "Extra hold edge control", price: 2500, comparePrice: 3000, sku: "HC-ECG-001", categorySlug: "hair-care", stock: 200, isFeatured: false, hairTexture: null, hairLength: null, hairColor: null },
+  { name: "Wild Growth Hair Oil", slug: "wild-growth-hair-oil", description: "Natural hair growth oil with biotin, castor oil, and coconut oil. Promotes healthy growth.", shortDesc: "Natural hair growth oil", price: 4500, comparePrice: 0, sku: "HC-WGO-001", categorySlug: "hair-care", stock: 95, isFeatured: true, hairTexture: null, hairLength: null, hairColor: null },
+
+  { name: "Premium Gel Nail Polish Set — 12 Colors", slug: "gel-nail-polish-set", description: "Professional gel nail polish set with 12 trending colors. Long-lasting, chip-resistant.", shortDesc: "12-color gel polish set", price: 15000, comparePrice: 18000, sku: "NC-GNP-001", categorySlug: "nail-care", stock: 40, isFeatured: false, hairTexture: null, hairLength: null, hairColor: null },
+  { name: "Acrylic Nail Kit — Starter", slug: "acrylic-nail-kit", description: "Complete acrylic nail kit for beginners. Includes acrylic powder, liquid monomer, brushes, tips.", shortDesc: "Beginner acrylic nail kit", price: 22000, comparePrice: 28000, sku: "NC-ANK-001", categorySlug: "nail-care", stock: 35, isFeatured: false, hairTexture: null, hairLength: null, hairColor: null },
+
+  { name: "MecBill Gift Card — ₦10,000", slug: "gift-card-10000", description: "Digital gift card worth ₦10,000. Redeemable for any service or product at MecBill Tech Salon.", shortDesc: "₦10,000 digital gift card", price: 10000, comparePrice: 0, sku: "GC-10K", categorySlug: "gift-cards", stock: 999, isFeatured: false, hairTexture: null, hairLength: null, hairColor: null },
+  { name: "MecBill Gift Card — ₦25,000", slug: "gift-card-25000", description: "Digital gift card worth ₦25,000. The perfect gift for hair and beauty lovers.", shortDesc: "₦25,000 digital gift card", price: 25000, comparePrice: 0, sku: "GC-25K", categorySlug: "gift-cards", stock: 999, isFeatured: true, hairTexture: null, hairLength: null, hairColor: null },
+];
+
 async function main() {
   console.log("Seeding categories...");
   for (const category of categories) {
@@ -83,6 +104,38 @@ async function main() {
       console.log(`  Created: ${svc.name}`);
     } else {
       console.log(`  Exists:  ${svc.name}`);
+    }
+  }
+
+  console.log("\nSeeding products...");
+  for (const prod of products) {
+    const existing = await prisma.product.findUnique({ where: { slug: prod.slug } });
+    if (!existing) {
+      const category = await prisma.category.findUnique({ where: { slug: prod.categorySlug } });
+      if (!category) {
+        console.log(`  Skipped: ${prod.name} (category "${prod.categorySlug}" not found)`);
+        continue;
+      }
+      await prisma.product.create({
+        data: {
+          name: prod.name,
+          slug: prod.slug,
+          description: prod.description,
+          shortDesc: prod.shortDesc,
+          price: prod.price,
+          comparePrice: prod.comparePrice || null,
+          sku: prod.sku,
+          categoryId: category.id,
+          stock: prod.stock,
+          isFeatured: prod.isFeatured,
+          hairTexture: prod.hairTexture,
+          hairLength: prod.hairLength,
+          hairColor: prod.hairColor,
+        },
+      });
+      console.log(`  Created: ${prod.name}`);
+    } else {
+      console.log(`  Exists:  ${prod.name}`);
     }
   }
 
