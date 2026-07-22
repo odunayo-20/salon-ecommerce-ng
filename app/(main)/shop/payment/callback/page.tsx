@@ -23,7 +23,7 @@ export default function PaymentCallbackPage() {
 
     const verify = async () => {
       try {
-        // The Flutterwave webhook handles the actual verification
+        // The Paystack webhook handles the actual verification
         // This page just shows the result after redirect
         // Give the webhook a moment to process
         await new Promise((r) => setTimeout(r, 2000));

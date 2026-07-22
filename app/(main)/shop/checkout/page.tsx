@@ -151,8 +151,8 @@ export default function CheckoutPage() {
               </div>
               <div className="space-y-3">
                 {([
-                  { value: "card" as const, label: "Pay with Card", desc: "Debit or credit card via Flutterwave", icon: "💳" },
-                  { value: "bank_transfer" as const, label: "Bank Transfer", desc: "Pay via bank transfer via Flutterwave", icon: "🏦" },
+                  { value: "card" as const, label: "Pay with Card", desc: "Debit or credit card via Paystack", icon: "💳" },
+                  { value: "bank_transfer" as const, label: "Bank Transfer", desc: "Pay via bank transfer via Paystack", icon: "🏦" },
                   { value: "pay_on_delivery" as const, label: "Pay on Delivery", desc: "Pay when your order arrives", icon: " cash" },
                 ]).map((option) => (
                   <button key={option.value} onClick={() => setPaymentMethod(option.value)} className={cn("w-full flex items-center gap-4 p-4 rounded-xl border transition-all text-left", paymentMethod === option.value ? "border-gold bg-gold/5" : "border-border hover:border-gold/30")}>
@@ -199,7 +199,7 @@ export default function CheckoutPage() {
               </div>
 
               <div className="flex items-center gap-2 mt-4 text-[10px] text-muted-foreground">
-                <Shield className="h-3 w-3" />Secure payment powered by Flutterwave
+                <Shield className="h-3 w-3" />Secure payment powered by Paystack
               </div>
 
               {error && <p className="text-sm text-red-600 mt-3">{error}</p>}

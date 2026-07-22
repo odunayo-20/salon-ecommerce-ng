@@ -39,7 +39,7 @@ const sections = [
       "All prices are displayed in Nigerian Naira (₦) unless otherwise stated.",
       "Prices are subject to change without prior notice. The price at the time of booking or purchase applies to your transaction.",
       "Payment is due at the time of service for salon appointments, or upon product delivery for online orders.",
-      "Accepted payment methods: debit/credit cards, bank transfers, Flutterwave, and Stripe.",
+      "Accepted payment methods: debit/credit cards, bank transfers, Paystack, and Stripe.",
       "Promotional offers and discount codes cannot be combined unless explicitly stated.",
     ],
   },

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import { initializePayment } from "@/lib/flutterwave";
+import { initializeTransaction } from "@/lib/paystack";
 
 export async function POST(request: NextRequest) {
   try {
@@ -42,23 +42,24 @@ export async function POST(request: NextRequest) {
       ? `${process.env.NEXT_PUBLIC_APP_URL}/shop/payment/callback?orderId=${orderId}&paymentId=${paymentId}`
       : `${process.env.NEXT_PUBLIC_APP_URL}/shop/payment/callback?paymentId=${paymentId}`;
 
-    const response = await initializePayment({
+    const response = await initializeTransaction({
       amount,
       email: email || "",
       name: name || undefined,
       phone,
-      txRef: payment.reference,
-      redirectUrl,
+      reference: payment.reference,
+      callbackUrl: redirectUrl,
+      metadata: { paymentId, orderId: orderId || undefined },
     });
 
-    if (response.status === "success") {
+    if (response.status) {
       return NextResponse.json({
-        checkoutUrl: response.data?.link,
-        txRef: payment.reference,
+        checkoutUrl: response.data?.authorization_url,
+        reference: payment.reference,
       });
     }
 
-    console.error("Flutterwave init error:", response);
+    console.error("Paystack init error:", response);
     return NextResponse.json(
       { error: "Failed to initialize payment" },
       { status: 500 }

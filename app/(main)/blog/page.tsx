@@ -22,7 +22,7 @@ export default function BlogPage() {
       if (!data.posts?.length && activeCategory === "All") {
         const allRes = await fetch("/api/blog?isPublished=true&limit=50");
         const allData = await allRes.json();
-        const cats: string[] = [...new Set((allData.posts || []).map((p: BlogPost) => p.category))];
+        const cats: string[] = [...new Set((allData.posts || []).map((p: BlogPost) => p.category).filter(Boolean))] as string[];
         setCategories(["All", ...cats]);
       }
     } catch { /* silent */ }

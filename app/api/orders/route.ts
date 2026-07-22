@@ -119,7 +119,7 @@ export async function POST(request: NextRequest) {
       data: {
         orderId: order.id,
         amount: total,
-        method: data.paymentMethod === "card" ? "STRIPE" : data.paymentMethod === "bank_transfer" ? "FLUTTERWAVE" : "CASH",
+        method: data.paymentMethod === "card" ? "STRIPE" : data.paymentMethod === "bank_transfer" ? "PAYSTACK" : "CASH",
         status: data.paymentMethod === "pay_on_delivery" ? "PENDING" : "PENDING",
         reference: paymentRef,
       },

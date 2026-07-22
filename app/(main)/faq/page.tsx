@@ -79,7 +79,7 @@ const faqs: FaqItem[] = [
   {
     category: "Payment",
     question: "What payment methods do you accept?",
-    answer: "We accept debit/credit cards, bank transfers, Flutterwave, and Stripe for online payments. In-store we accept cash and all digital payment options.",
+    answer: "We accept debit/credit cards, bank transfers, Paystack, and Stripe for online payments. In-store we accept cash and all digital payment options.",
   },
   {
     category: "Payment",

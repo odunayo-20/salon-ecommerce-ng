@@ -9,7 +9,7 @@ const sections = [
     title: "1. Information We Collect",
     content: [
       "Personal Information: Your name, email address, phone number, and residential address when you create an account or book a service.",
-      "Payment Information: Payment card details processed securely via Stripe and Flutterwave. We never store your card details on our servers.",
+      "Payment Information: Payment card details processed securely via Stripe and Paystack. We never store your card details on our servers.",
       "Hair Profile Data: Hair type, texture preferences, product allergies, and styling history — used exclusively to personalize your salon experience.",
       "Usage Data: Browser type, IP address, pages visited, time spent on our website, and navigation patterns.",
       "Communication: Emails, chat messages, and reviews you voluntarily submit to us.",
@@ -30,7 +30,7 @@ const sections = [
     title: "3. Information Sharing",
     content: [
       "We do NOT sell your personal information to third parties under any circumstances.",
-      "Service Providers: We share data with trusted partners who assist in our operations — payment processors (Stripe, Flutterwave), delivery partners (GIG, DHL), and email service providers (Resend). These parties are contractually obligated to protect your data.",
+      "Service Providers: We share data with trusted partners who assist in our operations — payment processors (Stripe, Paystack), delivery partners (GIG, DHL), and email service providers (Resend). These parties are contractually obligated to protect your data.",
       "Legal Requirements: We may disclose information when required by Nigerian law, court orders, or regulatory obligations.",
       "Business Transfers: In the event of a merger, acquisition, or sale of assets, your data may be transferred with appropriate safeguards.",
     ],
@@ -41,7 +41,7 @@ const sections = [
       "SSL encryption for all data transmitted between your browser and our servers.",
       "Secure servers with industry-standard AES-256 encryption at rest.",
       "Regular security audits and vulnerability assessments.",
-      "PCI DSS compliant payment processing through Stripe and Flutterwave.",
+      "PCI DSS compliant payment processing through Stripe and Paystack.",
       "Strict access controls, authentication protocols, and role-based permissions for all staff.",
     ],
   },
