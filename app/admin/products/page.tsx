@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, Pencil, Trash2, X, Loader2, Package, Star, Search, Eye, EyeOff } from "lucide-react";
+import { Plus, Pencil, Trash2, X, Loader2, Package, Star, Search, Upload, Image as ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Category { id: string; name: string; slug: string; }
@@ -17,6 +17,7 @@ interface Product {
   comparePrice: number | null;
   sku: string | null;
   image: string | null;
+  images: string;
   categoryId: string;
   stock: number;
   lowStock: number;
@@ -38,7 +39,7 @@ const emptyForm = {
   categoryId: "", stock: 0, lowStock: 5,
   isActive: true, isFeatured: false,
   hairTexture: "", hairLength: "", hairColor: "",
-  tags: "",
+  tags: "", image: "", images: "[]",
 };
 
 function slugify(text: string) {
@@ -100,7 +101,7 @@ export default function AdminProductsPage() {
       categoryId: p.categoryId, stock: p.stock, lowStock: p.lowStock,
       isActive: p.isActive, isFeatured: p.isFeatured,
       hairTexture: p.hairTexture || "", hairLength: p.hairLength || "", hairColor: p.hairColor || "",
-      tags: "",
+      tags: "", image: p.image || "", images: p.images || "[]",
     });
     setShowModal(true);
     setErrorMsg("");
@@ -123,6 +124,8 @@ export default function AdminProductsPage() {
         hairTexture: form.hairTexture || null,
         hairLength: form.hairLength || null,
         hairColor: form.hairColor || null,
+        image: form.image || null,
+        images: JSON.parse(form.images || "[]"),
         tags: form.tags ? form.tags.split(",").map((t) => t.trim()).filter(Boolean) : [],
       };
 
@@ -379,6 +382,48 @@ export default function AdminProductsPage() {
                 <div>
                   <label className="text-xs font-semibold text-charcoal uppercase tracking-wider">SKU</label>
                   <input type="text" value={form.sku} onChange={(e) => setForm((p) => ({ ...p, sku: e.target.value }))} placeholder="Optional" className="mt-1.5 w-full bg-cream border border-border rounded-lg px-4 py-2.5 text-sm text-charcoal placeholder:text-muted-foreground focus:outline-none focus:border-gold" />
+                </div>
+              </div>
+
+              {/* Image Upload */}
+              <div>
+                <label className="text-xs font-semibold text-charcoal uppercase tracking-wider">Product Image</label>
+                <div className="mt-1.5">
+                  {form.image ? (
+                    <div className="relative inline-block">
+                      <img src={form.image} alt="Product" className="h-32 w-32 object-cover rounded-lg border border-border" />
+                      <button
+                        type="button"
+                        onClick={() => setForm((p) => ({ ...p, image: "" }))}
+                        className="absolute -top-2 -right-2 h-6 w-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="flex flex-col items-center justify-center h-32 border-2 border-dashed border-border rounded-lg cursor-pointer hover:border-gold transition-colors">
+                      <Upload className="h-6 w-6 text-muted-foreground mb-2" />
+                      <span className="text-xs text-muted-foreground">Click to upload</span>
+                      <span className="text-[10px] text-muted-foreground">JPEG, PNG, WebP (max 5MB)</span>
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        className="hidden"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          const fd = new FormData();
+                          fd.append("file", file);
+                          fd.append("folder", "salon/products");
+                          try {
+                            const res = await fetch("/api/upload", { method: "POST", body: fd });
+                            const data = await res.json();
+                            if (res.ok) setForm((p) => ({ ...p, image: data.url }));
+                          } catch { /* silent */ }
+                        }}
+                      />
+                    </label>
+                  )}
                 </div>
               </div>
 
