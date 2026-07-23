@@ -28,7 +28,8 @@ model User {
   reviews         Review[]
   wishlist        Wishlist[]
   blogPosts       BlogPost[]
-  notifications   Notification[]
+  notifications       Notification[]
+  pushSubscriptions   PushSubscription[]
   loyaltyPoints   LoyaltyPoint[]
   referralsMade   Referral[]        @relation("referrer")
   referralsGot    Referral[]        @relation("referred")
@@ -575,13 +576,50 @@ model Notification {
   title     String
   message   String
   type      String   @default("info")
+  channel   String   @default("IN_APP")
+  actionUrl String?
   isRead    Boolean  @default(false)
   metadata  String?  @default("{}")
   createdAt DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  logs NotificationLog[]
 
   @@index([userId, isRead])
+  @@index([userId, createdAt])
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  endpoint  String
+  p256dh    String
+  auth      String
+  userAgent String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, endpoint])
+  @@index([userId, isActive])
+}
+
+model NotificationLog {
+  id             String   @id @default(cuid())
+  notificationId String
+  channel        String
+  status         String   @default("PENDING")
+  externalId     String?
+  error          String?
+  sentAt         DateTime?
+  createdAt      DateTime @default(now())
+
+  notification Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+
+  @@index([notificationId])
+  @@index([channel, status])
 }
 
 // ─── Loyalty ────────────────────────────────────────────────

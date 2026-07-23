@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { verifyTransaction } from "@/lib/paystack";
-import { sendEmail, appointmentConfirmedEmail } from "@/lib/resend";
+import { notify } from "@/lib/notifications";
 
 export async function POST(request: NextRequest) {
   try {
@@ -43,17 +43,17 @@ export async function POST(request: NextRequest) {
             service: true,
             stylist: { include: { user: { select: { name: true } } } },
             customerProfile: {
-              include: { user: { select: { name: true, email: true } } },
+              include: { user: { select: { id: true, name: true, email: true } } },
             },
           },
         });
 
-        if (appointment.customerProfile?.user?.email) {
+        if (appointment.customerProfile?.user?.id) {
           try {
-            await sendEmail({
-              to: appointment.customerProfile.user.email,
-              subject: `Appointment Confirmed — ${appointment.reference}`,
-              html: appointmentConfirmedEmail({
+            await notify({
+              userId: appointment.customerProfile.user.id,
+              event: "appointment.confirmed",
+              data: {
                 customerName: appointment.customerProfile.user.name || "Valued Client",
                 serviceName: appointment.service.name,
                 stylistName: appointment.stylist?.user.name || undefined,
@@ -64,10 +64,10 @@ export async function POST(request: NextRequest) {
                 }),
                 time: appointment.startTime,
                 reference: appointment.reference,
-              }),
+              },
             });
           } catch {
-            // Email failure — non-critical
+            // Notification failure — non-critical
           }
         }
       } else if (payment.orderId) {

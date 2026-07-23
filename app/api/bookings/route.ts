@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { generateBookingReference } from "@/utils/helpers";
-import { sendEmail, appointmentPlacedEmail } from "@/lib/resend";
+import { notify } from "@/lib/notifications";
 import { z } from "zod";
 
 const bookingSchema = z.object({
@@ -130,12 +130,12 @@ export async function POST(request: NextRequest) {
       paymentId = payment.id;
     }
 
-    // Send booking placed email
+    // Send booking placed notification
     try {
-      await sendEmail({
-        to: session.user.email!,
-        subject: `Booking Received — ${appointment.reference}`,
-        html: appointmentPlacedEmail({
+      await notify({
+        userId: session.user.id,
+        event: "appointment.created",
+        data: {
           customerName: session.user.name || "Valued Client",
           serviceName: appointment.service.name,
           stylistName: appointment.stylist?.user.name || undefined,
@@ -148,10 +148,10 @@ export async function POST(request: NextRequest) {
           totalAmount: Number(totalAmount),
           depositPaid: Number(depositPaid),
           reference: appointment.reference,
-        }),
+        },
       });
     } catch {
-      // Email failure shouldn't block booking
+      // Notification failure shouldn't block booking
     }
 
     return NextResponse.json({ appointment, paymentId }, { status: 201 });

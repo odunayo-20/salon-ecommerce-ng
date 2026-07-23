@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Scissors, Package, Calendar, Users, UserCog, Star, PenTool, BarChart3, Bell, Menu, X, FolderTree, Clock } from "lucide-react";
+import { LayoutDashboard, Scissors, Package, Calendar, Users, UserCog, Star, PenTool, BarChart3, Menu, X, FolderTree, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
+import { NotificationBell } from "@/components/notifications/notification-bell";
 
 const adminLinks = [
   { label: "Dashboard", href: "/admin", icon: LayoutDashboard },
@@ -39,9 +40,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </Link>
         </div>
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" className="text-white/70 hover:text-white relative">
-            <Bell className="h-5 w-5" /><span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-gold" />
-          </Button>
+          <NotificationBell variant="admin" />
           <div className="h-8 w-8 rounded-full bg-gold/20 flex items-center justify-center text-xs font-bold text-gold">MA</div>
         </div>
       </div>

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { generateOrderNumber } from "@/utils/helpers";
-import { sendEmail, orderPlacedEmail } from "@/lib/resend";
+import { notify } from "@/lib/notifications";
 import { z } from "zod";
 
 const orderItemSchema = z.object({
@@ -126,31 +126,25 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Send order placed email
+    // Send order placed notification
     try {
-      const user = await prisma.user.findUnique({
-        where: { id: session.user.id },
-        select: { name: true, email: true },
+      await notify({
+        userId: session.user.id,
+        event: "order.placed",
+        data: {
+          customerName: session.user.name || "Valued Customer",
+          orderNumber: order.orderNumber,
+          items: data.items.map((item) => ({
+            name: item.name,
+            quantity: item.quantity,
+            price: item.price,
+          })),
+          total,
+          shippingAddress: data.shippingAddress,
+        },
       });
-      if (user?.email) {
-        await sendEmail({
-          to: user.email,
-          subject: `Order Placed — ${order.orderNumber}`,
-          html: orderPlacedEmail({
-            customerName: user.name || "Valued Customer",
-            orderNumber: order.orderNumber,
-            items: data.items.map((item) => ({
-              name: item.name,
-              quantity: item.quantity,
-              price: item.price,
-            })),
-            total,
-            shippingAddress: data.shippingAddress,
-          }),
-        });
-      }
     } catch {
-      // Email failure shouldn't block order
+      // Notification failure shouldn't block order
     }
 
     return NextResponse.json({

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import { sendEmail, appointmentCompletedEmail, appointmentCancelledEmail } from "@/lib/resend";
+import { notify } from "@/lib/notifications";
 
 export async function GET(
   _request: NextRequest,
@@ -81,8 +81,8 @@ export async function PATCH(
       },
     });
 
-    // Send lifecycle emails for COMPLETED / CANCELLED
-    if (status && appointment.customerProfile?.user?.email) {
+    // Send lifecycle notifications for COMPLETED / CANCELLED
+    if (status && appointment.customerProfile?.user?.id) {
       try {
         const base = {
           customerName: appointment.customerProfile.user.name || "Valued Client",
@@ -97,23 +97,20 @@ export async function PATCH(
         };
 
         if (status.toUpperCase() === "COMPLETED") {
-          await sendEmail({
-            to: appointment.customerProfile.user.email,
-            subject: `Service Completed — ${appointment.reference}`,
-            html: appointmentCompletedEmail(base),
+          await notify({
+            userId: appointment.customerProfile.user.id,
+            event: "appointment.completed",
+            data: base,
           });
         } else if (status.toUpperCase() === "CANCELLED") {
-          await sendEmail({
-            to: appointment.customerProfile.user.email,
-            subject: `Appointment Cancelled — ${appointment.reference}`,
-            html: appointmentCancelledEmail({
-              ...base,
-              reason: cancelReason || undefined,
-            }),
+          await notify({
+            userId: appointment.customerProfile.user.id,
+            event: "appointment.cancelled",
+            data: { ...base, reason: cancelReason || undefined },
           });
         }
       } catch {
-        // Email failure — non-critical
+        // Notification failure — non-critical
       }
     }
 

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import { sendEmail, orderShippedEmail, orderDeliveredEmail, orderProcessingEmail } from "@/lib/resend";
+import { notify } from "@/lib/notifications";
 
 export async function PATCH(
   request: NextRequest,
@@ -46,33 +46,45 @@ export async function PATCH(
       },
     });
 
-    // Send status update email
-    if (status && order.customerProfile?.user?.email) {
+    // Send status update notifications
+    if (status && order.customerProfile?.user?.id) {
       try {
         const customerName = order.customerProfile.user.name || "Valued Customer";
         const orderNum = order.orderNumber;
+        const items = order.items.map((item) => ({
+          name: item.name,
+          quantity: item.quantity,
+          price: Number(item.price),
+        }));
+        const total = Number(order.total);
 
         if (status.toUpperCase() === "PROCESSING") {
-          await sendEmail({
-            to: order.customerProfile.user.email,
-            subject: `Order Processing — ${orderNum}`,
-            html: orderProcessingEmail({ customerName, orderNumber: orderNum }),
+          await notify({
+            userId: order.customerProfile.user.id,
+            event: "order.processing",
+            data: { customerName, orderNumber: orderNum, items, total },
           });
         } else if (status.toUpperCase() === "SHIPPED") {
-          await sendEmail({
-            to: order.customerProfile.user.email,
-            subject: `Order Shipped — ${orderNum}`,
-            html: orderShippedEmail({ customerName, orderNumber: orderNum, trackingNumber: trackingNumber || order.trackingNumber || undefined }),
+          await notify({
+            userId: order.customerProfile.user.id,
+            event: "order.shipped",
+            data: {
+              customerName,
+              orderNumber: orderNum,
+              items,
+              total,
+              trackingNumber: trackingNumber || order.trackingNumber || undefined,
+            },
           });
         } else if (status.toUpperCase() === "DELIVERED") {
-          await sendEmail({
-            to: order.customerProfile.user.email,
-            subject: `Order Delivered — ${orderNum}`,
-            html: orderDeliveredEmail({ customerName, orderNumber: orderNum }),
+          await notify({
+            userId: order.customerProfile.user.id,
+            event: "order.delivered",
+            data: { customerName, orderNumber: orderNum, items, total },
           });
         }
       } catch {
-        // Email failure shouldn't block order update
+        // Notification failure shouldn't block order update
       }
     }
 

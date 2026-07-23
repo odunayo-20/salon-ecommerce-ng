@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { constructWebhookEvent } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
-import { sendEmail, orderConfirmationEmail, appointmentConfirmedEmail } from "@/lib/resend";
+import { notify } from "@/lib/notifications";
 
 export async function POST(request: NextRequest) {
   try {
@@ -35,17 +35,17 @@ export async function POST(request: NextRequest) {
               service: true,
               stylist: { include: { user: { select: { name: true } } } },
               customerProfile: {
-                include: { user: { select: { name: true, email: true } } },
+                include: { user: { select: { id: true, name: true, email: true } } },
               },
             },
           });
 
-          if (appointment.customerProfile?.user?.email) {
+          if (appointment.customerProfile?.user?.id) {
             try {
-              await sendEmail({
-                to: appointment.customerProfile.user.email,
-                subject: `Appointment Confirmed — ${appointment.reference}`,
-                html: appointmentConfirmedEmail({
+              await notify({
+                userId: appointment.customerProfile.user.id,
+                event: "appointment.confirmed",
+                data: {
                   customerName: appointment.customerProfile.user.name || "Valued Client",
                   serviceName: appointment.service.name,
                   stylistName: appointment.stylist?.user.name || undefined,
@@ -56,10 +56,10 @@ export async function POST(request: NextRequest) {
                   }),
                   time: appointment.startTime,
                   reference: appointment.reference,
-                }),
+                },
               });
             } catch {
-              // Email failure — non-critical
+              // Notification failure — non-critical
             }
           }
         } else if (orderId) {
@@ -76,23 +76,23 @@ export async function POST(request: NextRequest) {
             data: { status: "PROCESSING" },
           });
 
-          // Send order confirmation email
+          // Send order placed notification
           const order = await prisma.order.findUnique({
             where: { id: orderId },
             include: {
               items: true,
               customerProfile: {
-                include: { user: { select: { name: true, email: true } } },
+                include: { user: { select: { id: true, name: true, email: true } } },
               },
             },
           });
 
-          if (order?.customerProfile?.user?.email) {
+          if (order?.customerProfile?.user?.id) {
             try {
-              await sendEmail({
-                to: order.customerProfile.user.email,
-                subject: `Order Confirmed — ${order.orderNumber}`,
-                html: orderConfirmationEmail({
+              await notify({
+                userId: order.customerProfile.user.id,
+                event: "order.placed",
+                data: {
                   customerName: order.customerProfile.user.name || "Valued Customer",
                   orderNumber: order.orderNumber,
                   items: order.items.map((item) => ({
@@ -102,10 +102,10 @@ export async function POST(request: NextRequest) {
                   })),
                   total: Number(order.total),
                   shippingAddress: order.shippingAddress || "",
-                }),
+                },
               });
             } catch {
-              // Email failure shouldn't block payment processing
+              // Notification failure — non-critical
             }
           }
         }

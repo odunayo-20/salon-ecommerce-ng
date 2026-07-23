@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useCartStore, useUIStore } from "@/store";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { NotificationBell } from "@/components/notifications/notification-bell";
 
 const staticNavLinks = [
   {
@@ -273,6 +274,9 @@ export function Navbar() {
 
             {/* Actions */}
             <div className="flex items-center gap-1">
+              {session && (
+                <NotificationBell className="hidden md:flex text-charcoal hover:text-gold" />
+              )}
               <Button
                 variant="ghost"
                 size="icon"
