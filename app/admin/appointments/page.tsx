@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Search, X, Loader2, Calendar, Clock, User, Eye, XCircle, CheckCircle, RefreshCw, Trash2 } from "lucide-react";
+import { Search, X, Loader2, Calendar, Clock, User, Eye, XCircle, CheckCircle, RefreshCw, Trash2, Mail } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Appointment {
@@ -21,7 +21,7 @@ interface Appointment {
   service: { id: string; name: string; duration: number; price: number };
   stylist: { id: string; user: { id: string; name: string | null; image: string | null } } | null;
   customerProfile: { user: { id: string; name: string | null; email: string | null; phone: string | null; image: string | null } };
-  payments?: { id: string; amount: number; status: string }[];
+  payments?: { id: string; amount: number; status: string; createdAt: string }[];
 }
 
 const statusColors: Record<string, string> = {
@@ -51,6 +51,7 @@ export default function AdminAppointmentsPage() {
   const [selected, setSelected] = useState<Appointment | null>(null);
   const [showDetail, setShowDetail] = useState(false);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [sendingReceiptId, setSendingReceiptId] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
 
@@ -100,6 +101,23 @@ export default function AdminAppointmentsPage() {
       if (selected?.id === id) { setShowDetail(false); setSelected(null); }
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : "Failed to delete");
+    }
+  };
+
+  const handleSendReceipt = async (appointmentId: string, paymentId: string) => {
+    setSendingReceiptId(paymentId);
+    try {
+      const res = await fetch(`/api/payments/${paymentId}/send-receipt`, { method: "POST" });
+      const data = await res.json();
+      if (res.ok) {
+        setSuccessMsg("Receipt sent to customer");
+      } else {
+        setErrorMsg(data.error || "Failed to send receipt");
+      }
+    } catch {
+      setErrorMsg("Failed to send receipt");
+    } finally {
+      setSendingReceiptId(null);
     }
   };
 
@@ -236,9 +254,31 @@ export default function AdminAppointmentsPage() {
                 <div className="bg-cream rounded-lg p-3">
                   <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Payment</p>
                   <p className="text-sm font-medium text-charcoal mt-0.5">₦{selected.totalAmount.toLocaleString()}</p>
-                  <p className="text-[10px] text-muted-foreground">Deposit: ₦{selected.depositPaid.toLocaleString()}</p>
+                  <p className="text-[10px] text-muted-foreground">Paid: ₦{selected.payments?.filter((p) => p.status === "PAID").reduce((s, p) => s + p.amount, 0).toLocaleString()}</p>
                 </div>
               </div>
+
+              {/* Payment History */}
+              {selected.payments && selected.payments.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-charcoal uppercase tracking-wider mb-2">Payment History</p>
+                  <div className="space-y-2">
+                    {selected.payments.map((p) => (
+                      <div key={p.id} className="flex items-center justify-between bg-cream rounded-lg px-3 py-2">
+                        <div className="flex items-center gap-2">
+                          <span className={cn("inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider", p.status === "PAID" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700")}>{p.status}</span>
+                          <span className="text-xs text-muted-foreground">{new Date(p.createdAt).toLocaleDateString("en-NG", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
+                        </div>
+                        <span className="text-sm font-medium text-charcoal">₦{p.amount.toLocaleString()}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex justify-between mt-2 px-1">
+                    <span className="text-xs text-muted-foreground">Total paid</span>
+                    <span className="text-xs font-semibold text-emerald-600">₦{selected.payments.filter((p) => p.status === "PAID").reduce((s, p) => s + p.amount, 0).toLocaleString()} / ₦{selected.totalAmount.toLocaleString()}</span>
+                  </div>
+                </div>
+              )}
 
               {/* Customer */}
               <div>
@@ -301,6 +341,20 @@ export default function AdminAppointmentsPage() {
                 {!selected.payments?.length && (
                   <Button onClick={() => handleDelete(selected.id)} variant="outline" className="rounded-full text-xs font-semibold tracking-wider uppercase text-red-500 border-red-200 hover:bg-red-50 ml-auto">
                     <Trash2 className="h-3 w-3 mr-1" />Delete
+                  </Button>
+                )}
+                {selected.payments?.some((p) => p.status === "PAID") && (
+                  <Button
+                    onClick={() => {
+                      const paidPayment = selected.payments!.find((p) => p.status === "PAID");
+                      if (paidPayment) handleSendReceipt(selected.id, paidPayment.id);
+                    }}
+                    disabled={sendingReceiptId !== null}
+                    variant="outline"
+                    className="rounded-full text-xs font-semibold tracking-wider uppercase text-gold border-gold/30 hover:bg-gold/5 ml-auto"
+                  >
+                    {sendingReceiptId ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Mail className="h-3 w-3 mr-1" />}
+                    Send Receipt
                   </Button>
                 )}
               </div>

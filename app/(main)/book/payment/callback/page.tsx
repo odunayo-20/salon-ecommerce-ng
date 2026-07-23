@@ -6,9 +6,9 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Loader2, CheckCircle, XCircle } from "lucide-react";
 
-export default function PaymentCallbackPage() {
+export default function AppointmentPaymentCallbackPage() {
   const searchParams = useSearchParams();
-  const orderId = searchParams.get("orderId");
+  const appointmentId = searchParams.get("appointmentId");
   const paymentId = searchParams.get("paymentId");
   const [status, setStatus] = useState<"loading" | "success" | "failed">("loading");
   const [message, setMessage] = useState("");
@@ -35,7 +35,7 @@ export default function PaymentCallbackPage() {
 
           if (data.success) {
             setStatus("success");
-            setMessage("Your payment was successful!");
+            setMessage("Your payment was successful! Your appointment is confirmed.");
             return;
           }
         } catch { /* retry */ }
@@ -47,7 +47,7 @@ export default function PaymentCallbackPage() {
       }
 
       setStatus("success");
-      setMessage("Your payment is being processed. You will receive a confirmation email shortly.");
+      setMessage("Your payment is being processed. You will receive a confirmation shortly.");
     };
 
     verify();
@@ -69,11 +69,11 @@ export default function PaymentCallbackPage() {
             <h1 className="font-heading text-2xl font-bold text-charcoal">Payment Successful!</h1>
             <p className="text-sm text-muted-foreground">{message}</p>
             <div className="flex items-center justify-center gap-4 pt-4">
-              <Link href={orderId ? `/dashboard/orders` : "/dashboard"}>
-                <Button className="bg-charcoal text-white hover:bg-charcoal-light rounded-full px-8 text-xs font-semibold tracking-wider uppercase">View Orders</Button>
+              <Link href="/dashboard">
+                <Button className="bg-charcoal text-white hover:bg-charcoal-light rounded-full px-8 text-xs font-semibold tracking-wider uppercase">View Appointments</Button>
               </Link>
-              <Link href="/shop">
-                <Button variant="outline" className="rounded-full px-8 text-xs font-semibold tracking-wider uppercase">Continue Shopping</Button>
+              <Link href="/book">
+                <Button variant="outline" className="rounded-full px-8 text-xs font-semibold tracking-wider uppercase">Book Another</Button>
               </Link>
             </div>
           </>
@@ -84,11 +84,11 @@ export default function PaymentCallbackPage() {
             <h1 className="font-heading text-2xl font-bold text-charcoal">Payment Failed</h1>
             <p className="text-sm text-muted-foreground">{message}</p>
             <div className="flex items-center justify-center gap-4 pt-4">
-              <Link href="/shop/checkout">
-                <Button className="bg-charcoal text-white hover:bg-charcoal-light rounded-full px-8 text-xs font-semibold tracking-wider uppercase">Try Again</Button>
+              <Link href="/dashboard">
+                <Button className="bg-charcoal text-white hover:bg-charcoal-light rounded-full px-8 text-xs font-semibold tracking-wider uppercase">Go to Dashboard</Button>
               </Link>
-              <Link href="/shop">
-                <Button variant="outline" className="rounded-full px-8 text-xs font-semibold tracking-wider uppercase">Continue Shopping</Button>
+              <Link href="/book">
+                <Button variant="outline" className="rounded-full px-8 text-xs font-semibold tracking-wider uppercase">Try Again</Button>
               </Link>
             </div>
           </>

@@ -114,6 +114,22 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Create payment record if online payment is required
+    let paymentId: string | null = null;
+    if (data.paymentMethod === "deposit" || data.paymentMethod === "full") {
+      const paymentRef = `PAY-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 6)}`;
+      const payment = await prisma.payment.create({
+        data: {
+          appointmentId: appointment.id,
+          amount: depositPaid,
+          method: "PAYSTACK",
+          status: "PENDING",
+          reference: paymentRef,
+        },
+      });
+      paymentId = payment.id;
+    }
+
     // Send confirmation email
     try {
       await sendEmail({
@@ -138,11 +154,12 @@ export async function POST(request: NextRequest) {
       // Email failure shouldn't block booking
     }
 
-    return NextResponse.json({ appointment }, { status: 201 });
+    return NextResponse.json({ appointment, paymentId }, { status: 201 });
   } catch (error) {
     console.error("Booking creation error:", error);
+    const message = error instanceof Error ? error.message : "Failed to create booking";
     return NextResponse.json(
-      { error: "Failed to create booking" },
+      { error: message },
       { status: 500 }
     );
   }
@@ -168,11 +185,31 @@ export async function GET(request: NextRequest) {
       include: {
         service: true,
         stylist: { include: { user: { select: { name: true } } } },
+        payments: { select: { id: true, amount: true, status: true, method: true, reference: true } },
       },
       orderBy: { date: "desc" },
     });
 
-    return NextResponse.json({ appointments });
+    return NextResponse.json({
+      appointments: appointments.map((a) => {
+        const total = Number(a.totalAmount);
+        const paid = a.payments
+          .filter((p) => p.status === "PAID")
+          .reduce((sum, p) => sum + Number(p.amount), 0);
+        const remaining = Math.max(total - paid, 0);
+        const isFullyPaid = Math.round(paid * 100) >= Math.round(total * 100);
+        const hasPending = a.payments.some((p) => p.status === "PENDING");
+        return {
+          ...a,
+          totalAmount: total,
+          depositPaid: Number(a.depositPaid),
+          payments: a.payments.map((p) => ({ ...p, amount: Number(p.amount) })),
+          isFullyPaid,
+          remaining,
+          hasPending,
+        };
+      }),
+    });
   } catch (error) {
     console.error("Fetch appointments error:", error);
     return NextResponse.json(
