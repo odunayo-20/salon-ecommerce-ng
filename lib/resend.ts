@@ -683,3 +683,70 @@ export function appointmentCancelledEmail(params: {
     </html>
   `;
 }
+
+export function appointmentReminderEmail(params: {
+  customerName: string;
+  serviceName: string;
+  stylistName?: string;
+  date: string;
+  time: string;
+  reference: string;
+  hoursUntil: number;
+}) {
+  const urgency =
+    params.hoursUntil <= 1
+      ? { badge: "#dc2626", badgeBg: "#fef2f2", badgeBorder: "#fecaca", label: "IN 1 HOUR" }
+      : { badge: "#2563eb", badgeBg: "#eff6ff", badgeBorder: "#bfdbfe", label: "TOMORROW" };
+
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head><meta charset="utf-8"></head>
+    <body style="font-family: 'Helvetica Neue', Arial, sans-serif; background: #faf9f7; margin: 0; padding: 40px 20px;">
+      <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 8px; overflow: hidden;">
+        <div style="background: #1a1a1a; padding: 40px; text-align: center;">
+          <h1 style="color: #c9a96e; font-size: 24px; margin: 0; letter-spacing: 3px; text-transform: uppercase;">Appointment Reminder</h1>
+        </div>
+        <div style="padding: 40px;">
+          <p style="color: #666; font-size: 16px; line-height: 1.6;">Dear ${params.customerName},</p>
+          <p style="color: #666; font-size: 16px; line-height: 1.6;">This is a friendly reminder about your upcoming appointment.</p>
+          
+          <div style="background: ${urgency.badgeBg}; border: 1px solid ${urgency.badgeBorder}; border-radius: 8px; padding: 16px; margin: 24px 0; text-align: center;">
+            <p style="color: ${urgency.badge}; font-size: 14px; font-weight: 600; margin: 0;">${urgency.label}</p>
+          </div>
+          
+          <div style="background: #faf9f7; border-radius: 8px; padding: 24px; margin: 24px 0;">
+            <table style="width: 100%; border-collapse: collapse;">
+              <tr>
+                <td style="padding: 8px 0; color: #999; font-size: 14px;">Service</td>
+                <td style="padding: 8px 0; color: #1a1a1a; font-size: 14px; text-align: right;">${params.serviceName}</td>
+              </tr>
+              ${params.stylistName ? `
+              <tr>
+                <td style="padding: 8px 0; color: #999; font-size: 14px;">Stylist</td>
+                <td style="padding: 8px 0; color: #1a1a1a; font-size: 14px; text-align: right;">${params.stylistName}</td>
+              </tr>
+              ` : ""}
+              <tr>
+                <td style="padding: 8px 0; color: #999; font-size: 14px;">Date</td>
+                <td style="padding: 8px 0; color: #1a1a1a; font-size: 14px; text-align: right;">${params.date}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0; color: #999; font-size: 14px;">Time</td>
+                <td style="padding: 8px 0; color: #1a1a1a; font-size: 14px; text-align: right;">${params.time}</td>
+              </tr>
+            </table>
+          </div>
+
+          <p style="color: #666; font-size: 14px; line-height: 1.6;">Please arrive a few minutes early. If you need to reschedule or cancel, kindly let us know as soon as possible.</p>
+
+          <p style="color: #999; font-size: 13px;">Reference: ${params.reference}</p>
+        </div>
+        <div style="background: #faf9f7; padding: 24px; text-align: center;">
+          <p style="color: #999; font-size: 12px; margin: 0;">${process.env.NEXT_PUBLIC_APP_NAME} | Luxury Hair Experiences</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+}

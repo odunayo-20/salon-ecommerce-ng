@@ -470,6 +470,8 @@ model Appointment {
   isRescheduled     Boolean  @default(false)
   cancelledAt       DateTime?
   cancelReason      String?
+  reminder24hSent   Boolean  @default(false)
+  reminder1hSent    Boolean  @default(false)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 

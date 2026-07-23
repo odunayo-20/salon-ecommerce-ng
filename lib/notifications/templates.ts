@@ -4,6 +4,7 @@ import {
   appointmentConfirmedEmail,
   appointmentCompletedEmail,
   appointmentCancelledEmail,
+  appointmentReminderEmail,
   orderPlacedEmail,
   orderProcessingEmail,
   orderShippedEmail,
@@ -107,6 +108,62 @@ export const eventConfigs: Record<NotificationEventType, EventConfig> = {
         title: "Appointment Cancelled",
         body: `${d.serviceName as string} on ${d.date as string} has been cancelled.`,
         url: `${APP_URL}/book`,
+      }),
+    },
+  },
+
+  "appointment.reminder.24h": {
+    channels: ["IN_APP", "EMAIL", "PUSH"],
+    template: {
+      inApp: (d) => ({
+        title: "Appointment Tomorrow",
+        message: `Reminder: Your ${d.serviceName as string} appointment is tomorrow at ${d.time as string}.`,
+        actionUrl: "/dashboard",
+      }),
+      email: (d) => ({
+        subject: `Appointment Reminder — Tomorrow at ${d.time as string}`,
+        html: appointmentReminderEmail({
+          customerName: d.customerName as string,
+          serviceName: d.serviceName as string,
+          stylistName: d.stylistName as string | undefined,
+          date: d.date as string,
+          time: d.time as string,
+          reference: d.reference as string,
+          hoursUntil: 24,
+        }),
+      }),
+      push: (d) => ({
+        title: "Appointment Tomorrow",
+        body: `${d.serviceName as string} tomorrow at ${d.time as string}`,
+        url: `${APP_URL}/dashboard`,
+      }),
+    },
+  },
+
+  "appointment.reminder.1h": {
+    channels: ["IN_APP", "EMAIL", "PUSH"],
+    template: {
+      inApp: (d) => ({
+        title: "Appointment Starting Soon",
+        message: `Your ${d.serviceName as string} appointment starts in 1 hour at ${d.time as string}.`,
+        actionUrl: "/dashboard",
+      }),
+      email: (d) => ({
+        subject: `Appointment Starting Soon — ${d.time as string}`,
+        html: appointmentReminderEmail({
+          customerName: d.customerName as string,
+          serviceName: d.serviceName as string,
+          stylistName: d.stylistName as string | undefined,
+          date: d.date as string,
+          time: d.time as string,
+          reference: d.reference as string,
+          hoursUntil: 1,
+        }),
+      }),
+      push: (d) => ({
+        title: "Appointment in 1 Hour",
+        body: `${d.serviceName as string} starts at ${d.time as string}. See you soon!`,
+        url: `${APP_URL}/dashboard`,
       }),
     },
   },

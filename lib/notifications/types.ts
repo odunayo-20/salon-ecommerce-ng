@@ -5,6 +5,8 @@ export type NotificationEventType =
   | "appointment.confirmed"
   | "appointment.completed"
   | "appointment.cancelled"
+  | "appointment.reminder.24h"
+  | "appointment.reminder.1h"
   | "order.placed"
   | "order.processing"
   | "order.shipped"
