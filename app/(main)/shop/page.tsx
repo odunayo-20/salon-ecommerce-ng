@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Search, Grid3X3, LayoutGrid, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,13 +17,27 @@ interface ShopProduct {
 }
 
 export default function ShopPage() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const [products, setProducts] = useState<ShopProduct[]>([]);
   const [categories, setCategories] = useState<ShopCategory[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeCategory, setActiveCategory] = useState("all");
+  const [activeCategory, setActiveCategory] = useState(() => searchParams.get("category") || "all");
   const [sortBy, setSortBy] = useState("newest");
   const [searchQuery, setSearchQuery] = useState("");
   const [gridSize, setGridSize] = useState<3 | 4>(3);
+
+  const updateCategory = (slug: string) => {
+    setActiveCategory(slug);
+    const params = new URLSearchParams(searchParams.toString());
+    if (slug === "all") {
+      params.delete("category");
+    } else {
+      params.set("category", slug);
+    }
+    const qs = params.toString();
+    router.replace(`/shop${qs ? `?${qs}` : ""}`, { scroll: false });
+  };
 
   const fetchData = useCallback(async () => {
     try {
@@ -87,7 +102,7 @@ export default function ShopPage() {
           <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
             {/* All button */}
             <button
-              onClick={() => setActiveCategory("all")}
+              onClick={() => updateCategory("all")}
               className={cn(
                 "shrink-0 w-[120px] h-[140px] rounded-xl border-2 overflow-hidden transition-all flex flex-col items-center justify-center gap-2",
                 activeCategory === "all"
@@ -104,7 +119,7 @@ export default function ShopPage() {
             {categories.map((cat) => (
               <button
                 key={cat.slug}
-                onClick={() => setActiveCategory(cat.slug)}
+                onClick={() => updateCategory(cat.slug)}
                 className={cn(
                   "shrink-0 w-[120px] h-[140px] rounded-xl border-2 overflow-hidden transition-all group",
                   activeCategory === cat.slug

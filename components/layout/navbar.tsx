@@ -20,29 +20,18 @@ import { cn } from "@/lib/utils";
 import { useCartStore, useUIStore } from "@/store";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
-const navLinks = [
+const staticNavLinks = [
   {
     label: "Services",
     href: "/book",
-    children: [
-      { label: "Braids", href: "/book/hair/braids" },
-      { label: "Knotless Braids", href: "/book/hair/knotless-braids" },
-      { label: "Loc Maintenance", href: "/book/hair/loc-maintenance" },
-      { label: "Wig Installation", href: "/book/hair/wig-installation" },
-      { label: "Natural Hair Treatment", href: "/book/hair/natural-hair-treatment" },
-      { label: "Silk Press", href: "/book/hair/silk-press" },
-      { label: "Nails", href: "/book/nails" },
-    ],
+    dynamicType: "service" as const,
+    children: [] as { label: string; href: string }[],
   },
   {
     label: "Shop",
     href: "/shop",
-    children: [
-      { label: "Hair Extensions", href: "/shop/hair-extensions" },
-      { label: "Wigs", href: "/shop/wigs" },
-      { label: "Hair Care", href: "/shop/hair-care" },
-      { label: "Beauty", href: "/shop/beauty" },
-    ],
+    dynamicType: "product" as const,
+    children: [] as { label: string; href: string }[],
   },
   { label: "Consultation", href: "/consultation" },
   { label: "Blog", href: "/blog" },
@@ -54,6 +43,7 @@ export function Navbar() {
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [showAccountMenu, setShowAccountMenu] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [navLinks, setNavLinks] = useState(staticNavLinks);
   const pathname = usePathname();
   const router = useRouter();
   const { data: session } = useSession();
@@ -61,6 +51,33 @@ export function Navbar() {
   const { isMobileMenuOpen, setMobileMenuOpen } = useUIStore();
 
   useEffect(() => { setMounted(true); }, []);
+
+  useEffect(() => {
+    Promise.all([
+      fetch("/api/categories?type=service").then((r) => r.json()),
+      fetch("/api/categories?type=product").then((r) => r.json()),
+    ]).then(([svcData, prodData]) => {
+      const serviceChildren = (svcData.categories || []).map(
+        (c: { name: string; slug: string }) => ({
+          label: c.name,
+          href: `/book?category=${c.slug}`,
+        })
+      );
+      const productChildren = (prodData.categories || []).map(
+        (c: { name: string; slug: string }) => ({
+          label: c.name,
+          href: `/shop?category=${c.slug}`,
+        })
+      );
+      setNavLinks((prev) =>
+        prev.map((link) => {
+          if (link.dynamicType === "service") return { ...link, children: serviceChildren };
+          if (link.dynamicType === "product") return { ...link, children: productChildren };
+          return link;
+        })
+      );
+    }).catch(() => {});
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 20);

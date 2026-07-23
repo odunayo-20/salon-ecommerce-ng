@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Loader2, CheckCircle } from "lucide-react";
@@ -34,6 +34,8 @@ interface WorkingHours { stylistId: string; start: string; end: string; }
 export default function BookPage() {
   const { data: session } = useSession();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const categorySlug = searchParams.get("category");
   const [step, setStep] = useState(1);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
@@ -72,6 +74,19 @@ export default function BookPage() {
   }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  // Pre-select category from URL searchParams
+  useEffect(() => {
+    if (categorySlug && allServices.length > 0) {
+      const match = allServices.find(
+        (s) => s.category.slug === categorySlug && s.category.type === "service"
+      );
+      if (match) {
+        setSelectedCategoryId(match.category.id);
+        setStep(2);
+      }
+    }
+  }, [categorySlug, allServices]);
 
   // Fetch available slots when date or stylist changes
   useEffect(() => {
