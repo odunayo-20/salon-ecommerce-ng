@@ -1,4 +1,4 @@
-export type NotificationChannel = "EMAIL" | "SMS" | "PUSH" | "IN_APP";
+export type NotificationChannel = "EMAIL" | "PUSH" | "IN_APP";
 
 export type NotificationEventType =
   | "appointment.created"
@@ -11,8 +11,7 @@ export type NotificationEventType =
   | "order.delivered"
   | "payment.received"
   | "review.created"
-  | "account.created"
-  | "otp.generated";
+  | "account.created";
 
 export interface NotificationPayload {
   userId: string;
@@ -36,7 +35,6 @@ export interface ChannelHandler {
 export interface EventTemplate {
   inApp: (data: Record<string, unknown>) => { title: string; message: string; actionUrl?: string };
   email?: (data: Record<string, unknown>) => { subject: string; html: string };
-  sms?: (data: Record<string, unknown>) => string;
   push?: (data: Record<string, unknown>) => { title: string; body: string; url?: string };
 }
 

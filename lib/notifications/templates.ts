@@ -5,7 +5,6 @@ import {
   appointmentCompletedEmail,
   appointmentCancelledEmail,
   orderPlacedEmail,
-  orderConfirmationEmail,
   orderProcessingEmail,
   orderShippedEmail,
   orderDeliveredEmail,
@@ -39,7 +38,7 @@ export const eventConfigs: Record<NotificationEventType, EventConfig> = {
   },
 
   "appointment.confirmed": {
-    channels: ["IN_APP", "EMAIL", "SMS", "PUSH"],
+    channels: ["IN_APP", "EMAIL", "PUSH"],
     template: {
       inApp: (d) => ({
         title: "Appointment Confirmed",
@@ -57,8 +56,6 @@ export const eventConfigs: Record<NotificationEventType, EventConfig> = {
           reference: d.reference as string,
         }),
       }),
-      sms: (d) =>
-        `MecBill: Your ${d.serviceName as string} appointment on ${d.date as string} at ${d.time as string} is confirmed. Ref: ${d.reference as string}`,
       push: (d) => ({
         title: "Appointment Confirmed",
         body: `${d.serviceName as string} on ${d.date as string} at ${d.time as string}`,
@@ -89,7 +86,7 @@ export const eventConfigs: Record<NotificationEventType, EventConfig> = {
   },
 
   "appointment.cancelled": {
-    channels: ["IN_APP", "EMAIL", "SMS", "PUSH"],
+    channels: ["IN_APP", "EMAIL", "PUSH"],
     template: {
       inApp: (d) => ({
         title: "Appointment Cancelled",
@@ -106,8 +103,6 @@ export const eventConfigs: Record<NotificationEventType, EventConfig> = {
           reason: d.reason as string | undefined,
         }),
       }),
-      sms: (d) =>
-        `MecBill: Your ${d.serviceName as string} appointment on ${d.date as string} has been cancelled.${d.reason ? ` Reason: ${d.reason}` : ""}`,
       push: (d) => ({
         title: "Appointment Cancelled",
         body: `${d.serviceName as string} on ${d.date as string} has been cancelled.`,
@@ -156,7 +151,7 @@ export const eventConfigs: Record<NotificationEventType, EventConfig> = {
   },
 
   "order.shipped": {
-    channels: ["IN_APP", "EMAIL", "SMS", "PUSH"],
+    channels: ["IN_APP", "EMAIL", "PUSH"],
     template: {
       inApp: (d) => ({
         title: "Order Shipped",
@@ -171,8 +166,6 @@ export const eventConfigs: Record<NotificationEventType, EventConfig> = {
           trackingNumber: d.trackingNumber as string | undefined,
         }),
       }),
-      sms: (d) =>
-        `MecBill: Your order ${d.orderNumber as string} has been shipped.${d.trackingNumber ? ` Tracking: ${d.trackingNumber}` : ""}`,
       push: (d) => ({
         title: "Order Shipped",
         body: `Order ${d.orderNumber as string} is on its way!${d.trackingNumber ? ` Track: ${d.trackingNumber}` : ""}`,
@@ -256,18 +249,6 @@ export const eventConfigs: Record<NotificationEventType, EventConfig> = {
           </html>
         `,
       }),
-    },
-  },
-
-  "otp.generated": {
-    channels: ["SMS"],
-    template: {
-      inApp: (d) => ({
-        title: "Verification Code",
-        message: `Your verification code is ${d.otp as string}. It expires in 10 minutes.`,
-      }),
-      sms: (d) =>
-        `MecBill: Your verification code is ${d.otp as string}. It expires in 10 minutes. Do not share this code.`,
     },
   },
 };

@@ -2,13 +2,11 @@ import { prisma } from "@/lib/prisma";
 import { NotificationEventType, NotificationChannel, NotificationPayload, ChannelMessage } from "./types";
 import { eventConfigs } from "./templates";
 import { emailChannel } from "./channels/email";
-import { smsChannel } from "./channels/sms";
 import { pushChannel } from "./channels/push";
 import { inAppChannel } from "./channels/in-app";
 
 const channelHandlers: Record<NotificationChannel, typeof inAppChannel> = {
   EMAIL: emailChannel,
-  SMS: smsChannel,
   PUSH: pushChannel,
   IN_APP: inAppChannel,
 };
@@ -25,7 +23,7 @@ export async function notify(payload: NotificationPayload): Promise<void> {
   const activeChannels = overrideChannels || config.channels;
 
   for (const channel of activeChannels) {
-    const templateFn = config.template[channel === "EMAIL" ? "email" : channel === "SMS" ? "sms" : channel === "PUSH" ? "push" : "inApp"];
+    const templateFn = config.template[channel === "EMAIL" ? "email" : channel === "PUSH" ? "push" : "inApp"];
 
     if (!templateFn) continue;
 
@@ -37,13 +35,6 @@ export async function notify(payload: NotificationPayload): Promise<void> {
         title: emailContent.subject,
         message: emailContent.subject,
         html: emailContent.html,
-        data,
-      };
-    } else if (channel === "SMS") {
-      const smsText = (templateFn as (data: Record<string, unknown>) => string)(data);
-      message = {
-        title: "SMS",
-        message: smsText,
         data,
       };
     } else if (channel === "PUSH") {
