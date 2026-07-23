@@ -38,6 +38,7 @@ export async function GET(request: Request) {
           weight: product.weight ? Number(product.weight) : null,
           variants: product.variants.map((v) => ({ ...v, price: Number(v.price) })),
           tags: JSON.parse(product.tags || "[]"),
+          images: JSON.parse(product.images || "[]"),
           rating: Math.round(avgRating * 10) / 10,
           reviewCount: ratings.length,
           reviews: product.reviews.map((r) => ({ ...r, createdAt: r.createdAt.toISOString() })),
