@@ -750,3 +750,38 @@ export function appointmentReminderEmail(params: {
     </html>
   `;
 }
+
+export function passwordResetCodeEmail(params: {
+  email: string;
+  code: string;
+}) {
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head><meta charset="utf-8"></head>
+    <body style="font-family: 'Helvetica Neue', Arial, sans-serif; background: #faf9f7; margin: 0; padding: 40px 20px;">
+      <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 8px; overflow: hidden;">
+        <div style="background: #1a1a1a; padding: 40px; text-align: center;">
+          <h1 style="color: #c9a96e; font-size: 24px; margin: 0; letter-spacing: 3px; text-transform: uppercase;">Password Reset</h1>
+        </div>
+        <div style="padding: 40px;">
+          <p style="color: #666; font-size: 16px; line-height: 1.6;">You requested a password reset for your account.</p>
+          <p style="color: #666; font-size: 16px; line-height: 1.6;">Use the code below to reset your password:</p>
+          
+          <div style="background: #faf9f7; border-radius: 8px; padding: 32px; margin: 32px 0; text-align: center;">
+            <p style="color: #999; font-size: 11px; text-transform: uppercase; letter-spacing: 2px; margin: 0 0 12px;">Your verification code</p>
+            <p style="color: #1a1a1a; font-size: 36px; font-weight: 700; letter-spacing: 8px; margin: 0; font-family: 'Courier New', monospace;">${params.code}</p>
+          </div>
+
+          <p style="color: #dc2626; font-size: 13px; line-height: 1.6; text-align: center;">This code expires in 15 minutes.</p>
+
+          <p style="color: #999; font-size: 13px; line-height: 1.6; margin-top: 24px;">If you didn&apos;t request a password reset, you can safely ignore this email. Your password will remain unchanged.</p>
+        </div>
+        <div style="background: #faf9f7; padding: 24px; text-align: center;">
+          <p style="color: #999; font-size: 12px; margin: 0;">${process.env.NEXT_PUBLIC_APP_NAME} | Luxury Hair Experiences</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+}
