@@ -182,6 +182,25 @@ async function main() {
     console.log(`  Created: ${s.name}`);
   }
 
+  // --- Default Availability (Mon-Fri 9:00-17:00) ---
+  console.log("\nSeeding default availability...");
+  const allStylists = await prisma.stylistProfile.findMany({ select: { id: true } });
+  for (const stylist of allStylists) {
+    const count = await prisma.availability.count({ where: { stylistId: stylist.id } });
+    if (count > 0) {
+      console.log(`  Exists:  ${stylist.id} (${count} records)`);
+      continue;
+    }
+    const slots = [];
+    for (let day = 1; day <= 5; day++) {
+      slots.push({ stylistId: stylist.id, dayOfWeek: day, startTime: "09:00", endTime: "12:00", isBreak: false });
+      slots.push({ stylistId: stylist.id, dayOfWeek: day, startTime: "12:00", endTime: "13:00", isBreak: true });
+      slots.push({ stylistId: stylist.id, dayOfWeek: day, startTime: "13:00", endTime: "17:00", isBreak: false });
+    }
+    await prisma.availability.createMany({ data: slots });
+    console.log(`  Created: ${stylist.id} — Mon-Fri 9:00-17:00 (with lunch break)`);
+  }
+
   // --- Test Accounts ---
   console.log("\nSeeding test accounts...");
   const testPassword = await bcrypt.hash("password123", 12);

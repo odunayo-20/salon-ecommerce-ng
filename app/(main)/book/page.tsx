@@ -28,6 +28,9 @@ interface Stylist {
 
 const timeSlots = ["09:00","09:30","10:00","10:30","11:00","11:30","12:00","12:30","13:00","13:30","14:00","14:30","15:00","15:30","16:00","16:30","17:00","17:30"];
 
+interface SlotInfo { time: string; available: boolean; reason: string | null; }
+interface WorkingHours { stylistId: string; start: string; end: string; }
+
 export default function BookPage() {
   const { data: session } = useSession();
   const router = useRouter();
@@ -47,7 +50,8 @@ export default function BookPage() {
   const [allServices, setAllServices] = useState<Service[]>([]);
   const [stylists, setStylists] = useState<Stylist[]>([]);
   const [loading, setLoading] = useState(true);
-  const [occupiedSlots, setOccupiedSlots] = useState<{ startTime: string; endTime: string; stylistId: string | null }[]>([]);
+  const [slots, setSlots] = useState<SlotInfo[]>([]);
+  const [workingHours, setWorkingHours] = useState<WorkingHours[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
 
   const fetchData = useCallback(async () => {
@@ -69,17 +73,22 @@ export default function BookPage() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  // Fetch occupied slots when date or stylist changes
+  // Fetch available slots when date or stylist changes
   useEffect(() => {
-    if (!selectedDate) { setOccupiedSlots([]); return; }
+    if (!selectedDate) { setSlots([]); setWorkingHours([]); return; }
     let cancelled = false;
     setLoadingSlots(true);
     const params = new URLSearchParams({ date: selectedDate });
     if (selectedStylistId) params.set("stylistId", selectedStylistId);
     fetch(`/api/bookings/slots?${params}`)
       .then((r) => r.json())
-      .then((data) => { if (!cancelled) setOccupiedSlots(data.occupied || []); })
-      .catch(() => { if (!cancelled) setOccupiedSlots([]); })
+      .then((data) => {
+        if (!cancelled) {
+          setSlots(data.slots || []);
+          setWorkingHours(data.workingHours || []);
+        }
+      })
+      .catch(() => { if (!cancelled) { setSlots([]); setWorkingHours([]); } })
       .finally(() => { if (!cancelled) setLoadingSlots(false); });
     return () => { cancelled = true; };
   }, [selectedDate, selectedStylistId]);
@@ -109,27 +118,16 @@ export default function BookPage() {
   const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
   const isSlotOccupied = (time: string) => {
-    // Parse the slot time to minutes
-    const [h, m] = time.split(":").map(Number);
-    const slotStart = h * 60 + m;
-    const slotEnd = slotStart + 30;
-
-    return occupiedSlots.some((occ) => {
-      const [oh, om] = occ.startTime.split(":").map(Number);
-      const [eh, em] = occ.endTime.split(":").map(Number);
-      const occStart = oh * 60 + om;
-      const occEnd = eh * 60 + em;
-      // Overlap: slot starts before occupied ends AND slot ends after occupied starts
-      return slotStart < occEnd && slotEnd > occStart;
-    });
+    const slot = slots.find((s) => s.time === time);
+    return slot ? !slot.available : true;
   };
 
-  // Clear selected time if it becomes occupied
+  // Clear selected time if it becomes unavailable
   useEffect(() => {
     if (selectedTime && isSlotOccupied(selectedTime)) {
       setSelectedTime("");
     }
-  }, [occupiedSlots, selectedTime]);
+  }, [slots, selectedTime]);
 
   const handleSubmitBooking = async () => {
     if (!session) { router.push("/auth/signin"); return; }
@@ -349,33 +347,36 @@ export default function BookPage() {
                 <h3 className="font-heading font-semibold text-charcoal mb-4">Select a Time</h3>
                 {loadingSlots ? (
                   <div className="flex items-center justify-center py-8"><Loader2 className="h-5 w-5 text-gold animate-spin" /><span className="text-sm text-muted-foreground ml-2">Checking availability...</span></div>
+                ) : slots.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-sm text-muted-foreground">No available time slots for this date.</p>
+                    <p className="text-xs text-muted-foreground mt-1">Try selecting a different date or stylist.</p>
+                  </div>
                 ) : (
                   <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
-                    {timeSlots.map((time) => {
-                      const occupied = isSlotOccupied(time);
-                      return (
-                        <button
-                          key={time}
-                          onClick={() => !occupied && setSelectedTime(time)}
-                          disabled={occupied}
-                          className={cn(
-                            "py-2.5 rounded-lg text-sm font-medium border transition-all",
-                            occupied
-                              ? "border-border bg-gray-50 text-gray-300 cursor-not-allowed line-through"
-                              : selectedTime === time
-                              ? "bg-gold text-white border-gold"
-                              : "border-border hover:border-gold text-charcoal"
-                          )}
-                        >
-                          {time}
-                        </button>
-                      );
-                    })}
+                    {slots.map((slot) => (
+                      <button
+                        key={slot.time}
+                        onClick={() => slot.available && setSelectedTime(slot.time)}
+                        disabled={!slot.available}
+                        className={cn(
+                          "py-2.5 rounded-lg text-sm font-medium border transition-all",
+                          !slot.available
+                            ? "border-border bg-gray-50 text-gray-300 cursor-not-allowed line-through"
+                            : selectedTime === slot.time
+                            ? "bg-gold text-white border-gold"
+                            : "border-border hover:border-gold text-charcoal"
+                        )}
+                        title={!slot.available ? slot.reason === "break" ? "Break time" : slot.reason === "blocked" ? "Blocked" : "Booked" : undefined}
+                      >
+                        {slot.time}
+                      </button>
+                    ))}
                   </div>
                 )}
-                {!loadingSlots && occupiedSlots.length > 0 && (
+                {!loadingSlots && slots.length > 0 && (
                   <p className="text-xs text-muted-foreground mt-3">
-                    {occupiedSlots.length} time slot{occupiedSlots.length > 1 ? "s" : ""} unavailable for this date{selectedStylistId ? " with this stylist" : ""}.
+                    {slots.filter((s) => !s.available).length} time slot{slots.filter((s) => !s.available).length !== 1 ? "s" : ""} unavailable for this date{selectedStylistId ? " with this stylist" : ""}.
                   </p>
                 )}
               </div>

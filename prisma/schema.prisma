@@ -201,6 +201,7 @@ model StylistProfile {
 
   user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   availability  Availability[]
+  blockedTimes  BlockedTime[]
   appointments  Appointment[]
   services      StylistService[]
 
@@ -231,6 +232,20 @@ model Availability {
   stylist StylistProfile @relation(fields: [stylistId], references: [id], onDelete: Cascade)
 
   @@index([stylistId, dayOfWeek])
+}
+
+model BlockedTime {
+  id        String   @id @default(cuid())
+  stylistId String
+  date      DateTime
+  startTime String?
+  endTime   String?
+  reason    String?
+  createdAt DateTime @default(now())
+
+  stylist StylistProfile @relation(fields: [stylistId], references: [id], onDelete: Cascade)
+
+  @@index([stylistId, date])
 }
 
 // ─── Services ───────────────────────────────────────────────
