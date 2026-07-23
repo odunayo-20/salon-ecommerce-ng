@@ -267,6 +267,13 @@ export function orderConfirmationEmail(params: {
           <div style="border-top: 2px solid #1a1a1a; padding-top: 16px; text-align: right;">
             <p style="color: #1a1a1a; font-size: 18px; font-weight: 600; margin: 0;">Total: ₦${params.total.toLocaleString()}</p>
           </div>
+
+          ${params.shippingAddress ? `
+          <div style="background: #faf9f7; border-radius: 8px; padding: 16px; margin: 24px 0;">
+            <p style="color: #999; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 8px;">Shipping Address</p>
+            <p style="color: #1a1a1a; font-size: 14px; margin: 0; line-height: 1.5;">${params.shippingAddress}</p>
+          </div>
+          ` : ""}
         </div>
       </div>
     </body>
