@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { verifyTransaction } from "@/lib/paystack";
+import { sendEmail, appointmentConfirmedEmail } from "@/lib/resend";
 
 export async function POST(request: NextRequest) {
   try {
@@ -35,10 +36,40 @@ export async function POST(request: NextRequest) {
       });
 
       if (payment.appointmentId) {
-        await prisma.appointment.update({
+        const appointment = await prisma.appointment.update({
           where: { id: payment.appointmentId },
           data: { status: "CONFIRMED" },
+          include: {
+            service: true,
+            stylist: { include: { user: { select: { name: true } } } },
+            customerProfile: {
+              include: { user: { select: { name: true, email: true } } },
+            },
+          },
         });
+
+        if (appointment.customerProfile?.user?.email) {
+          try {
+            await sendEmail({
+              to: appointment.customerProfile.user.email,
+              subject: `Appointment Confirmed — ${appointment.reference}`,
+              html: appointmentConfirmedEmail({
+                customerName: appointment.customerProfile.user.name || "Valued Client",
+                serviceName: appointment.service.name,
+                stylistName: appointment.stylist?.user.name || undefined,
+                date: appointment.date.toLocaleDateString("en-NG", {
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                }),
+                time: appointment.startTime,
+                reference: appointment.reference,
+              }),
+            });
+          } catch {
+            // Email failure — non-critical
+          }
+        }
       } else if (payment.orderId) {
         await prisma.order.update({
           where: { id: payment.orderId },

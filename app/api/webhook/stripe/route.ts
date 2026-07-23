@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { constructWebhookEvent } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
-import { sendEmail, orderConfirmationEmail } from "@/lib/resend";
+import { sendEmail, orderConfirmationEmail, appointmentConfirmedEmail } from "@/lib/resend";
 
 export async function POST(request: NextRequest) {
   try {
@@ -28,10 +28,40 @@ export async function POST(request: NextRequest) {
             },
           });
 
-          await prisma.appointment.update({
+          const appointment = await prisma.appointment.update({
             where: { id: appointmentId },
             data: { status: "CONFIRMED" },
+            include: {
+              service: true,
+              stylist: { include: { user: { select: { name: true } } } },
+              customerProfile: {
+                include: { user: { select: { name: true, email: true } } },
+              },
+            },
           });
+
+          if (appointment.customerProfile?.user?.email) {
+            try {
+              await sendEmail({
+                to: appointment.customerProfile.user.email,
+                subject: `Appointment Confirmed — ${appointment.reference}`,
+                html: appointmentConfirmedEmail({
+                  customerName: appointment.customerProfile.user.name || "Valued Client",
+                  serviceName: appointment.service.name,
+                  stylistName: appointment.stylist?.user.name || undefined,
+                  date: appointment.date.toLocaleDateString("en-NG", {
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  }),
+                  time: appointment.startTime,
+                  reference: appointment.reference,
+                }),
+              });
+            } catch {
+              // Email failure — non-critical
+            }
+          }
         } else if (orderId) {
           await prisma.payment.updateMany({
             where: { reference: paymentIntent.id },

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import { sendEmail, appointmentCompletedEmail, appointmentCancelledEmail } from "@/lib/resend";
 
 export async function GET(
   _request: NextRequest,
@@ -79,6 +80,42 @@ export async function PATCH(
         customerProfile: { include: { user: { select: { id: true, name: true, email: true, image: true } } } },
       },
     });
+
+    // Send lifecycle emails for COMPLETED / CANCELLED
+    if (status && appointment.customerProfile?.user?.email) {
+      try {
+        const base = {
+          customerName: appointment.customerProfile.user.name || "Valued Client",
+          serviceName: appointment.service.name,
+          stylistName: appointment.stylist?.user.name || undefined,
+          date: appointment.date.toLocaleDateString("en-NG", {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+          }),
+          reference: appointment.reference,
+        };
+
+        if (status.toUpperCase() === "COMPLETED") {
+          await sendEmail({
+            to: appointment.customerProfile.user.email,
+            subject: `Service Completed — ${appointment.reference}`,
+            html: appointmentCompletedEmail(base),
+          });
+        } else if (status.toUpperCase() === "CANCELLED") {
+          await sendEmail({
+            to: appointment.customerProfile.user.email,
+            subject: `Appointment Cancelled — ${appointment.reference}`,
+            html: appointmentCancelledEmail({
+              ...base,
+              reason: cancelReason || undefined,
+            }),
+          });
+        }
+      } catch {
+        // Email failure — non-critical
+      }
+    }
 
     return NextResponse.json({
       appointment: {

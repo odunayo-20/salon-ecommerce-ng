@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { generateBookingReference } from "@/utils/helpers";
-import { sendEmail, bookingConfirmationEmail } from "@/lib/resend";
+import { sendEmail, appointmentPlacedEmail } from "@/lib/resend";
 import { z } from "zod";
 
 const bookingSchema = z.object({
@@ -130,12 +130,12 @@ export async function POST(request: NextRequest) {
       paymentId = payment.id;
     }
 
-    // Send confirmation email
+    // Send booking placed email
     try {
       await sendEmail({
         to: session.user.email!,
-        subject: `Booking Confirmed — ${appointment.reference}`,
-        html: bookingConfirmationEmail({
+        subject: `Booking Received — ${appointment.reference}`,
+        html: appointmentPlacedEmail({
           customerName: session.user.name || "Valued Client",
           serviceName: appointment.service.name,
           stylistName: appointment.stylist?.user.name || undefined,

@@ -466,3 +466,220 @@ export function orderDeliveredEmail(params: {
     </html>
   `;
 }
+
+export function appointmentPlacedEmail(params: {
+  customerName: string;
+  serviceName: string;
+  stylistName?: string;
+  date: string;
+  time: string;
+  totalAmount: number;
+  depositPaid: number;
+  reference: string;
+}) {
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head><meta charset="utf-8"></head>
+    <body style="font-family: 'Helvetica Neue', Arial, sans-serif; background: #faf9f7; margin: 0; padding: 40px 20px;">
+      <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 8px; overflow: hidden;">
+        <div style="background: #1a1a1a; padding: 40px; text-align: center;">
+          <h1 style="color: #c9a96e; font-size: 24px; margin: 0; letter-spacing: 3px; text-transform: uppercase;">Booking Placed</h1>
+        </div>
+        <div style="padding: 40px;">
+          <p style="color: #666; font-size: 16px; line-height: 1.6;">Dear ${params.customerName},</p>
+          <p style="color: #666; font-size: 16px; line-height: 1.6;">We&apos;ve received your booking request. Here are the details:</p>
+          
+          <div style="background: #faf9f7; border-radius: 8px; padding: 24px; margin: 24px 0;">
+            <table style="width: 100%; border-collapse: collapse;">
+              <tr>
+                <td style="padding: 8px 0; color: #999; font-size: 14px;">Service</td>
+                <td style="padding: 8px 0; color: #1a1a1a; font-size: 14px; text-align: right;">${params.serviceName}</td>
+              </tr>
+              ${params.stylistName ? `
+              <tr>
+                <td style="padding: 8px 0; color: #999; font-size: 14px;">Stylist</td>
+                <td style="padding: 8px 0; color: #1a1a1a; font-size: 14px; text-align: right;">${params.stylistName}</td>
+              </tr>
+              ` : ""}
+              <tr>
+                <td style="padding: 8px 0; color: #999; font-size: 14px;">Date</td>
+                <td style="padding: 8px 0; color: #1a1a1a; font-size: 14px; text-align: right;">${params.date}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0; color: #999; font-size: 14px;">Time</td>
+                <td style="padding: 8px 0; color: #1a1a1a; font-size: 14px; text-align: right;">${params.time}</td>
+              </tr>
+              <tr style="border-top: 1px solid #e5e5e5;">
+                <td style="padding: 12px 0 0; color: #999; font-size: 14px;">Total</td>
+                <td style="padding: 12px 0 0; color: #1a1a1a; font-size: 14px; text-align: right; font-weight: 600;">₦${params.totalAmount.toLocaleString()}</td>
+              </tr>
+            </table>
+          </div>
+
+          ${params.depositPaid > 0 ? `
+          <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 16px; margin: 24px 0; text-align: center;">
+            <p style="color: #16a34a; font-size: 14px; font-weight: 600; margin: 0;">Deposit Paid: ₦${params.depositPaid.toLocaleString()}</p>
+          </div>
+          ` : `
+          <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 16px; margin: 24px 0; text-align: center;">
+            <p style="color: #d97706; font-size: 14px; font-weight: 600; margin: 0;">Payment pending — pay at the salon</p>
+          </div>
+          `}
+
+          <p style="color: #999; font-size: 13px;">Reference: ${params.reference}</p>
+          <p style="color: #666; font-size: 14px; line-height: 1.6; margin-top: 16px;">We&apos;ll send you a confirmation once your booking is approved.</p>
+        </div>
+        <div style="background: #faf9f7; padding: 24px; text-align: center;">
+          <p style="color: #999; font-size: 12px; margin: 0;">${process.env.NEXT_PUBLIC_APP_NAME} | Luxury Hair Experiences</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+}
+
+export function appointmentConfirmedEmail(params: {
+  customerName: string;
+  serviceName: string;
+  stylistName?: string;
+  date: string;
+  time: string;
+  reference: string;
+}) {
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head><meta charset="utf-8"></head>
+    <body style="font-family: 'Helvetica Neue', Arial, sans-serif; background: #faf9f7; margin: 0; padding: 40px 20px;">
+      <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 8px; overflow: hidden;">
+        <div style="background: #1a1a1a; padding: 40px; text-align: center;">
+          <h1 style="color: #c9a96e; font-size: 24px; margin: 0; letter-spacing: 3px; text-transform: uppercase;">Booking Confirmed</h1>
+        </div>
+        <div style="padding: 40px;">
+          <p style="color: #666; font-size: 16px; line-height: 1.6;">Dear ${params.customerName},</p>
+          <p style="color: #666; font-size: 16px; line-height: 1.6;">Your appointment has been confirmed! We look forward to seeing you.</p>
+          
+          <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 16px; margin: 24px 0; text-align: center;">
+            <p style="color: #16a34a; font-size: 14px; font-weight: 600; margin: 0;">CONFIRMED</p>
+          </div>
+          
+          <div style="background: #faf9f7; border-radius: 8px; padding: 24px; margin: 24px 0;">
+            <table style="width: 100%; border-collapse: collapse;">
+              <tr>
+                <td style="padding: 8px 0; color: #999; font-size: 14px;">Service</td>
+                <td style="padding: 8px 0; color: #1a1a1a; font-size: 14px; text-align: right;">${params.serviceName}</td>
+              </tr>
+              ${params.stylistName ? `
+              <tr>
+                <td style="padding: 8px 0; color: #999; font-size: 14px;">Stylist</td>
+                <td style="padding: 8px 0; color: #1a1a1a; font-size: 14px; text-align: right;">${params.stylistName}</td>
+              </tr>
+              ` : ""}
+              <tr>
+                <td style="padding: 8px 0; color: #999; font-size: 14px;">Date & Time</td>
+                <td style="padding: 8px 0; color: #1a1a1a; font-size: 14px; text-align: right;">${params.date} at ${params.time}</td>
+              </tr>
+            </table>
+          </div>
+
+          <p style="color: #999; font-size: 13px;">Reference: ${params.reference}</p>
+          <p style="color: #666; font-size: 14px; line-height: 1.6; margin-top: 16px;">Need to reschedule? Contact us at least 24 hours before your appointment.</p>
+        </div>
+        <div style="background: #faf9f7; padding: 24px; text-align: center;">
+          <p style="color: #999; font-size: 12px; margin: 0;">${process.env.NEXT_PUBLIC_APP_NAME} | Luxury Hair Experiences</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+}
+
+export function appointmentCompletedEmail(params: {
+  customerName: string;
+  serviceName: string;
+  stylistName?: string;
+  date: string;
+  reference: string;
+}) {
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head><meta charset="utf-8"></head>
+    <body style="font-family: 'Helvetica Neue', Arial, sans-serif; background: #faf9f7; margin: 0; padding: 40px 20px;">
+      <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 8px; overflow: hidden;">
+        <div style="background: #1a1a1a; padding: 40px; text-align: center;">
+          <h1 style="color: #c9a96e; font-size: 24px; margin: 0; letter-spacing: 3px; text-transform: uppercase;">Service Completed</h1>
+        </div>
+        <div style="padding: 40px;">
+          <p style="color: #666; font-size: 16px; line-height: 1.6;">Dear ${params.customerName},</p>
+          <p style="color: #666; font-size: 16px; line-height: 1.6;">Thank you for visiting us! Your appointment for <strong>${params.serviceName}</strong> has been completed.</p>
+          
+          <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 16px; margin: 24px 0; text-align: center;">
+            <p style="color: #16a34a; font-size: 14px; font-weight: 600; margin: 0;">COMPLETED</p>
+          </div>
+
+          <p style="color: #666; font-size: 14px; line-height: 1.6;">We hope you loved your experience! If you have a moment, we&apos;d appreciate your feedback.</p>
+
+          <div style="text-align: center; margin: 24px 0;">
+            <a href="${process.env.NEXT_PUBLIC_APP_URL}/dashboard" style="display: inline-block; background: #1a1a1a; color: #ffffff; padding: 12px 32px; border-radius: 50px; text-decoration: none; font-size: 13px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase;">View Dashboard</a>
+          </div>
+
+          <p style="color: #999; font-size: 13px;">Reference: ${params.reference}</p>
+        </div>
+        <div style="background: #faf9f7; padding: 24px; text-align: center;">
+          <p style="color: #999; font-size: 12px; margin: 0;">${process.env.NEXT_PUBLIC_APP_NAME} | Luxury Hair Experiences</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+}
+
+export function appointmentCancelledEmail(params: {
+  customerName: string;
+  serviceName: string;
+  date: string;
+  reference: string;
+  reason?: string;
+}) {
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head><meta charset="utf-8"></head>
+    <body style="font-family: 'Helvetica Neue', Arial, sans-serif; background: #faf9f7; margin: 0; padding: 40px 20px;">
+      <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 8px; overflow: hidden;">
+        <div style="background: #1a1a1a; padding: 40px; text-align: center;">
+          <h1 style="color: #c9a96e; font-size: 24px; margin: 0; letter-spacing: 3px; text-transform: uppercase;">Booking Cancelled</h1>
+        </div>
+        <div style="padding: 40px;">
+          <p style="color: #666; font-size: 16px; line-height: 1.6;">Dear ${params.customerName},</p>
+          <p style="color: #666; font-size: 16px; line-height: 1.6;">Your appointment for <strong>${params.serviceName}</strong> on ${params.date} has been cancelled.</p>
+          
+          <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 16px; margin: 24px 0; text-align: center;">
+            <p style="color: #dc2626; font-size: 14px; font-weight: 600; margin: 0;">CANCELLED</p>
+          </div>
+
+          ${params.reason ? `
+          <div style="background: #faf9f7; border-radius: 8px; padding: 16px; margin: 24px 0;">
+            <p style="color: #999; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 8px;">Reason</p>
+            <p style="color: #1a1a1a; font-size: 14px; margin: 0;">${params.reason}</p>
+          </div>
+          ` : ""}
+
+          <p style="color: #666; font-size: 14px; line-height: 1.6;">If you&apos;d like to rebook, we&apos;re happy to help find a new time.</p>
+
+          <div style="text-align: center; margin: 24px 0;">
+            <a href="${process.env.NEXT_PUBLIC_APP_URL}/book" style="display: inline-block; background: #1a1a1a; color: #ffffff; padding: 12px 32px; border-radius: 50px; text-decoration: none; font-size: 13px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase;">Rebook Now</a>
+          </div>
+
+          <p style="color: #999; font-size: 13px;">Reference: ${params.reference}</p>
+        </div>
+        <div style="background: #faf9f7; padding: 24px; text-align: center;">
+          <p style="color: #999; font-size: 12px; margin: 0;">${process.env.NEXT_PUBLIC_APP_NAME} | Luxury Hair Experiences</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+}
