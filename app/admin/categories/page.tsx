@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { Plus, Pencil, Trash2, X, Loader2, FolderTree, Package, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, Pencil, Trash2, X, Loader2, FolderTree, Package, ChevronDown, ChevronUp, Upload, ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Category {
@@ -22,6 +23,7 @@ const emptyForm = {
   name: "",
   slug: "",
   description: "",
+  image: "",
   type: "service",
   sortOrder: 0,
   isActive: true,
@@ -45,6 +47,25 @@ export default function AdminCategoriesPage() {
   const [errorMsg, setErrorMsg] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingImage(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/upload", { method: "POST", body: fd });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Upload failed");
+      setFormData((prev) => ({ ...prev, image: data.url }));
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : "Image upload failed");
+    } finally {
+      setUploadingImage(false);
+    }
+  };
 
   const fetchCategories = useCallback(async () => {
     try {
@@ -82,6 +103,7 @@ export default function AdminCategoriesPage() {
       name: cat.name,
       slug: cat.slug,
       description: cat.description || "",
+      image: cat.image || "",
       type: cat.type,
       sortOrder: cat.sortOrder,
       isActive: cat.isActive,
@@ -266,8 +288,10 @@ export default function AdminCategoriesPage() {
                     <tr key={cat.id} className="border-b border-border/50 hover:bg-cream/30 transition-colors">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="h-9 w-9 rounded-lg bg-cream flex items-center justify-center shrink-0">
-                            {cat.type === "service" ? (
+                          <div className="h-9 w-9 rounded-lg bg-cream flex items-center justify-center shrink-0 overflow-hidden">
+                            {cat.image ? (
+                              <Image src={cat.image} alt={cat.name} width={36} height={36} className="object-cover w-full h-full" />
+                            ) : cat.type === "service" ? (
                               <FolderTree className="h-4 w-4 text-gold" />
                             ) : (
                               <Package className="h-4 w-4 text-gold" />
@@ -344,6 +368,12 @@ export default function AdminCategoriesPage() {
                       <tr key={`${cat.id}-detail`}>
                         <td colSpan={7} className="px-6 py-4 bg-cream/30">
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                            {cat.image && (
+                              <div>
+                                <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Image</p>
+                                <Image src={cat.image} alt={cat.name} width={80} height={80} className="rounded-lg object-cover" />
+                              </div>
+                            )}
                             <div>
                               <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Description</p>
                               <p className="text-charcoal">{cat.description || "—"}</p>
@@ -434,6 +464,37 @@ export default function AdminCategoriesPage() {
                   rows={3}
                   className="mt-1.5 w-full bg-cream border border-border rounded-lg px-4 py-2.5 text-sm text-charcoal placeholder:text-muted-foreground focus:outline-none focus:border-gold resize-none"
                 />
+              </div>
+
+              {/* Image */}
+              <div>
+                <label className="text-xs font-semibold text-charcoal uppercase tracking-wider">Image</label>
+                <div className="mt-1.5">
+                  {formData.image ? (
+                    <div className="relative group w-full max-w-[200px]">
+                      <Image src={formData.image} alt="Category" width={200} height={120} className="rounded-lg object-cover w-full h-32" />
+                      <button
+                        type="button"
+                        onClick={() => setFormData((prev) => ({ ...prev, image: "" }))}
+                        className="absolute top-2 right-2 p-1 bg-black/60 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-border rounded-lg cursor-pointer hover:border-gold transition-colors bg-cream/50">
+                      {uploadingImage ? (
+                        <Loader2 className="h-6 w-6 text-gold animate-spin" />
+                      ) : (
+                        <>
+                          <Upload className="h-6 w-6 text-muted-foreground mb-2" />
+                          <span className="text-xs text-muted-foreground">Click to upload image</span>
+                        </>
+                      )}
+                      <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" disabled={uploadingImage} />
+                    </label>
+                  )}
+                </div>
               </div>
 
               {/* Type + Sort */}

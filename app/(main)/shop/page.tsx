@@ -1,13 +1,14 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Image from "next/image";
 import { Search, Grid3X3, LayoutGrid, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ProductCard } from "@/components/shop/product-card";
 import { cn } from "@/lib/utils";
 
-interface ShopCategory { id: string; name: string; slug: string; }
+interface ShopCategory { id: string; name: string; slug: string; image?: string | null; _count?: { products: number } }
 interface ShopProduct {
   id: string; name: string; slug: string; price: number; comparePrice?: number | null;
   images: string[]; stock: number; category: { id: string; name: string; slug: string };
@@ -27,7 +28,7 @@ export default function ShopPage() {
     try {
       const [prodRes, catRes] = await Promise.all([
         fetch("/api/products?isActive=true&limit=100"),
-        fetch("/api/categories?type=product"),
+        fetch("/api/categories?type=product&includeCount=true"),
       ]);
       const prodData = await prodRes.json();
       const catData = await catRes.json();
@@ -81,12 +82,59 @@ export default function ShopPage() {
             </div>
           </div>
         </div>
-        <div className="flex gap-2 overflow-x-auto pb-4 mb-8">
-          {allCategories.map((cat) => (
-            <button key={cat.slug} onClick={() => setActiveCategory(cat.slug)} className={cn("px-5 py-2 rounded-full text-sm font-medium whitespace-nowrap border shrink-0 transition-all", activeCategory === cat.slug ? "bg-charcoal text-white border-charcoal" : "bg-white text-charcoal border-border hover:border-charcoal")}>
-              {cat.name}
+        {/* Category Image Grid */}
+        <div className="mb-8">
+          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+            {/* All button */}
+            <button
+              onClick={() => setActiveCategory("all")}
+              className={cn(
+                "shrink-0 w-[120px] h-[140px] rounded-xl border-2 overflow-hidden transition-all flex flex-col items-center justify-center gap-2",
+                activeCategory === "all"
+                  ? "border-gold bg-gold/5 shadow-md"
+                  : "border-border bg-white hover:border-gold/50"
+              )}
+            >
+              <div className="w-14 h-14 rounded-full bg-cream flex items-center justify-center">
+                <Search className="h-6 w-6 text-gold" />
+              </div>
+              <span className="text-xs font-semibold text-charcoal">All</span>
             </button>
-          ))}
+
+            {categories.map((cat) => (
+              <button
+                key={cat.slug}
+                onClick={() => setActiveCategory(cat.slug)}
+                className={cn(
+                  "shrink-0 w-[120px] h-[140px] rounded-xl border-2 overflow-hidden transition-all group",
+                  activeCategory === cat.slug
+                    ? "border-gold shadow-md"
+                    : "border-border hover:border-gold/50"
+                )}
+              >
+                {cat.image ? (
+                  <div className="relative w-full h-[100px] overflow-hidden">
+                    <Image
+                      src={cat.image}
+                      alt={cat.name}
+                      fill
+                      className="object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                  </div>
+                ) : (
+                  <div className="w-full h-[100px] bg-cream flex items-center justify-center">
+                    <span className="text-2xl font-heading text-gold font-bold">{cat.name.charAt(0)}</span>
+                  </div>
+                )}
+                <div className="h-[40px] flex flex-col items-center justify-center bg-white">
+                  <span className="text-[11px] font-semibold text-charcoal leading-tight text-center px-1 line-clamp-1">{cat.name}</span>
+                  {cat._count?.products ? (
+                    <span className="text-[9px] text-muted-foreground">{cat._count.products} items</span>
+                  ) : null}
+                </div>
+              </button>
+            ))}
+          </div>
         </div>
         {loading ? (
           <div className="py-20 text-center"><Loader2 className="h-8 w-8 text-gold animate-spin mx-auto" /><p className="text-muted-foreground mt-4 text-sm">Loading products...</p></div>
