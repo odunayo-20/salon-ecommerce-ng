@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import { sendEmail, orderShippedEmail, orderDeliveredEmail, orderProcessingEmail } from "@/lib/resend";
 
 export async function PATCH(
   request: NextRequest,
@@ -44,6 +45,36 @@ export async function PATCH(
         payments: { select: { id: true, amount: true, status: true, method: true, reference: true } },
       },
     });
+
+    // Send status update email
+    if (status && order.customerProfile?.user?.email) {
+      try {
+        const customerName = order.customerProfile.user.name || "Valued Customer";
+        const orderNum = order.orderNumber;
+
+        if (status.toUpperCase() === "PROCESSING") {
+          await sendEmail({
+            to: order.customerProfile.user.email,
+            subject: `Order Processing — ${orderNum}`,
+            html: orderProcessingEmail({ customerName, orderNumber: orderNum }),
+          });
+        } else if (status.toUpperCase() === "SHIPPED") {
+          await sendEmail({
+            to: order.customerProfile.user.email,
+            subject: `Order Shipped — ${orderNum}`,
+            html: orderShippedEmail({ customerName, orderNumber: orderNum, trackingNumber: trackingNumber || order.trackingNumber || undefined }),
+          });
+        } else if (status.toUpperCase() === "DELIVERED") {
+          await sendEmail({
+            to: order.customerProfile.user.email,
+            subject: `Order Delivered — ${orderNum}`,
+            html: orderDeliveredEmail({ customerName, orderNumber: orderNum }),
+          });
+        }
+      } catch {
+        // Email failure shouldn't block order update
+      }
+    }
 
     return NextResponse.json({
       order: {

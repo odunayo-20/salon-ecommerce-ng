@@ -1,14 +1,3 @@
-import { Resend } from "resend";
-
-let _resend: Resend | null = null;
-
-function getResend() {
-  if (!_resend) {
-    _resend = new Resend(process.env.RESEND_API_KEY || "re_placeholder");
-  }
-  return _resend;
-}
-
 interface EmailParams {
   to: string;
   subject: string;
@@ -17,20 +6,44 @@ interface EmailParams {
 }
 
 export async function sendEmail({ to, subject, html, from }: EmailParams) {
-  const fromAddress = from || process.env.RESEND_FROM_EMAIL || `${process.env.NEXT_PUBLIC_APP_NAME || "MecBill Tech Salon"} <noreply@mecbilltechsalon.com>`;
-
-  const result = await getResend().emails.send({
-    from: fromAddress,
-    to,
-    subject,
-    html,
-  });
-
-  if (result.error) {
-    console.error("Resend send error:", result.error);
+  const apiKey = process.env.BREVO_API_KEY;
+  if (!apiKey) {
+    console.error("BREVO_API_KEY is not configured");
+    return { error: { message: "Email provider not configured" } };
   }
 
-  return result;
+  const senderEmail = process.env.BREVO_SENDER_EMAIL || "noreply@mecbilltechsalon.com";
+  const senderName = process.env.BREVO_SENDER_NAME || process.env.NEXT_PUBLIC_APP_NAME || "MecBill Tech Salon";
+  const parsedFrom = from?.match(/<(.+?)>/)?.[1] || from;
+
+  try {
+    const res = await fetch("https://api.brevo.com/v3/smtp/email", {
+      method: "POST",
+      headers: {
+        "api-key": apiKey,
+        "Content-Type": "application/json",
+        "accept": "application/json",
+      },
+      body: JSON.stringify({
+        sender: { name: senderName, email: parsedFrom || senderEmail },
+        to: [{ email: to }],
+        subject,
+        htmlContent: html,
+      }),
+    });
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      const msg = data?.message || `Brevo API error ${res.status}`;
+      console.error("Brevo send error:", msg);
+      return { error: { message: msg } };
+    }
+
+    return { error: null };
+  } catch (err) {
+    console.error("Brevo send error:", err);
+    return { error: { message: err instanceof Error ? err.message : "Email send failed" } };
+  }
 }
 
 export function bookingConfirmationEmail(params: {
@@ -274,6 +287,179 @@ export function orderConfirmationEmail(params: {
             <p style="color: #1a1a1a; font-size: 14px; margin: 0; line-height: 1.5;">${params.shippingAddress}</p>
           </div>
           ` : ""}
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+}
+
+export function orderPlacedEmail(params: {
+  customerName: string;
+  orderNumber: string;
+  items: Array<{ name: string; quantity: number; price: number }>;
+  total: number;
+  shippingAddress: string;
+}) {
+  const itemsHtml = params.items
+    .map(
+      (item) => `
+      <tr>
+        <td style="padding: 12px 0; border-bottom: 1px solid #f0f0f0; color: #1a1a1a; font-size: 14px;">${item.name}</td>
+        <td style="padding: 12px 0; border-bottom: 1px solid #f0f0f0; color: #666; font-size: 14px; text-align: center;">${item.quantity}</td>
+        <td style="padding: 12px 0; border-bottom: 1px solid #f0f0f0; color: #1a1a1a; font-size: 14px; text-align: right;">₦${item.price.toLocaleString()}</td>
+      </tr>
+    `
+    )
+    .join("");
+
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head><meta charset="utf-8"></head>
+    <body style="font-family: 'Helvetica Neue', Arial, sans-serif; background: #faf9f7; margin: 0; padding: 40px 20px;">
+      <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 8px; overflow: hidden;">
+        <div style="background: #1a1a1a; padding: 40px; text-align: center;">
+          <h1 style="color: #c9a96e; font-size: 24px; margin: 0; letter-spacing: 3px; text-transform: uppercase;">Order Placed</h1>
+        </div>
+        <div style="padding: 40px;">
+          <p style="color: #666; font-size: 16px; line-height: 1.6;">Dear ${params.customerName},</p>
+          <p style="color: #666; font-size: 16px; line-height: 1.6;">Thank you for your order! We&apos;ve received it and will process it once payment is confirmed.</p>
+          
+          <table style="width: 100%; border-collapse: collapse; margin: 24px 0;">
+            <thead>
+              <tr>
+                <th style="text-align: left; padding: 8px 0; color: #999; font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">Item</th>
+                <th style="text-align: center; padding: 8px 0; color: #999; font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">Qty</th>
+                <th style="text-align: right; padding: 8px 0; color: #999; font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">Price</th>
+              </tr>
+            </thead>
+            <tbody>${itemsHtml}</tbody>
+          </table>
+          
+          <div style="border-top: 2px solid #1a1a1a; padding-top: 16px; text-align: right;">
+            <p style="color: #1a1a1a; font-size: 18px; font-weight: 600; margin: 0;">Total: ₦${params.total.toLocaleString()}</p>
+          </div>
+
+          ${params.shippingAddress ? `
+          <div style="background: #faf9f7; border-radius: 8px; padding: 16px; margin: 24px 0;">
+            <p style="color: #999; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 8px;">Shipping Address</p>
+            <p style="color: #1a1a1a; font-size: 14px; margin: 0; line-height: 1.5;">${params.shippingAddress}</p>
+          </div>
+          ` : ""}
+
+          <p style="color: #999; font-size: 13px; margin-top: 24px;">Order: ${params.orderNumber}</p>
+        </div>
+        <div style="background: #faf9f7; padding: 24px; text-align: center;">
+          <p style="color: #999; font-size: 12px; margin: 0;">${process.env.NEXT_PUBLIC_APP_NAME} | Luxury Hair Experiences</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+}
+
+export function orderProcessingEmail(params: {
+  customerName: string;
+  orderNumber: string;
+}) {
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head><meta charset="utf-8"></head>
+    <body style="font-family: 'Helvetica Neue', Arial, sans-serif; background: #faf9f7; margin: 0; padding: 40px 20px;">
+      <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 8px; overflow: hidden;">
+        <div style="background: #1a1a1a; padding: 40px; text-align: center;">
+          <h1 style="color: #c9a96e; font-size: 24px; margin: 0; letter-spacing: 3px; text-transform: uppercase;">Order Processing</h1>
+        </div>
+        <div style="padding: 40px;">
+          <p style="color: #666; font-size: 16px; line-height: 1.6;">Dear ${params.customerName},</p>
+          <p style="color: #666; font-size: 16px; line-height: 1.6;">Great news! Your order <strong>${params.orderNumber}</strong> has been confirmed and is now being processed.</p>
+          
+          <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 16px; margin: 24px 0; text-align: center;">
+            <p style="color: #2563eb; font-size: 14px; font-weight: 600; margin: 0;">PROCESSING</p>
+          </div>
+
+          <p style="color: #666; font-size: 14px; line-height: 1.6;">We&apos;re preparing your order for shipment. You&apos;ll receive another email once it&apos;s on its way.</p>
+        </div>
+        <div style="background: #faf9f7; padding: 24px; text-align: center;">
+          <p style="color: #999; font-size: 12px; margin: 0;">${process.env.NEXT_PUBLIC_APP_NAME} | Luxury Hair Experiences</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+}
+
+export function orderShippedEmail(params: {
+  customerName: string;
+  orderNumber: string;
+  trackingNumber?: string;
+}) {
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head><meta charset="utf-8"></head>
+    <body style="font-family: 'Helvetica Neue', Arial, sans-serif; background: #faf9f7; margin: 0; padding: 40px 20px;">
+      <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 8px; overflow: hidden;">
+        <div style="background: #1a1a1a; padding: 40px; text-align: center;">
+          <h1 style="color: #c9a96e; font-size: 24px; margin: 0; letter-spacing: 3px; text-transform: uppercase;">Order Shipped</h1>
+        </div>
+        <div style="padding: 40px;">
+          <p style="color: #666; font-size: 16px; line-height: 1.6;">Dear ${params.customerName},</p>
+          <p style="color: #666; font-size: 16px; line-height: 1.6;">Your order <strong>${params.orderNumber}</strong> has been shipped and is on its way to you!</p>
+          
+          <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 16px; margin: 24px 0; text-align: center;">
+            <p style="color: #16a34a; font-size: 14px; font-weight: 600; margin: 0;">SHIPPED</p>
+          </div>
+
+          ${params.trackingNumber ? `
+          <div style="background: #faf9f7; border-radius: 8px; padding: 16px; margin: 24px 0;">
+            <p style="color: #999; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 8px;">Tracking Number</p>
+            <p style="color: #1a1a1a; font-size: 16px; margin: 0; font-family: monospace; font-weight: 600;">${params.trackingNumber}</p>
+          </div>
+          ` : ""}
+
+          <p style="color: #666; font-size: 14px; line-height: 1.6;">You&apos;ll receive another email once your order has been delivered.</p>
+        </div>
+        <div style="background: #faf9f7; padding: 24px; text-align: center;">
+          <p style="color: #999; font-size: 12px; margin: 0;">${process.env.NEXT_PUBLIC_APP_NAME} | Luxury Hair Experiences</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+}
+
+export function orderDeliveredEmail(params: {
+  customerName: string;
+  orderNumber: string;
+}) {
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head><meta charset="utf-8"></head>
+    <body style="font-family: 'Helvetica Neue', Arial, sans-serif; background: #faf9f7; margin: 0; padding: 40px 20px;">
+      <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 8px; overflow: hidden;">
+        <div style="background: #1a1a1a; padding: 40px; text-align: center;">
+          <h1 style="color: #c9a96e; font-size: 24px; margin: 0; letter-spacing: 3px; text-transform: uppercase;">Order Delivered</h1>
+        </div>
+        <div style="padding: 40px;">
+          <p style="color: #666; font-size: 16px; line-height: 1.6;">Dear ${params.customerName},</p>
+          <p style="color: #666; font-size: 16px; line-height: 1.6;">Your order <strong>${params.orderNumber}</strong> has been delivered. We hope you love your purchase!</p>
+          
+          <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 16px; margin: 24px 0; text-align: center;">
+            <p style="color: #16a34a; font-size: 14px; font-weight: 600; margin: 0;">DELIVERED</p>
+          </div>
+
+          <p style="color: #666; font-size: 14px; line-height: 1.6;">If you have any questions or need to return an item, please don&apos;t hesitate to reach out.</p>
+
+          <div style="text-align: center; margin: 24px 0;">
+            <a href="${process.env.NEXT_PUBLIC_APP_URL}/dashboard/orders" style="display: inline-block; background: #1a1a1a; color: #ffffff; padding: 12px 32px; border-radius: 50px; text-decoration: none; font-size: 13px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase;">View Orders</a>
+          </div>
+        </div>
+        <div style="background: #faf9f7; padding: 24px; text-align: center;">
+          <p style="color: #999; font-size: 12px; margin: 0;">${process.env.NEXT_PUBLIC_APP_NAME} | Luxury Hair Experiences</p>
         </div>
       </div>
     </body>
