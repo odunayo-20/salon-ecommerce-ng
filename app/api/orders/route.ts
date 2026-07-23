@@ -175,7 +175,7 @@ export async function GET(request: NextRequest) {
     const orders = await prisma.order.findMany({
       where,
       include: {
-        items: true,
+        items: { include: { product: { select: { slug: true } } } },
         payments: { select: { id: true, status: true, method: true, reference: true } },
       },
       orderBy: { createdAt: "desc" },
@@ -188,7 +188,7 @@ export async function GET(request: NextRequest) {
         shippingCost: Number(o.shippingCost),
         discount: Number(o.discount),
         total: Number(o.total),
-        items: o.items.map((i) => ({ ...i, price: Number(i.price) })),
+        items: o.items.map((i) => ({ ...i, price: Number(i.price), slug: i.product.slug })),
       })),
     });
   } catch (error) {

@@ -2,11 +2,11 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { Package, Loader2 } from "lucide-react";
+import { Package, Loader2, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-interface OrderItem { id: string; name: string; price: number; quantity: number; image: string | null; }
+interface OrderItem { id: string; name: string; price: number; quantity: number; image: string | null; slug: string; }
 interface Order {
   id: string; orderNumber: string; status: string; total: number;
   createdAt: string; items: OrderItem[];
@@ -68,8 +68,15 @@ export default function DashboardOrdersPage() {
               <div className="space-y-2">
                 {order.items.map((item) => (
                   <div key={item.id} className="flex items-center justify-between text-sm">
-                    <span className="text-charcoal">{item.name} × {item.quantity}</span>
-                    <span className="font-medium text-charcoal">₦{(item.price * item.quantity).toLocaleString()}</span>
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="text-charcoal truncate">{item.name} × {item.quantity}</span>
+                      {order.status === "DELIVERED" && (
+                        <Link href={`/shop/${item.slug}#reviews`} className="shrink-0 text-gold hover:text-gold-dark transition-colors" title="Write a review">
+                          <Star className="h-3.5 w-3.5" />
+                        </Link>
+                      )}
+                    </div>
+                    <span className="font-medium text-charcoal shrink-0">₦{(item.price * item.quantity).toLocaleString()}</span>
                   </div>
                 ))}
               </div>

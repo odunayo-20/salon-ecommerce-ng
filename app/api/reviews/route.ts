@@ -66,6 +66,28 @@ export async function POST(request: NextRequest) {
     if (productId) {
       const product = await prisma.product.findUnique({ where: { id: productId } });
       if (!product) return NextResponse.json({ error: "Product not found" }, { status: 404 });
+
+      const profile = await prisma.customerProfile.findUnique({
+        where: { userId: session.user.id },
+        select: { id: true },
+      });
+
+      if (!profile) {
+        return NextResponse.json({ error: "You must purchase this product before reviewing it" }, { status: 403 });
+      }
+
+      const deliveredOrder = await prisma.order.findFirst({
+        where: {
+          customerProfileId: profile.id,
+          status: "DELIVERED",
+          items: { some: { productId } },
+        },
+        select: { id: true },
+      });
+
+      if (!deliveredOrder) {
+        return NextResponse.json({ error: "You can only review products after your order has been delivered" }, { status: 403 });
+      }
     }
 
     if (serviceId) {

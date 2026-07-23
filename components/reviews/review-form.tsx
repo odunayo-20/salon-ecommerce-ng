@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
-import { Star, Loader2, CheckCircle, PenLine } from "lucide-react";
+import { Star, Loader2, CheckCircle, PenLine, ShoppingBag, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -11,6 +11,13 @@ interface ReviewFormProps {
   serviceId?: string;
   itemName: string;
   onSubmitted?: () => void;
+}
+
+interface Eligibility {
+  eligible: boolean;
+  reason?: string;
+  alreadyReviewed?: boolean;
+  orderNumber?: string;
 }
 
 export function ReviewForm({ productId, serviceId, itemName, onSubmitted }: ReviewFormProps) {
@@ -23,6 +30,22 @@ export function ReviewForm({ productId, serviceId, itemName, onSubmitted }: Revi
   const [saving, setSaving] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
+  const [eligibility, setEligibility] = useState<Eligibility | null>(null);
+  const [loadingEligibility, setLoadingEligibility] = useState(false);
+
+  useEffect(() => {
+    if (!productId || !session?.user) return;
+    setLoadingEligibility(true);
+    fetch(`/api/reviews/eligibility?productId=${productId}`)
+      .then((r) => r.json())
+      .then((data) => setEligibility(data))
+      .catch(() => setEligibility({ eligible: false, reason: "error" }))
+      .finally(() => setLoadingEligibility(false));
+  }, [productId, session?.user]);
+
+  const isProductReview = !!productId;
+  const canReview = isProductReview ? eligibility?.eligible : true;
+  const alreadyReviewed = isProductReview ? eligibility?.alreadyReviewed : false;
 
   const handleSubmit = async () => {
     if (!session?.user) { setError("Sign in to leave a review"); return; }
@@ -38,11 +61,51 @@ export function ReviewForm({ productId, serviceId, itemName, onSubmitted }: Revi
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       setSubmitted(true);
+      if (isProductReview) setEligibility((prev) => prev ? { ...prev, alreadyReviewed: true } : prev);
       onSubmitted?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to submit review");
     } finally { setSaving(false); }
   };
+
+  if (!session?.user) {
+    return (
+      <div className="bg-cream/50 border border-border rounded-xl p-4 text-center">
+        <p className="text-sm text-muted-foreground">Sign in to leave a review</p>
+      </div>
+    );
+  }
+
+  if (isProductReview && loadingEligibility) {
+    return (
+      <div className="bg-cream/50 border border-border rounded-xl p-4 text-center flex items-center justify-center gap-2">
+        <Loader2 className="h-4 w-4 text-gold animate-spin" />
+        <span className="text-sm text-muted-foreground">Checking eligibility...</span>
+      </div>
+    );
+  }
+
+  if (alreadyReviewed && !open) {
+    return (
+      <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-center">
+        <div className="flex items-center justify-center gap-2">
+          <Check className="h-4 w-4 text-emerald-600" />
+          <p className="text-sm font-medium text-emerald-700">You&apos;ve already reviewed this product</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isProductReview && !canReview && !open) {
+    return (
+      <div className="bg-cream/50 border border-border rounded-xl p-4 text-center">
+        <div className="flex items-center justify-center gap-2">
+          <ShoppingBag className="h-4 w-4 text-muted-foreground" />
+          <p className="text-sm text-muted-foreground">Purchase and receive this product to leave a review</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!open) {
     return (
@@ -101,9 +164,7 @@ export function ReviewForm({ productId, serviceId, itemName, onSubmitted }: Revi
 
       {error && <p className="text-sm text-red-600">{error}</p>}
 
-      {!session?.user && <p className="text-xs text-muted-foreground">You must be signed in to leave a review.</p>}
-
-      <Button onClick={handleSubmit} disabled={saving || !session?.user} className="bg-gold text-white hover:bg-gold-dark rounded-full text-xs font-semibold tracking-wider uppercase px-8">
+      <Button onClick={handleSubmit} disabled={saving} className="bg-gold text-white hover:bg-gold-dark rounded-full text-xs font-semibold tracking-wider uppercase px-8">
         {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
         Submit Review
       </Button>
