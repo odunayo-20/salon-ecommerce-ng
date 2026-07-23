@@ -6,6 +6,7 @@ import Image from "next/image";
 import { Minus, Plus, Heart, Truck, Shield, RotateCcw, Star, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ProductCard } from "@/components/shop/product-card";
+import { ReviewForm } from "@/components/reviews/review-form";
 import { useCartStore, useWishlistStore } from "@/store";
 import { cn } from "@/lib/utils";
 
@@ -167,6 +168,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
             {selectedTab === "details" && <p className="text-sm text-muted-foreground leading-relaxed max-w-2xl">{product.description || "No additional details available."}</p>}
             {selectedTab === "reviews" && (
               <div className="space-y-6">
+                <ReviewForm productId={product.id} itemName={product.name} />
                 {product.reviews.length === 0 ? (
                   <p className="text-muted-foreground text-sm">No reviews yet. Be the first to review this product!</p>
                 ) : product.reviews.map((review, i) => (

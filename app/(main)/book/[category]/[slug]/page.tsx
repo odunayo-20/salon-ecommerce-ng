@@ -4,6 +4,7 @@ import { useState, useEffect, use } from "react";
 import Link from "next/link";
 import { Clock, CheckCircle2, ChevronDown, Star, ArrowLeft, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ReviewForm } from "@/components/reviews/review-form";
 import { cn } from "@/lib/utils";
 
 interface Stylist {
@@ -140,22 +141,21 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ catego
             )}
 
             {/* Reviews */}
-            {service.reviews.length > 0 && (
-              <div>
-                <h2 className="font-heading text-2xl font-bold text-charcoal tracking-tight mb-5">Reviews</h2>
-                <div className="space-y-6">
-                  {service.reviews.map((review, i) => (
-                    <div key={i} className="border-b border-border pb-6">
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="flex gap-0.5">{[...Array(5)].map((_, j) => <Star key={j} className={cn("h-3 w-3", j < review.rating ? "fill-gold text-gold" : "text-gray-200")} />)}</div>
-                        <span className="text-sm font-medium text-charcoal">{review.user?.name || "Customer"}</span>
-                      </div>
-                      {review.comment && <p className="text-sm text-muted-foreground">{review.comment}</p>}
+            <div>
+              <h2 className="font-heading text-2xl font-bold text-charcoal tracking-tight mb-5">Reviews</h2>
+              <div className="space-y-6">
+                <ReviewForm serviceId={service.id} itemName={service.name} />
+                {service.reviews.map((review, i) => (
+                  <div key={i} className="border-b border-border pb-6">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="flex gap-0.5">{[...Array(5)].map((_, j) => <Star key={j} className={cn("h-3 w-3", j < review.rating ? "fill-gold text-gold" : "text-gray-200")} />)}</div>
+                      <span className="text-sm font-medium text-charcoal">{review.user?.name || "Customer"}</span>
                     </div>
-                  ))}
-                </div>
+                    {review.comment && <p className="text-sm text-muted-foreground">{review.comment}</p>}
+                  </div>
+                ))}
               </div>
-            )}
+            </div>
           </div>
 
           {/* Sidebar */}

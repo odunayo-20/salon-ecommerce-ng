@@ -11,9 +11,19 @@ export async function GET(request: Request) {
 
     const { searchParams } = new URL(request.url);
     const isApproved = searchParams.get("isApproved");
+    const isFeatured = searchParams.get("isFeatured");
+    const search = searchParams.get("search");
 
     const where: Record<string, unknown> = {};
     if (isApproved !== null && isApproved !== undefined) where.isApproved = isApproved === "true";
+    if (isFeatured !== null && isFeatured !== undefined) where.isFeatured = isFeatured === "true";
+    if (search) {
+      where.OR = [
+        { title: { contains: search, mode: "insensitive" } },
+        { comment: { contains: search, mode: "insensitive" } },
+        { user: { name: { contains: search, mode: "insensitive" } } },
+      ];
+    }
 
     const reviews = await prisma.review.findMany({
       where,
@@ -63,5 +73,28 @@ export async function PATCH(request: NextRequest) {
   } catch (error) {
     console.error("Admin review update error:", error);
     return NextResponse.json({ error: "Failed to update review" }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id || session.user.role !== "ADMIN") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get("id");
+    if (!id) return NextResponse.json({ error: "Review ID is required" }, { status: 400 });
+
+    const review = await prisma.review.findUnique({ where: { id } });
+    if (!review) return NextResponse.json({ error: "Review not found" }, { status: 404 });
+
+    await prisma.review.delete({ where: { id } });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Admin review delete error:", error);
+    return NextResponse.json({ error: "Failed to delete review" }, { status: 500 });
   }
 }

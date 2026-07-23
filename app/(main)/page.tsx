@@ -46,7 +46,12 @@ const stats = [
   { icon: Clock, value: "98%", label: "Satisfaction Rate" },
 ];
 
-const reviews = [
+interface ApiReview {
+  id: string; name: string; rating: number; comment: string;
+  service?: string | null; date: string; avatar?: string | null;
+}
+
+const fallbackReviews: ApiReview[] = [
   { id: "1", name: "Adaeze O.", rating: 5, comment: "MecBill Tech transformed my hair completely! The knotless braids were painless and so natural-looking. I've never felt more confident.", service: "Knotless Braids", date: "2024-01-15" },
   { id: "2", name: "Folake M.", rating: 5, comment: "The silk press I got here is the best I've ever had. My hair was silky smooth for weeks. The stylists truly know what they're doing.", service: "Silk Press", date: "2024-02-20" },
   { id: "3", name: "Ngozi A.", rating: 5, comment: "I've been coming here for months and my natural hair has never been healthier. Their hair treatments are exceptional.", service: "Natural Hair Treatment", date: "2024-03-10" },
@@ -56,19 +61,23 @@ const reviews = [
 export default function HomePage() {
   const [services, setServices] = useState<ApiService[]>([]);
   const [products, setProducts] = useState<ApiProduct[]>([]);
+  const [reviews, setReviews] = useState<ApiReview[]>(fallbackReviews);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     (async () => {
       try {
-        const [svcRes, prodRes] = await Promise.all([
+        const [svcRes, prodRes, revRes] = await Promise.all([
           fetch("/api/services?isActive=true&isPopular=true&limit=4"),
           fetch("/api/products?isActive=true&isFeatured=true&limit=4"),
+          fetch("/api/reviews?isFeatured=true&limit=10"),
         ]);
         const svcData = await svcRes.json();
         const prodData = await prodRes.json();
+        const revData = await revRes.json();
         setServices(svcData.services || []);
         setProducts(prodData.products || []);
+        if (revData.reviews?.length > 0) setReviews(revData.reviews);
       } catch { /* silent */ }
       finally { setLoading(false); }
     })();
@@ -214,7 +223,7 @@ export default function HomePage() {
             <span className="text-gold text-xs font-semibold tracking-[0.2em] uppercase">Testimonials</span>
             <h2 className="font-heading text-3xl md:text-4xl font-bold text-charcoal mt-2 tracking-tight">What Our Clients Say</h2>
           </div>
-          <ReviewCarousel reviews={reviews} />
+          <ReviewCarousel reviews={reviews.map((r) => ({ ...r, service: r.service ?? undefined, avatar: r.avatar ?? undefined }))} />
         </div>
       </section>
 
