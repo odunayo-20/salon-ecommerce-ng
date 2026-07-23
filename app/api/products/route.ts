@@ -104,9 +104,15 @@ export async function POST(request: Request) {
     const body = await request.json();
     const {
       name, slug, description, shortDesc, price, comparePrice, sku, barcode,
-      images, videoUrl, categoryId, stock, lowStock, weight, isActive, isFeatured,
+      image, images, videoUrl, categoryId, stock, lowStock, weight, isActive, isFeatured,
       tags, hairTexture, hairLength, hairColor, metadata,
     } = body;
+
+    // Merge single image into images array if images is empty
+    let finalImages = Array.isArray(images) ? images : [];
+    if (image && finalImages.length === 0) {
+      finalImages = [image];
+    }
 
     if (!name || !slug || price === undefined || !categoryId) {
       return NextResponse.json({ error: "Name, slug, price, and category are required" }, { status: 400 });
@@ -139,7 +145,8 @@ export async function POST(request: Request) {
         comparePrice: comparePrice || null,
         sku: sku || null,
         barcode: barcode || null,
-        images: images ? JSON.stringify(images) : "[]",
+        image: image || finalImages[0] || null,
+        images: JSON.stringify(finalImages),
         videoUrl: videoUrl || null,
         categoryId,
         stock: stock || 0,

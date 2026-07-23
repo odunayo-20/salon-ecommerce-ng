@@ -51,9 +51,17 @@ export async function PUT(
     const body = await request.json();
     const {
       name, slug, description, shortDesc, price, comparePrice, sku, barcode,
-      images, videoUrl, categoryId, stock, lowStock, weight, isActive, isFeatured,
+      image, images, videoUrl, categoryId, stock, lowStock, weight, isActive, isFeatured,
       tags, hairTexture, hairLength, hairColor,
     } = body;
+
+    // Merge single image into images array
+    let finalImages = Array.isArray(images) ? images : undefined;
+    if (image && finalImages !== undefined && finalImages.length === 0) {
+      finalImages = [image];
+    } else if (image && finalImages === undefined) {
+      finalImages = [image];
+    }
 
     const existing = await prisma.product.findUnique({ where: { id } });
     if (!existing) {
@@ -92,7 +100,8 @@ export async function PUT(
         ...(comparePrice !== undefined && { comparePrice: comparePrice || null }),
         ...(sku !== undefined && { sku: sku || null }),
         ...(barcode !== undefined && { barcode: barcode || null }),
-        ...(images !== undefined && { images: JSON.stringify(images) }),
+        ...(finalImages !== undefined && { images: JSON.stringify(finalImages) }),
+        ...(image !== undefined && { image: image || (finalImages && finalImages[0]) || null }),
         ...(videoUrl !== undefined && { videoUrl: videoUrl || null }),
         ...(categoryId !== undefined && { categoryId }),
         ...(stock !== undefined && { stock }),

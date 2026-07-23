@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, Package, Loader2 } from "lucide-react";
 
@@ -12,7 +13,7 @@ interface Order {
   total: number;
   status: string;
   shippingAddress: string | null;
-  items: { name: string; quantity: number; price: number }[];
+  items: { name: string; quantity: number; price: number; image?: string }[];
 }
 
 export default function OrderSuccessPage() {
@@ -58,8 +59,11 @@ export default function OrderSuccessPage() {
               <p className="text-sm text-muted-foreground">Order <span className="font-mono font-semibold text-charcoal">{order.orderNumber}</span></p>
               <div className="max-w-sm mx-auto space-y-3 text-left">
                 {order.items.map((item, i) => (
-                  <div key={i} className="flex justify-between py-2 border-b border-border/50">
-                    <span className="text-sm text-charcoal">{item.name} × {item.quantity}</span>
+                  <div key={i} className="flex items-center gap-3 py-2 border-b border-border/50">
+                    <div className="h-10 w-10 bg-cream rounded shrink-0 overflow-hidden flex items-center justify-center">
+                      {item.image ? <Image src={item.image} alt={item.name} width={40} height={40} className="h-full w-full object-cover" /> : <Package className="h-3 w-3 text-border" />}
+                    </div>
+                    <span className="text-sm text-charcoal flex-1">{item.name} × {item.quantity}</span>
                     <span className="text-sm font-medium text-charcoal">₦{(item.price * item.quantity).toLocaleString()}</span>
                   </div>
                 ))}

@@ -17,7 +17,7 @@ interface Product {
   comparePrice: number | null;
   sku: string | null;
   image: string | null;
-  images: string;
+  images: string[];
   categoryId: string;
   stock: number;
   lowStock: number;
@@ -101,7 +101,7 @@ export default function AdminProductsPage() {
       categoryId: p.categoryId, stock: p.stock, lowStock: p.lowStock,
       isActive: p.isActive, isFeatured: p.isFeatured,
       hairTexture: p.hairTexture || "", hairLength: p.hairLength || "", hairColor: p.hairColor || "",
-      tags: "", image: p.image || "", images: p.images || "[]",
+      tags: "", image: p.image || "", images: typeof p.images === "string" ? p.images : JSON.stringify(p.images || []),
     });
     setShowModal(true);
     setErrorMsg("");
@@ -403,7 +403,7 @@ export default function AdminProductsPage() {
                   ) : (
                     <label className="flex flex-col items-center justify-center h-32 border-2 border-dashed border-border rounded-lg cursor-pointer hover:border-gold transition-colors">
                       <Upload className="h-6 w-6 text-muted-foreground mb-2" />
-                      <span className="text-xs text-muted-foreground">Click to upload</span>
+                      <span className="text-xs text-muted-foreground">Click to upload main image</span>
                       <span className="text-[10px] text-muted-foreground">JPEG, PNG, WebP (max 5MB)</span>
                       <input
                         type="file"
@@ -424,6 +424,59 @@ export default function AdminProductsPage() {
                       />
                     </label>
                   )}
+                </div>
+              </div>
+
+              {/* Additional Images */}
+              <div>
+                <label className="text-xs font-semibold text-charcoal uppercase tracking-wider">Additional Images</label>
+                <div className="mt-1.5">
+                  <div className="flex flex-wrap gap-2">
+                    {(() => {
+                      let parsed: string[] = [];
+                      try { parsed = JSON.parse(form.images || "[]"); } catch { parsed = []; }
+                      return parsed.map((img: string, idx: number) => (
+                        <div key={idx} className="relative inline-block">
+                          <img src={img} alt="" className="h-20 w-20 object-cover rounded-lg border border-border" />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const updated = parsed.filter((_: string, i: number) => i !== idx);
+                              setForm((p) => ({ ...p, images: JSON.stringify(updated) }));
+                            }}
+                            className="absolute -top-1.5 -right-1.5 h-5 w-5 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600"
+                          >
+                            <X className="h-2.5 w-2.5" />
+                          </button>
+                        </div>
+                      ));
+                    })()}
+                    <label className="flex items-center justify-center h-20 w-20 border-2 border-dashed border-border rounded-lg cursor-pointer hover:border-gold transition-colors">
+                      <Upload className="h-4 w-4 text-muted-foreground" />
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        className="hidden"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          const fd = new FormData();
+                          fd.append("file", file);
+                          fd.append("folder", "salon/products");
+                          try {
+                            const res = await fetch("/api/upload", { method: "POST", body: fd });
+                            const data = await res.json();
+                            if (res.ok) {
+                              let parsed: string[] = [];
+                              try { parsed = JSON.parse(form.images || "[]"); } catch { parsed = []; }
+                              parsed.push(data.url);
+                              setForm((p) => ({ ...p, images: JSON.stringify(parsed) }));
+                            }
+                          } catch { /* silent */ }
+                        }}
+                      />
+                    </label>
+                  </div>
                 </div>
               </div>
 

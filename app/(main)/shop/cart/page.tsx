@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { Trash2, Plus, Minus, ShoppingBag, ArrowRight, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCartStore } from "@/store";
@@ -34,7 +35,9 @@ export default function CartPage() {
             <div className="lg:col-span-2 space-y-4">
               {items.map((item) => (
                 <div key={item.id} className="bg-white border border-border rounded-xl p-5 flex gap-4">
-                  <div className="h-24 w-24 bg-cream rounded-lg shrink-0 flex items-center justify-center text-xs text-muted-foreground">Image</div>
+                  <div className="h-24 w-24 bg-cream rounded-lg shrink-0 overflow-hidden flex items-center justify-center">
+                    {item.image ? <Image src={item.image} alt={item.name} width={96} height={96} className="h-full w-full object-cover" /> : <span className="text-xs text-muted-foreground">No image</span>}
+                  </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-4">
                       <div>

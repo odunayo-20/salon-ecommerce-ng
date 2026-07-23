@@ -146,8 +146,11 @@ export default function AdminOrdersPage() {
               <div className="bg-cream rounded-lg p-4">
                 <p className="text-xs font-semibold text-charcoal uppercase tracking-wider mb-2">Items</p>
                 {selected.items.map((item) => (
-                  <div key={item.id} className="flex justify-between py-1.5 text-sm">
-                    <span className="text-charcoal">{item.name} × {item.quantity}</span>
+                  <div key={item.id} className="flex items-center gap-3 py-1.5 text-sm">
+                    <div className="h-8 w-8 bg-white rounded shrink-0 overflow-hidden flex items-center justify-center">
+                      {item.image ? <img src={item.image} alt={item.name} className="h-full w-full object-cover" /> : <Package className="h-3 w-3 text-border" />}
+                    </div>
+                    <span className="text-charcoal flex-1">{item.name} × {item.quantity}</span>
                     <span className="font-medium text-charcoal">₦{(item.price * item.quantity).toLocaleString()}</span>
                   </div>
                 ))}
