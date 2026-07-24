@@ -3,11 +3,12 @@
 import { useState, useEffect, use } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Minus, Plus, Heart, Truck, Shield, RotateCcw, Star, Loader2 } from "lucide-react";
+import { Minus, Plus, Heart, Truck, Shield, RotateCcw, Star, Loader2, ZoomIn } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { ProductCard } from "@/components/shop/product-card";
 import { ReviewForm } from "@/components/reviews/review-form";
+import { Lightbox } from "@/components/shop/lightbox";
 import { useCartStore, useWishlistStore } from "@/store";
 import { useToggleWishlist } from "@/hooks/queries";
 import { cn } from "@/lib/utils";
@@ -36,6 +37,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
   const [quantity, setQuantity] = useState(1);
   const [selectedTab, setSelectedTab] = useState<"details" | "reviews" | "shipping">("details");
   const [selectedImage, setSelectedImage] = useState(0);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
   const addItem = useCartStore((s) => s.addItem);
   const { toggleItem, items: wishlistItems } = useWishlistStore();
   const toggleWishlistMutation = useToggleWishlist();
@@ -96,9 +98,12 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
         <div className="grid lg:grid-cols-2 gap-12">
           <div className="space-y-4">
             {displayImages.length > 0 ? (
-              <div className="aspect-square bg-cream rounded-2xl overflow-hidden relative">
+              <button onClick={() => setLightboxOpen(true)} className="aspect-square bg-cream rounded-2xl overflow-hidden relative group cursor-zoom-in block w-full">
                 <Image src={displayImages[selectedImage]} alt={product.name} fill className="object-cover" sizes="(max-width: 1024px) 100vw, 50vw" />
-              </div>
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                  <ZoomIn className="h-8 w-8 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-lg" />
+                </div>
+              </button>
             ) : (
               <div className="aspect-square bg-cream rounded-2xl flex items-center justify-center text-muted-foreground text-sm">No image</div>
             )}
@@ -213,6 +218,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
           </div>
         )}
       </div>
+      <Lightbox images={displayImages} initialIndex={selectedImage} alt={product.name} open={lightboxOpen} onClose={() => setLightboxOpen(false)} />
     </div>
   );
 }

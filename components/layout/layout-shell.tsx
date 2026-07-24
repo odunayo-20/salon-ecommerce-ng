@@ -2,6 +2,7 @@
 
 import { Navbar, MobileBottomNav, StickyBookingButton } from "./navbar";
 import { Footer } from "./footer";
+import { CartDrawer } from "@/components/cart/cart-drawer";
 
 export function LayoutShell({ children }: { children: React.ReactNode }) {
   return (
@@ -11,6 +12,7 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
       <Footer />
       <MobileBottomNav />
       <StickyBookingButton />
+      <CartDrawer />
     </div>
   );
 }

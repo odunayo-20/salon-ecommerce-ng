@@ -115,6 +115,11 @@ const adminInAppTemplates: Record<string, (data: Record<string, unknown>) => { t
     message: `${d.customerName as string} cancelled their ${d.serviceName as string} appointment.${d.reason ? ` Reason: ${d.reason as string}` : ""}`,
     actionUrl: "/admin/appointments",
   }),
+  "appointment.rescheduled": (d) => ({
+    title: "Booking Rescheduled",
+    message: `${d.customerName as string} rescheduled their ${d.serviceName as string} appointment to ${d.date as string} at ${d.time as string}.`,
+    actionUrl: "/admin/appointments",
+  }),
   "order.placed": (d) => ({
     title: "New Order",
     message: `${d.customerName as string} placed order ${d.orderNumber as string} — ₦${(d.total as number).toLocaleString()}.`,

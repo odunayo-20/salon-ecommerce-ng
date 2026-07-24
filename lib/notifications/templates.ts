@@ -112,6 +112,33 @@ export const eventConfigs: Record<NotificationEventType, EventConfig> = {
     },
   },
 
+  "appointment.rescheduled": {
+    channels: ["IN_APP", "EMAIL", "PUSH"],
+    template: {
+      inApp: (d) => ({
+        title: "Appointment Rescheduled",
+        message: `Your ${d.serviceName as string} appointment has been rescheduled to ${d.date as string} at ${d.time as string}.`,
+        actionUrl: "/dashboard",
+      }),
+      email: (d) => ({
+        subject: `Appointment Rescheduled — ${d.reference as string}`,
+        html: appointmentConfirmedEmail({
+          customerName: d.customerName as string,
+          serviceName: d.serviceName as string,
+          stylistName: d.stylistName as string | undefined,
+          date: d.date as string,
+          time: d.time as string,
+          reference: d.reference as string,
+        }),
+      }),
+      push: (d) => ({
+        title: "Appointment Rescheduled",
+        body: `${d.serviceName as string} moved to ${d.date as string} at ${d.time as string}`,
+        url: `${APP_URL}/dashboard`,
+      }),
+    },
+  },
+
   "appointment.reminder.24h": {
     channels: ["IN_APP", "EMAIL", "PUSH"],
     template: {

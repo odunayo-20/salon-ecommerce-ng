@@ -49,7 +49,7 @@ export function Navbar() {
   const router = useRouter();
   const { data: session } = useSession();
   const itemCount = useCartStore((s) => s.getItemCount());
-  const { isMobileMenuOpen, setMobileMenuOpen } = useUIStore();
+  const { isMobileMenuOpen, setMobileMenuOpen, setCartOpen } = useUIStore();
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -293,19 +293,17 @@ export function Navbar() {
                 variant="ghost"
                 size="icon"
                 className="text-charcoal hover:text-gold relative"
-                asChild
+                onClick={() => setCartOpen(true)}
               >
-                <Link href="/shop/cart">
-                  <span className="relative inline-flex">
-                    <ShoppingBag className="h-5 w-5" />
-                    {mounted && itemCount > 0 && (
-                      <span className="absolute -top-1.5 -right-2 h-4 w-4 rounded-full bg-gold text-white text-[10px] font-bold flex items-center justify-center">
-                        {itemCount}
-                      </span>
-                    )}
-                  </span>
-                  <span className="sr-only">Cart</span>
-                </Link>
+                <span className="relative inline-flex">
+                  <ShoppingBag className="h-5 w-5" />
+                  {mounted && itemCount > 0 && (
+                    <span className="absolute -top-1.5 -right-2 h-4 w-4 rounded-full bg-gold text-white text-[10px] font-bold flex items-center justify-center">
+                      {itemCount}
+                    </span>
+                  )}
+                </span>
+                <span className="sr-only">Cart</span>
               </Button>
 
               <div className="relative">

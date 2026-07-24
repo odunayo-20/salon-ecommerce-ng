@@ -478,7 +478,7 @@ export interface DashboardAppointment {
   status: string; totalAmount: number; depositPaid: number;
   isFullyPaid: boolean; remaining: number; hasPending: boolean;
   service: { name: string; duration: number };
-  stylist: { user: { name: string | null } } | null;
+  stylist: { id: string; user: { name: string | null } } | null;
   payments: { id: string; amount: number; status: string; method: string }[];
 }
 
@@ -487,6 +487,17 @@ export function useDashboardBookings(pollInterval = 30_000) {
     queryKey: ["dashboard-bookings"],
     queryFn: () => q("/api/bookings"),
     refetchInterval: pollInterval,
+  });
+}
+
+export function useRescheduleBooking() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, date, startTime, reason }: { id: string; date: string; startTime: string; reason?: string }) =>
+      m(`/api/bookings/${id}`, "PATCH", { date, startTime, reason }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["dashboard-bookings"] });
+    },
   });
 }
 

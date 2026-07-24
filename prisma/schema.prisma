@@ -507,6 +507,8 @@ model Appointment {
   depositPaid       Decimal  @db.Decimal(10, 2) @default(0)
   discount          Decimal  @db.Decimal(10, 2) @default(0)
   isRescheduled     Boolean  @default(false)
+  originalDate      DateTime?
+  originalTime      String?
   cancelledAt       DateTime?
   cancelReason      String?
   reminder24hSent   Boolean  @default(false)

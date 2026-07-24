@@ -3,10 +3,10 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
-import { Calendar, CreditCard, RefreshCw, Receipt } from "lucide-react";
+import { Calendar, CreditCard, RefreshCw, Receipt, RotateCcw, Loader2, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { useDashboardBookings, useVerifyPayment, useInitiatePayment } from "@/hooks/queries";
+import { useDashboardBookings, useVerifyPayment, useInitiatePayment, useRescheduleBooking } from "@/hooks/queries";
 
 interface Payment {
   id: string; amount: number; status: string; method: string;
@@ -25,7 +25,7 @@ interface Appointment {
   remaining: number;
   hasPending: boolean;
   service: { name: string; duration: number };
-  stylist: { user: { name: string | null } } | null;
+  stylist: { id: string; user: { name: string | null } } | null;
   payments: Payment[];
 }
 
@@ -51,12 +51,19 @@ export default function DashboardPage() {
   const { data: session } = useSession();
   const firstName = session?.user?.name?.split(" ")[0] || "Beautiful";
   const [payingId, setPayingId] = useState<string | null>(null);
+  const [rescheduleApt, setRescheduleApt] = useState<Appointment | null>(null);
+  const [rescheduleDate, setRescheduleDate] = useState("");
+  const [rescheduleTime, setRescheduleTime] = useState("");
+  const [rescheduleReason, setRescheduleReason] = useState("");
+  const [availableSlots, setAvailableSlots] = useState<{ time: string; available: boolean }[]>([]);
+  const [slotsLoading, setSlotsLoading] = useState(false);
 
   const { data, isLoading: loading, refetch } = useDashboardBookings(30_000);
   const appointments = data?.appointments ?? [];
 
   const verifyPayment = useVerifyPayment();
   const initiatePayment = useInitiatePayment();
+  const rescheduleBooking = useRescheduleBooking();
 
   useEffect(() => {
     if (!data?.appointments) return;
@@ -68,6 +75,43 @@ export default function DashboardPage() {
       }
     }
   }, [data?.appointments]);
+
+  useEffect(() => {
+    if (!rescheduleDate || !rescheduleApt) {
+      setAvailableSlots([]);
+      return;
+    }
+    setSlotsLoading(true);
+    setRescheduleTime("");
+    const stylistId = (rescheduleApt as Appointment & { stylist?: { id?: string } }).stylist?.id || "";
+    const url = `/api/bookings/slots?date=${rescheduleDate}${stylistId ? `&stylistId=${stylistId}` : ""}`;
+    fetch(url)
+      .then((r) => r.json())
+      .then((data) => setAvailableSlots(data.slots || []))
+      .catch(() => setAvailableSlots([]))
+      .finally(() => setSlotsLoading(false));
+  }, [rescheduleDate, rescheduleApt]);
+
+  const handleReschedule = async () => {
+    if (!rescheduleApt || !rescheduleDate || !rescheduleTime) return;
+    await rescheduleBooking.mutateAsync({
+      id: rescheduleApt.id,
+      date: rescheduleDate,
+      startTime: rescheduleTime,
+      reason: rescheduleReason || undefined,
+    });
+    setRescheduleApt(null);
+    setRescheduleDate("");
+    setRescheduleTime("");
+    setRescheduleReason("");
+  };
+
+  const openReschedule = (apt: Appointment) => {
+    setRescheduleApt(apt);
+    setRescheduleDate(apt.date.split("T")[0]);
+    setRescheduleTime("");
+    setRescheduleReason("");
+  };
 
   const upcoming = appointments.filter((a) => ["PENDING", "CONFIRMED"].includes(a.status));
   const past = appointments.filter((a) => !["PENDING", "CONFIRMED"].includes(a.status));
@@ -216,6 +260,11 @@ export default function DashboardPage() {
                       Pay Now
                     </Button>
                   )}
+                  {apt.status !== "CANCELLED" && apt.status !== "COMPLETED" && (
+                    <Button onClick={() => openReschedule(apt)} size="sm" variant="outline" className="rounded-full text-xs font-semibold tracking-wider uppercase px-4 min-h-[44px] border-gold/30 text-gold hover:bg-gold/5">
+                      <RotateCcw className="h-3 w-3 mr-1" /> Reschedule
+                    </Button>
+                  )}
                   {apt.isFullyPaid && getPaidPaymentId(apt) && (
                     <Link href={`/receipt/${getPaidPaymentId(apt)}`}>
                       <Button size="sm" variant="outline" className="rounded-full text-xs font-semibold tracking-wider uppercase px-4 min-h-[44px] border-emerald-200 text-emerald-700 hover:bg-emerald-50">
@@ -301,6 +350,87 @@ export default function DashboardPage() {
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* Reschedule Dialog */}
+      {rescheduleApt && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setRescheduleApt(null)} />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-5">
+            <div className="flex items-center justify-between">
+              <h3 className="font-heading text-lg font-semibold text-charcoal">Reschedule Appointment</h3>
+              <button onClick={() => setRescheduleApt(null)} className="text-muted-foreground hover:text-charcoal"><X className="h-5 w-5" /></button>
+            </div>
+            <div className="bg-cream rounded-lg p-3 text-sm">
+              <p className="font-medium text-charcoal">{rescheduleApt.service.name}</p>
+              <p className="text-muted-foreground text-xs mt-0.5">
+                Current: {formatDate(rescheduleApt.date)} at {rescheduleApt.startTime}
+              </p>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-medium text-charcoal uppercase tracking-wider">New Date</label>
+                <input
+                  type="date"
+                  value={rescheduleDate}
+                  min={new Date().toISOString().split("T")[0]}
+                  onChange={(e) => setRescheduleDate(e.target.value)}
+                  className="mt-1 w-full border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-gold"
+                />
+              </div>
+              {rescheduleDate && (
+                <div>
+                  <label className="text-xs font-medium text-charcoal uppercase tracking-wider">Available Times</label>
+                  {slotsLoading ? (
+                    <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin" /> Loading times...
+                    </div>
+                  ) : availableSlots.filter((s) => s.available).length === 0 ? (
+                    <p className="mt-2 text-sm text-muted-foreground">No available slots for this date.</p>
+                  ) : (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {availableSlots.filter((s) => s.available).map((slot) => (
+                        <button
+                          key={slot.time}
+                          onClick={() => setRescheduleTime(slot.time)}
+                          className={cn(
+                            "px-3 py-1.5 rounded-full text-xs font-medium border transition-colors",
+                            rescheduleTime === slot.time
+                              ? "bg-gold text-white border-gold"
+                              : "border-border text-charcoal hover:border-gold/50"
+                          )}
+                        >
+                          {slot.time}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+              <div>
+                <label className="text-xs font-medium text-charcoal uppercase tracking-wider">Reason (optional)</label>
+                <input
+                  type="text"
+                  value={rescheduleReason}
+                  onChange={(e) => setRescheduleReason(e.target.value)}
+                  placeholder="Why are you rescheduling?"
+                  className="mt-1 w-full border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-gold"
+                />
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <Button variant="outline" onClick={() => setRescheduleApt(null)} className="flex-1 rounded-full text-xs">Cancel</Button>
+              <Button
+                onClick={handleReschedule}
+                disabled={!rescheduleDate || !rescheduleTime || rescheduleBooking.isPending}
+                className="flex-1 bg-gold text-white hover:bg-gold-dark rounded-full text-xs font-semibold"
+              >
+                {rescheduleBooking.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <RotateCcw className="h-3.5 w-3.5 mr-1" />}
+                Confirm Reschedule
+              </Button>
+            </div>
           </div>
         </div>
       )}
