@@ -701,7 +701,10 @@ model Membership {
 
 model Consultation {
   id                 String   @id @default(cuid())
-  customerProfileId  String
+  customerProfileId  String?
+  name               String?
+  email              String?
+  phone              String?
   hairConcerns       String
   desiredHairstyle   String?
   hairType           HairType?
@@ -715,7 +718,7 @@ model Consultation {
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
-  customerProfile CustomerProfile @relation(fields: [customerProfileId], references: [id])
+  customerProfile CustomerProfile? @relation(fields: [customerProfileId], references: [id])
 
   @@index([status])
 }
