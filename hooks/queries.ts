@@ -669,6 +669,32 @@ export function useCartCouponValidation() {
   });
 }
 
+// ─── Wishlist ──────────────────────────────────────────────────────
+export interface WishlistItem {
+  id: string; productId: string; createdAt: string;
+  product: {
+    id: string; name: string; slug: string; price: number; comparePrice: number | null;
+    image: string | null; stock: number;
+    reviews: { rating: number }[];
+  };
+}
+
+export function useWishlist() {
+  return useQuery<{ wishlist: WishlistItem[] }>({
+    queryKey: ["wishlist"],
+    queryFn: () => q("/api/wishlist"),
+  });
+}
+
+export function useToggleWishlist() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (productId: string) =>
+      m<{ wishlisted: boolean }>("/api/wishlist", "POST", { productId }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["wishlist"] }),
+  });
+}
+
 // ─── Admin Consultations ──────────────────────────────────────────
 export interface AdminConsultation {
   id: string; hairConcerns: string; desiredHairstyle: string | null;

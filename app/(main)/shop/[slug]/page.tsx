@@ -4,10 +4,12 @@ import { useState, useEffect, use } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Minus, Plus, Heart, Truck, Shield, RotateCcw, Star, Loader2 } from "lucide-react";
+import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { ProductCard } from "@/components/shop/product-card";
 import { ReviewForm } from "@/components/reviews/review-form";
 import { useCartStore, useWishlistStore } from "@/store";
+import { useToggleWishlist } from "@/hooks/queries";
 import { cn } from "@/lib/utils";
 
 interface Product {
@@ -26,6 +28,7 @@ interface RelatedProduct {
 
 export default function ProductDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
+  const { data: session } = useSession();
   const [product, setProduct] = useState<Product | null>(null);
   const [related, setRelated] = useState<RelatedProduct[]>([]);
   const [loading, setLoading] = useState(true);
@@ -35,6 +38,16 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
   const [selectedImage, setSelectedImage] = useState(0);
   const addItem = useCartStore((s) => s.addItem);
   const { toggleItem, items: wishlistItems } = useWishlistStore();
+  const toggleWishlistMutation = useToggleWishlist();
+
+  const handleWishlistToggle = () => {
+    if (product) {
+      toggleItem(product.id);
+      if (session?.user) {
+        toggleWishlistMutation.mutate(product.id);
+      }
+    }
+  };
 
   useEffect(() => {
     (async () => {
@@ -141,7 +154,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
               <Button onClick={() => addItem({ productId: product.id, name: product.name, price: product.price, image: product.images?.[0] ?? undefined, quantity, maxStock: product.stock })} disabled={product.stock === 0} className="flex-1 bg-charcoal text-white hover:bg-charcoal-light rounded-full py-6 text-xs font-semibold tracking-wider uppercase">
                 {product.stock === 0 ? "Out of Stock" : `Add to Bag — ₦${(product.price * quantity).toLocaleString()}`}
               </Button>
-              <Button onClick={() => toggleItem(product.id)} variant="outline" size="icon" className="h-12 w-12 rounded-full border-border">
+              <Button onClick={handleWishlistToggle} variant="outline" size="icon" className="h-12 w-12 rounded-full border-border">
                 <Heart className={cn("h-5 w-5", isInWishlist ? "fill-gold text-gold" : "text-charcoal")} />
               </Button>
             </div>

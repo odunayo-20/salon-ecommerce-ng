@@ -3,9 +3,11 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Heart, ShoppingBag, Star, Eye } from "lucide-react";
+import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useCartStore, useWishlistStore } from "@/store";
+import { useToggleWishlist } from "@/hooks/queries";
 
 interface ProductCardProps {
   product: {
@@ -22,9 +24,18 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product }: ProductCardProps) {
+  const { data: session } = useSession();
   const addItem = useCartStore((s) => s.addItem);
   const { toggleItem, items: wishlistItems } = useWishlistStore();
+  const toggleWishlistMutation = useToggleWishlist();
   const isWishlisted = wishlistItems.includes(product.id);
+
+  const handleWishlistToggle = () => {
+    toggleItem(product.id);
+    if (session?.user) {
+      toggleWishlistMutation.mutate(product.id);
+    }
+  };
   const discount = product.comparePrice
     ? Math.round(((product.comparePrice - product.price) / product.comparePrice) * 100)
     : 0;
@@ -96,7 +107,7 @@ export function ProductCard({ product }: ProductCardProps) {
 
         {/* Wishlist */}
         <button
-          onClick={() => toggleItem(product.id)}
+          onClick={handleWishlistToggle}
           className="absolute top-3 right-3 h-8 w-8 rounded-full bg-white/90 flex items-center justify-center hover:bg-white transition-colors"
         >
           <Heart
