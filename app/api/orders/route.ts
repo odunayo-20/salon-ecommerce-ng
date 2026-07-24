@@ -21,6 +21,7 @@ const orderSchema = z.object({
   notes: z.string().optional(),
   paymentMethod: z.enum(["card", "bank_transfer", "pay_on_delivery"]),
   couponCode: z.string().optional(),
+  pointsRedeemed: z.number().int().min(0).optional().default(0),
 });
 
 export async function POST(request: NextRequest) {
@@ -120,7 +121,33 @@ export async function POST(request: NextRequest) {
       couponCode = coupon.code;
     }
 
-    const total = Math.max(subtotal + shippingCost - discount, 0);
+    // Validate and apply loyalty points redemption
+    let pointsRedeemed = data.pointsRedeemed;
+    if (pointsRedeemed > 0) {
+      const [totalEarned, totalRedeemed] = await Promise.all([
+        prisma.loyaltyPoint.aggregate({
+          where: { userId: session.user.id, type: "earned" },
+          _sum: { points: true },
+        }),
+        prisma.loyaltyPoint.aggregate({
+          where: { userId: session.user.id, type: "redeemed" },
+          _sum: { points: true },
+        }),
+      ]);
+      const balance = (totalEarned._sum.points || 0) - (totalRedeemed._sum.points || 0);
+
+      if (pointsRedeemed > balance) {
+        return NextResponse.json({ error: `Insufficient points. You have ${balance} points available.` }, { status: 400 });
+      }
+
+      const maxRedeemable = Math.floor(subtotal * 0.5);
+      if (pointsRedeemed > maxRedeemable) {
+        pointsRedeemed = maxRedeemable;
+      }
+    }
+
+    const loyaltyDiscount = pointsRedeemed;
+    const total = Math.max(subtotal + shippingCost - discount - loyaltyDiscount, 0);
 
     // Create order with items and decrement stock in a transaction
     const order = await prisma.$transaction(async (tx) => {
@@ -130,12 +157,13 @@ export async function POST(request: NextRequest) {
           customerProfileId: customerProfile!.id,
           subtotal,
           shippingCost,
-          discount,
+          discount: discount + loyaltyDiscount,
           total,
           shippingAddress: data.shippingAddress,
           billingAddress: data.billingAddress || data.shippingAddress,
           notes: data.notes,
           status: data.paymentMethod === "pay_on_delivery" ? "PROCESSING" : "PENDING",
+          pointsRedeemed,
           ...(couponId && { couponId, couponCode: couponCode! }),
           items: {
             create: data.items.map((item) => ({
@@ -163,6 +191,19 @@ export async function POST(request: NextRequest) {
         await tx.coupon.update({
           where: { id: couponId },
           data: { usedCount: { increment: 1 } },
+        });
+      }
+
+      // Deduct loyalty points
+      if (pointsRedeemed > 0) {
+        await tx.loyaltyPoint.create({
+          data: {
+            userId: session.user.id,
+            points: pointsRedeemed,
+            type: "redeemed",
+            reference: newOrder.orderNumber,
+            note: `Redeemed for order ${newOrder.orderNumber}`,
+          },
         });
       }
 
@@ -212,7 +253,9 @@ export async function POST(request: NextRequest) {
         ...order,
         subtotal: Number(order.subtotal),
         shippingCost: Number(order.shippingCost),
+        discount: Number(order.discount),
         total: Number(order.total),
+        pointsRedeemed: order.pointsRedeemed,
       },
       payment: {
         id: payment.id,

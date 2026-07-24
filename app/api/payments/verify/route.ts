@@ -4,6 +4,55 @@ import { auth } from "@/lib/auth";
 import { verifyTransaction } from "@/lib/paystack";
 import { notify, notifyAdmins } from "@/lib/notifications";
 
+const POINTS_PER_Naira = 100;
+const TIER_THRESHOLDS = [
+  { tier: "PLATINUM" as const, points: 50000 },
+  { tier: "GOLD" as const, points: 15000 },
+  { tier: "SILVER" as const, points: 5000 },
+  { tier: "BRONZE" as const, points: 0 },
+];
+
+function calcTier(points: number) {
+  for (const t of TIER_THRESHOLDS) {
+    if (points >= t.points) return t.tier;
+  }
+  return "BRONZE";
+}
+
+async function awardLoyaltyPoints(userId: string, amount: number, reference: string, note: string) {
+  const points = Math.floor(amount / POINTS_PER_Naira);
+  if (points <= 0) return 0;
+
+  await prisma.loyaltyPoint.create({
+    data: {
+      userId,
+      points,
+      type: "earned",
+      reference,
+      note,
+      expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+    },
+  });
+
+  const membership = await prisma.membership.findUnique({ where: { userId } });
+  const newTotal = (membership?.points || 0) + points;
+  const newSpent = Number(membership?.totalSpent || 0) + amount;
+  const newTier = calcTier(newTotal);
+
+  if (membership) {
+    await prisma.membership.update({
+      where: { userId },
+      data: { points: newTotal, totalSpent: newSpent, tier: newTier },
+    });
+  } else {
+    await prisma.membership.create({
+      data: { userId, points: newTotal, totalSpent: newSpent, tier: newTier },
+    });
+  }
+
+  return points;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const session = await auth();
@@ -50,6 +99,23 @@ export async function POST(request: NextRequest) {
 
         if (appointment.customerProfile?.user?.id) {
           try {
+            const earned = await awardLoyaltyPoints(
+              appointment.customerProfile.user.id,
+              Number(appointment.totalAmount) - Number(appointment.depositPaid),
+              appointment.reference,
+              `Appointment: ${appointment.service.name}`
+            );
+            if (earned > 0) {
+              await prisma.appointment.update({
+                where: { id: appointment.id },
+                data: { loyaltyPointsEarned: earned },
+              });
+            }
+          } catch {
+            // Loyalty failure — non-critical
+          }
+
+          try {
             await notify({
               userId: appointment.customerProfile.user.id,
               event: "appointment.confirmed",
@@ -81,10 +147,32 @@ export async function POST(request: NextRequest) {
           }
         }
       } else if (payment.orderId) {
-        await prisma.order.update({
+        const order = await prisma.order.update({
           where: { id: payment.orderId },
           data: { status: "PROCESSING" },
+          include: {
+            customerProfile: { include: { user: { select: { id: true } } } },
+          },
         });
+
+        if (order.customerProfile?.user?.id) {
+          try {
+            const earned = await awardLoyaltyPoints(
+              order.customerProfile.user.id,
+              Number(order.total) - order.pointsRedeemed,
+              order.orderNumber,
+              `Order: ${order.orderNumber}`
+            );
+            if (earned > 0) {
+              await prisma.order.update({
+                where: { id: order.id },
+                data: { loyaltyPointsEarned: earned },
+              });
+            }
+          } catch {
+            // Loyalty failure — non-critical
+          }
+        }
       }
 
       return NextResponse.json({ success: true, message: "Payment confirmed" });

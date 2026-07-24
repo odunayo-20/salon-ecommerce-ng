@@ -1,13 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useCartStore } from "@/store";
 import { Button } from "@/components/ui/button";
-import { Loader2, CreditCard, Truck, Shield, ArrowLeft } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Loader2, CreditCard, Truck, Shield, ArrowLeft, Star, Gift, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function CheckoutPage() {
@@ -18,13 +19,43 @@ export default function CheckoutPage() {
   const discount = getDiscount();
   const afterDiscount = Math.max(total - discount, 0);
   const shipping = afterDiscount >= 30000 ? 0 : 2000;
-  const grandTotal = afterDiscount + shipping;
+
+  const [loyaltyBalance, setLoyaltyBalance] = useState(0);
+  const [pointsInput, setPointsInput] = useState("");
+  const [pointsRedeemed, setPointsRedeemed] = useState(0);
+  const [loyaltyLoading, setLoyaltyLoading] = useState(true);
+
+  const maxRedeemable = Math.floor(afterDiscount * 0.5);
+  const effectiveRedeemed = Math.min(pointsRedeemed, maxRedeemable, loyaltyBalance);
+  const grandTotal = Math.max(afterDiscount + shipping - effectiveRedeemed, 0);
 
   const [shippingAddress, setShippingAddress] = useState("");
   const [notes, setNotes] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<"card" | "bank_transfer" | "pay_on_delivery">("card");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (session?.user) {
+      fetch("/api/loyalty/balance")
+        .then((r) => r.json())
+        .then((d) => setLoyaltyBalance(d.balance || 0))
+        .catch(() => {})
+        .finally(() => setLoyaltyLoading(false));
+    }
+  }, [session]);
+
+  const handlePointsChange = (value: string) => {
+    const num = parseInt(value) || 0;
+    setPointsInput(value);
+    setPointsRedeemed(num);
+  };
+
+  const applyMaxPoints = () => {
+    const max = Math.min(loyaltyBalance, maxRedeemable);
+    setPointsInput(String(max));
+    setPointsRedeemed(max);
+  };
 
   if (items.length === 0) {
     return (
@@ -81,6 +112,7 @@ export default function CheckoutPage() {
           notes: notes.trim() || undefined,
           paymentMethod,
           couponCode: coupon?.code || undefined,
+          pointsRedeemed: effectiveRedeemed,
         }),
       });
 
@@ -93,7 +125,6 @@ export default function CheckoutPage() {
         return;
       }
 
-      // Initiate payment
       const payRes = await fetch("/api/payments/initiate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -204,6 +235,48 @@ export default function CheckoutPage() {
                   <div className="flex justify-between"><span className="text-muted-foreground">Discount ({coupon?.code})</span><span className="text-green-600 font-medium">-₦{discount.toLocaleString()}</span></div>
                 )}
                 <div className="flex justify-between"><span className="text-muted-foreground">Shipping</span><span className="text-charcoal">{shipping === 0 ? <span className="text-gold">Free</span> : `₦${shipping.toLocaleString()}`}</span></div>
+
+                {/* Loyalty Points Redemption */}
+                {!loyaltyLoading && loyaltyBalance > 0 && (
+                  <div className="bg-gold/5 border border-gold/20 rounded-lg p-3 mt-2">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Star className="h-4 w-4 text-gold" />
+                      <span className="text-xs font-semibold text-charcoal">Loyalty Points</span>
+                      <span className="text-[10px] text-muted-foreground ml-auto">{loyaltyBalance.toLocaleString()} available</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number"
+                        min={0}
+                        max={Math.min(loyaltyBalance, maxRedeemable)}
+                        value={pointsInput}
+                        onChange={(e) => handlePointsChange(e.target.value)}
+                        placeholder="0"
+                        className="h-8 text-xs bg-white border-border rounded-full flex-1"
+                      />
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="h-8 text-[10px] rounded-full border-gold text-gold hover:bg-gold/10"
+                        onClick={applyMaxPoints}
+                      >
+                        Max
+                      </Button>
+                    </div>
+                    {effectiveRedeemed > 0 && (
+                      <div className="flex items-center gap-1 mt-2 text-[10px] text-green-600">
+                        <Check className="h-3 w-3" />
+                        Redeeming {effectiveRedeemed.toLocaleString()} pts (-₦{effectiveRedeemed.toLocaleString()})
+                      </div>
+                    )}
+                    <p className="text-[10px] text-muted-foreground mt-1">Max 50% of subtotal. 1 pt = ₦1 off.</p>
+                  </div>
+                )}
+
+                {effectiveRedeemed > 0 && (
+                  <div className="flex justify-between"><span className="text-muted-foreground">Points Discount</span><span className="text-green-600 font-medium">-₦{effectiveRedeemed.toLocaleString()}</span></div>
+                )}
                 <div className="border-t border-border pt-2 flex justify-between"><span className="font-semibold text-charcoal">Total</span><span className="font-heading text-lg font-bold text-charcoal">₦{grandTotal.toLocaleString()}</span></div>
               </div>
 

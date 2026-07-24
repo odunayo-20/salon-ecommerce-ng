@@ -571,12 +571,13 @@ export interface PublicProduct {
   category: { id: string; name: string; slug: string };
 }
 
-export function useProducts(params?: { isActive?: string; isFeatured?: string; limit?: number; category?: string }) {
+export function useProducts(params?: { isActive?: string; isFeatured?: string; limit?: number; category?: string; search?: string }) {
   const searchParams = new URLSearchParams();
   if (params?.isActive) searchParams.set("isActive", params.isActive);
   if (params?.isFeatured) searchParams.set("isFeatured", params.isFeatured);
   if (params?.limit) searchParams.set("limit", String(params.limit));
   if (params?.category) searchParams.set("category", params.category);
+  if (params?.search) searchParams.set("search", params.search);
   const qs = searchParams.toString();
   return useQuery<{ products: PublicProduct[] }>({
     queryKey: ["products", params],
@@ -721,5 +722,26 @@ export function useUpdateConsultation() {
     mutationFn: (body: { id: string; status?: string; adminNotes?: string; recommendedService?: string; recommendedProduct?: string; priceEstimate?: number }) =>
       m(`/api/consultations?id=${body.id}`, "PATCH", body),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-consultations"] }),
+  });
+}
+
+// ─── Loyalty ───────────────────────────────────────────────────────
+export interface LoyaltyData {
+  balance: number; tier: string; totalSpent: number; totalEarned: number;
+  nextTier: { tier: string; pointsRequired: number } | null;
+  history: { id: string; points: number; type: string; reference: string | null; note: string | null; expiresAt: string | null; createdAt: string }[];
+}
+
+export function useLoyalty() {
+  return useQuery<LoyaltyData>({
+    queryKey: ["loyalty"],
+    queryFn: () => q("/api/loyalty"),
+  });
+}
+
+export function useLoyaltyBalance() {
+  return useQuery<{ balance: number }>({
+    queryKey: ["loyalty-balance"],
+    queryFn: () => q("/api/loyalty/balance"),
   });
 }

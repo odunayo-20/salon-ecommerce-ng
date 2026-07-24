@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
+import Link from "next/link";
 import Image from "next/image";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Search, Grid3X3, LayoutGrid, Loader2 } from "lucide-react";
@@ -21,18 +22,30 @@ export default function ShopPage() {
 function ShopPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { data: prodData, isLoading: prodLoading } = useProducts({ isActive: "true", limit: 100 });
-  const { data: catData, isLoading: catLoading } = useShopCategories();
+  const [searchInput, setSearchInput] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState(() => searchParams.get("category") || "all");
   const [sortBy, setSortBy] = useState("newest");
-  const [searchQuery, setSearchQuery] = useState("");
   const [gridSize, setGridSize] = useState<3 | 4>(3);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(searchInput), 300);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
+  const { data: prodData, isLoading: prodLoading } = useProducts({
+    isActive: "true",
+    limit: 100,
+    category: activeCategory !== "all" ? activeCategory : undefined,
+    search: debouncedSearch || undefined,
+  });
+  const { data: catData, isLoading: catLoading } = useShopCategories();
 
   const products = prodData?.products ?? [];
   const categories = catData?.categories ?? [];
   const loading = prodLoading || catLoading;
 
-  const updateCategory = (slug: string) => {
+  const updateCategory = useCallback((slug: string) => {
     setActiveCategory(slug);
     const params = new URLSearchParams(searchParams.toString());
     if (slug === "all") {
@@ -42,13 +55,9 @@ function ShopPageContent() {
     }
     const qs = params.toString();
     router.replace(`/shop${qs ? `?${qs}` : ""}`, { scroll: false });
-  };
+  }, [searchParams, router]);
 
-  const filtered = products.filter((p) => {
-    if (activeCategory !== "all" && p.category?.slug !== activeCategory) return false;
-    if (searchQuery && !p.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
-    return true;
-  }).sort((a, b) => {
+  const sorted = [...products].sort((a, b) => {
     if (sortBy === "price-asc") return a.price - b.price;
     if (sortBy === "price-desc") return b.price - a.price;
     return 0;
@@ -68,7 +77,20 @@ function ShopPageContent() {
         <div className="flex flex-col md:flex-row gap-4 mb-8">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Search products..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-10 bg-cream border-border rounded-full" />
+            <Input
+              placeholder="Search products..."
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              className="pl-10 bg-cream border-border rounded-full"
+            />
+            {debouncedSearch && (
+              <button
+                onClick={() => { setSearchInput(""); setDebouncedSearch(""); }}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground hover:text-charcoal"
+              >
+                Clear
+              </button>
+            )}
           </div>
           <div className="flex gap-2">
             <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="px-4 py-2 bg-cream border border-border rounded-full text-sm text-charcoal focus:outline-none focus:border-gold">
@@ -145,7 +167,7 @@ function ShopPageContent() {
         ) : (
           <>
             <div className={cn("grid gap-4 md:gap-6", gridSize === 4 ? "grid-cols-2 lg:grid-cols-4" : "grid-cols-2 lg:grid-cols-3")}>
-              {filtered.map((product) => (
+              {sorted.map((product) => (
                 <ProductCard key={product.id} product={{
                   id: product.id, name: product.name, slug: product.slug,
                   price: product.price, comparePrice: product.comparePrice ?? undefined,
@@ -154,10 +176,10 @@ function ShopPageContent() {
                 }} />
               ))}
             </div>
-            {filtered.length === 0 && (
+            {sorted.length === 0 && (
               <div className="text-center py-20">
-                <p className="text-muted-foreground">No products found.</p>
-                <Button onClick={() => { setActiveCategory("all"); setSearchQuery(""); }} variant="ghost" className="mt-4 text-gold">Clear Filters</Button>
+                <p className="text-muted-foreground">{debouncedSearch ? `No products found for "${debouncedSearch}"` : "No products found."}</p>
+                <Button onClick={() => { setActiveCategory("all"); setSearchInput(""); setDebouncedSearch(""); }} variant="ghost" className="mt-4 text-gold">Clear Filters</Button>
               </div>
             )}
           </>

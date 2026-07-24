@@ -417,6 +417,8 @@ model Order {
   deliveredAt        DateTime?
   couponId           String?
   couponCode         String?
+  loyaltyPointsEarned Int      @default(0)
+  pointsRedeemed     Int      @default(0)
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
@@ -511,6 +513,7 @@ model Appointment {
   reminder1hSent    Boolean  @default(false)
   couponId          String?
   couponCode        String?
+  loyaltyPointsEarned Int      @default(0)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
