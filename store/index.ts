@@ -14,20 +14,33 @@ interface CartItem {
   maxStock: number;
 }
 
+interface CouponState {
+  code: string;
+  type: "PERCENTAGE" | "FIXED";
+  value: number;
+  discountAmount: number;
+  description: string;
+}
+
 interface CartStore {
   items: CartItem[];
+  coupon: CouponState | null;
   addItem: (item: Omit<CartItem, "id">) => void;
   removeItem: (productId: string, variantId?: string) => void;
   updateQuantity: (productId: string, quantity: number, variantId?: string) => void;
   clearCart: () => void;
   getTotal: () => number;
   getItemCount: () => number;
+  applyCoupon: (coupon: CouponState) => void;
+  removeCoupon: () => void;
+  getDiscount: () => number;
 }
 
 export const useCartStore = create<CartStore>()(
   persist(
     (set, get) => ({
       items: [],
+      coupon: null,
 
       addItem: (item) => {
         set((state) => {
@@ -71,7 +84,7 @@ export const useCartStore = create<CartStore>()(
         }));
       },
 
-      clearCart: () => set({ items: [] }),
+      clearCart: () => set({ items: [], coupon: null }),
 
       getTotal: () => {
         return get().items.reduce((sum, item) => sum + item.price * item.quantity, 0);
@@ -79,6 +92,16 @@ export const useCartStore = create<CartStore>()(
 
       getItemCount: () => {
         return get().items.reduce((sum, item) => sum + item.quantity, 0);
+      },
+
+      applyCoupon: (coupon) => set({ coupon }),
+
+      removeCoupon: () => set({ coupon: null }),
+
+      getDiscount: () => {
+        const { coupon } = get();
+        if (!coupon) return 0;
+        return coupon.discountAmount;
       },
     }),
     {

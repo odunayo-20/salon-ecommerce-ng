@@ -14,6 +14,7 @@ interface Service {
   slug: string;
   price: number;
   duration: number;
+  depositAmount?: number;
   isPopular: boolean;
   category: { id: string; name: string; slug: string; type: string };
 }
@@ -48,6 +49,10 @@ export default function BookPage() {
   const [bookingConfirmed, setBookingConfirmed] = useState(false);
   const [bookingError, setBookingError] = useState("");
   const [createdRef, setCreatedRef] = useState("");
+  const [couponCode, setCouponCode] = useState("");
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [couponError, setCouponError] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; type: string; value: number; discountAmount: number; description: string } | null>(null);
 
   const [allServices, setAllServices] = useState<Service[]>([]);
   const [stylists, setStylists] = useState<Stylist[]>([]);
@@ -161,6 +166,7 @@ export default function BookPage() {
           startTime: selectedTime,
           notes: notes || undefined,
           paymentMethod: paymentOption,
+          couponCode: appliedCoupon?.code || undefined,
         }),
       });
       const data = await res.json();
@@ -189,6 +195,35 @@ export default function BookPage() {
       setIsSubmitting(false);
     }
   };
+
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim() || !activeService) return;
+    setCouponLoading(true);
+    setCouponError("");
+    try {
+      const res = await fetch("/api/coupons/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: couponCode.trim(), subtotal: activeService.price, type: "SERVICES" }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.valid) {
+        setCouponError(data.error || "Invalid coupon");
+        return;
+      }
+      setAppliedCoupon({ code: data.code, type: data.type, value: data.value, discountAmount: data.discountAmount, description: data.description });
+      setCouponCode("");
+    } catch {
+      setCouponError("Failed to validate coupon");
+    } finally {
+      setCouponLoading(false);
+    }
+  };
+
+  const servicePrice = activeService?.price || 0;
+  const couponDiscount = appliedCoupon ? Math.min(appliedCoupon.discountAmount, servicePrice) : 0;
+  const finalTotal = Math.max(servicePrice - couponDiscount, 0);
+  const depositAmount = paymentOption === "deposit" ? (activeService?.depositAmount || 0) || finalTotal * 0.3 : paymentOption === "full" ? finalTotal : 0;
 
   if (loading) {
     return (
@@ -424,11 +459,54 @@ export default function BookPage() {
                     <span className="text-sm font-medium text-charcoal">{value}</span>
                   </div>
                 ))}
+
+                {/* Coupon Input */}
+                <div className="py-3 border-b border-border/50">
+                  {appliedCoupon ? (
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-medium text-gold bg-gold/10 px-2 py-1 rounded-full">{appliedCoupon.code}</span>
+                        <span className="text-xs text-gold">{appliedCoupon.description}</span>
+                      </div>
+                      <button onClick={() => setAppliedCoupon(null)} className="text-xs text-muted-foreground hover:text-destructive">Remove</button>
+                    </div>
+                  ) : (
+                    <div>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={couponCode}
+                          onChange={(e) => { setCouponCode(e.target.value); setCouponError(""); }}
+                          placeholder="Coupon code"
+                          className="flex-1 bg-cream border border-border rounded-full px-4 py-2 text-sm focus:outline-none focus:border-gold"
+                          onKeyDown={(e) => e.key === "Enter" && handleApplyCoupon()}
+                        />
+                        <Button variant="outline" size="sm" className="rounded-full border-border text-xs" onClick={handleApplyCoupon} disabled={couponLoading || !couponCode.trim()}>
+                          {couponLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Apply"}
+                        </Button>
+                      </div>
+                      {couponError && <p className="text-xs text-red-600 mt-1">{couponError}</p>}
+                    </div>
+                  )}
+                </div>
+
                 {activeService && (
-                  <div className="flex justify-between py-3">
-                    <span className="text-sm font-semibold text-charcoal">Total</span>
-                    <span className="text-lg font-heading font-bold text-charcoal">₦{activeService.price.toLocaleString()}</span>
-                  </div>
+                  <>
+                    <div className="flex justify-between py-3">
+                      <span className="text-sm text-muted-foreground">Service Price</span>
+                      <span className="text-sm font-medium text-charcoal">₦{servicePrice.toLocaleString()}</span>
+                    </div>
+                    {couponDiscount > 0 && (
+                      <div className="flex justify-between py-3">
+                        <span className="text-sm text-muted-foreground">Discount</span>
+                        <span className="text-sm font-medium text-green-600">-₦{couponDiscount.toLocaleString()}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between py-3">
+                      <span className="text-sm font-semibold text-charcoal">Total</span>
+                      <span className="text-lg font-heading font-bold text-charcoal">₦{finalTotal.toLocaleString()}</span>
+                    </div>
+                  </>
                 )}
               </div>
             </div>
@@ -436,8 +514,8 @@ export default function BookPage() {
               <h3 className="font-heading font-semibold text-charcoal mb-4">Payment Option</h3>
               <div className="space-y-3">
                 {([
-                  { value: "deposit" as const, label: "Pay Deposit", desc: `Secure with ₦${((activeService?.price || 0) * 0.3).toLocaleString()}` },
-                  { value: "full" as const, label: "Pay in Full", desc: `Pay ₦${(activeService?.price || 0).toLocaleString()} now` },
+                  { value: "deposit" as const, label: "Pay Deposit", desc: `Secure with ₦${depositAmount.toLocaleString()}` },
+                  { value: "full" as const, label: "Pay in Full", desc: `Pay ₦${finalTotal.toLocaleString()} now` },
                   { value: "later" as const, label: "Pay at Salon", desc: "Reserve and pay when you arrive" },
                 ]).map((option) => (
                   <button key={option.value} onClick={() => setPaymentOption(option.value)} className={cn("w-full flex items-center gap-4 p-4 rounded-xl border transition-all text-left", paymentOption === option.value ? "border-gold bg-gold/5" : "border-border hover:border-gold/30")}>

@@ -20,6 +20,7 @@ const orderSchema = z.object({
   billingAddress: z.string().optional(),
   notes: z.string().optional(),
   paymentMethod: z.enum(["card", "bank_transfer", "pay_on_delivery"]),
+  couponCode: z.string().optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -75,7 +76,51 @@ export async function POST(request: NextRequest) {
 
     const subtotal = data.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
     const shippingCost = subtotal >= 30000 ? 0 : 2000;
-    const total = subtotal + shippingCost;
+
+    // Validate and apply coupon
+    let discount = 0;
+    let couponId: string | null = null;
+    let couponCode: string | null = null;
+
+    if (data.couponCode) {
+      const coupon = await prisma.coupon.findUnique({
+        where: { code: data.couponCode.trim().toUpperCase() },
+      });
+
+      if (!coupon || !coupon.isActive) {
+        return NextResponse.json({ error: "Invalid coupon code" }, { status: 400 });
+      }
+      if (coupon.expiresAt && coupon.expiresAt < new Date()) {
+        return NextResponse.json({ error: "This coupon has expired" }, { status: 400 });
+      }
+      if (coupon.usageLimit && coupon.usedCount >= coupon.usageLimit) {
+        return NextResponse.json({ error: "This coupon has reached its usage limit" }, { status: 400 });
+      }
+      if (coupon.minOrderAmount && subtotal < Number(coupon.minOrderAmount)) {
+        return NextResponse.json({ error: `Minimum order amount is ₦${Number(coupon.minOrderAmount).toLocaleString()}` }, { status: 400 });
+      }
+      if (coupon.appliesTo !== "ALL" && coupon.appliesTo !== "PRODUCTS") {
+        return NextResponse.json({ error: "This coupon is not valid for product orders" }, { status: 400 });
+      }
+      if (coupon.perUserLimit) {
+        const userUses = await prisma.order.count({ where: { couponId: coupon.id, customerProfile: { userId: session.user.id } } });
+        if (userUses >= coupon.perUserLimit) {
+          return NextResponse.json({ error: "You have already used this coupon the maximum number of times" }, { status: 400 });
+        }
+      }
+
+      if (coupon.type === "PERCENTAGE") {
+        discount = subtotal * (Number(coupon.value) / 100);
+        if (coupon.maxDiscountAmount) discount = Math.min(discount, Number(coupon.maxDiscountAmount));
+      } else {
+        discount = Math.min(Number(coupon.value), subtotal);
+      }
+      discount = Math.round(discount * 100) / 100;
+      couponId = coupon.id;
+      couponCode = coupon.code;
+    }
+
+    const total = Math.max(subtotal + shippingCost - discount, 0);
 
     // Create order with items and decrement stock in a transaction
     const order = await prisma.$transaction(async (tx) => {
@@ -85,11 +130,13 @@ export async function POST(request: NextRequest) {
           customerProfileId: customerProfile!.id,
           subtotal,
           shippingCost,
+          discount,
           total,
           shippingAddress: data.shippingAddress,
           billingAddress: data.billingAddress || data.shippingAddress,
           notes: data.notes,
           status: data.paymentMethod === "pay_on_delivery" ? "PROCESSING" : "PENDING",
+          ...(couponId && { couponId, couponCode: couponCode! }),
           items: {
             create: data.items.map((item) => ({
               productId: item.productId,
@@ -108,6 +155,14 @@ export async function POST(request: NextRequest) {
         await tx.product.update({
           where: { id: item.productId },
           data: { stock: { decrement: item.quantity } },
+        });
+      }
+
+      // Increment coupon usage
+      if (couponId) {
+        await tx.coupon.update({
+          where: { id: couponId },
+          data: { usedCount: { increment: 1 } },
         });
       }
 

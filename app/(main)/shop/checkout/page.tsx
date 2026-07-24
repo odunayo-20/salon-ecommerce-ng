@@ -13,10 +13,12 @@ import { cn } from "@/lib/utils";
 export default function CheckoutPage() {
   const router = useRouter();
   const { data: session } = useSession();
-  const { items, getTotal, clearCart } = useCartStore();
+  const { items, getTotal, clearCart, coupon, getDiscount } = useCartStore();
   const total = getTotal();
-  const shipping = total >= 30000 ? 0 : 2000;
-  const grandTotal = total + shipping;
+  const discount = getDiscount();
+  const afterDiscount = Math.max(total - discount, 0);
+  const shipping = afterDiscount >= 30000 ? 0 : 2000;
+  const grandTotal = afterDiscount + shipping;
 
   const [shippingAddress, setShippingAddress] = useState("");
   const [notes, setNotes] = useState("");
@@ -78,6 +80,7 @@ export default function CheckoutPage() {
           shippingAddress: shippingAddress.trim(),
           notes: notes.trim() || undefined,
           paymentMethod,
+          couponCode: coupon?.code || undefined,
         }),
       });
 
@@ -197,6 +200,9 @@ export default function CheckoutPage() {
               </div>
               <div className="border-t border-border pt-3 space-y-2 text-sm">
                 <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span className="text-charcoal">₦{total.toLocaleString()}</span></div>
+                {discount > 0 && (
+                  <div className="flex justify-between"><span className="text-muted-foreground">Discount ({coupon?.code})</span><span className="text-green-600 font-medium">-₦{discount.toLocaleString()}</span></div>
+                )}
                 <div className="flex justify-between"><span className="text-muted-foreground">Shipping</span><span className="text-charcoal">{shipping === 0 ? <span className="text-gold">Free</span> : `₦${shipping.toLocaleString()}`}</span></div>
                 <div className="border-t border-border pt-2 flex justify-between"><span className="font-semibold text-charcoal">Total</span><span className="font-heading text-lg font-bold text-charcoal">₦{grandTotal.toLocaleString()}</span></div>
               </div>

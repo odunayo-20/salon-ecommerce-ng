@@ -1,16 +1,56 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Trash2, Plus, Minus, ShoppingBag, ArrowRight, Tag } from "lucide-react";
+import { Trash2, Plus, Minus, ShoppingBag, ArrowRight, Tag, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCartStore } from "@/store";
 
 export default function CartPage() {
-  const { items, removeItem, updateQuantity, getTotal, clearCart } = useCartStore();
+  const { items, removeItem, updateQuantity, getTotal, clearCart, coupon, applyCoupon, removeCoupon, getDiscount } = useCartStore();
   const total = getTotal();
-  const shipping = total >= 30000 ? 0 : 2000;
-  const grandTotal = total + shipping;
+  const discount = getDiscount();
+  const afterDiscount = Math.max(total - discount, 0);
+  const shipping = afterDiscount >= 30000 ? 0 : 2000;
+  const grandTotal = afterDiscount + shipping;
+
+  const [couponCode, setCouponCode] = useState("");
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [couponError, setCouponError] = useState("");
+
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) return;
+    setCouponLoading(true);
+    setCouponError("");
+
+    try {
+      const res = await fetch("/api/coupons/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: couponCode.trim(), subtotal: total, type: "PRODUCTS" }),
+      });
+      const data = await res.json();
+
+      if (!res.ok || !data.valid) {
+        setCouponError(data.error || "Invalid coupon");
+        return;
+      }
+
+      applyCoupon({
+        code: data.code,
+        type: data.type,
+        value: data.value,
+        discountAmount: data.discountAmount,
+        description: data.description,
+      });
+      setCouponCode("");
+    } catch {
+      setCouponError("Failed to validate coupon");
+    } finally {
+      setCouponLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen">
@@ -67,16 +107,47 @@ export default function CartPage() {
             <div>
               <div className="bg-cream rounded-xl p-6 sticky top-24">
                 <h2 className="font-heading font-semibold text-charcoal mb-4">Order Summary</h2>
-                <div className="flex gap-2 mb-6">
-                  <input type="text" placeholder="Coupon code" className="flex-1 bg-white border border-border rounded-full px-4 py-2 text-sm focus:outline-none focus:border-gold" />
-                  <Button variant="outline" size="sm" className="rounded-full border-border text-xs"><Tag className="h-3.5 w-3.5 mr-1" />Apply</Button>
-                </div>
+
+                {/* Coupon Input */}
+                {coupon ? (
+                  <div className="flex items-center justify-between bg-white border border-gold/30 rounded-full px-4 py-2 mb-4">
+                    <div className="flex items-center gap-2">
+                      <Tag className="h-3.5 w-3.5 text-gold" />
+                      <span className="text-xs font-medium text-charcoal">{coupon.code}</span>
+                      <span className="text-xs text-gold">{coupon.description}</span>
+                    </div>
+                    <button onClick={removeCoupon} className="text-muted-foreground hover:text-destructive">
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="mb-4">
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={couponCode}
+                        onChange={(e) => { setCouponCode(e.target.value); setCouponError(""); }}
+                        placeholder="Coupon code"
+                        className="flex-1 bg-white border border-border rounded-full px-4 py-2 text-sm focus:outline-none focus:border-gold"
+                        onKeyDown={(e) => e.key === "Enter" && handleApplyCoupon()}
+                      />
+                      <Button variant="outline" size="sm" className="rounded-full border-border text-xs" onClick={handleApplyCoupon} disabled={couponLoading || !couponCode.trim()}>
+                        {couponLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <><Tag className="h-3.5 w-3.5 mr-1" />Apply</>}
+                      </Button>
+                    </div>
+                    {couponError && <p className="text-xs text-red-600 mt-1.5">{couponError}</p>}
+                  </div>
+                )}
+
                 <div className="space-y-3 text-sm">
                   <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span className="text-charcoal">₦{total.toLocaleString()}</span></div>
+                  {discount > 0 && (
+                    <div className="flex justify-between"><span className="text-muted-foreground">Discount</span><span className="text-green-600 font-medium">-₦{discount.toLocaleString()}</span></div>
+                  )}
                   <div className="flex justify-between"><span className="text-muted-foreground">Shipping</span><span className="text-charcoal">{shipping === 0 ? <span className="text-gold">Free</span> : `₦${shipping.toLocaleString()}`}</span></div>
                   <div className="border-t border-border pt-3 flex justify-between"><span className="font-semibold text-charcoal">Total</span><span className="font-heading text-lg font-bold text-charcoal">₦{grandTotal.toLocaleString()}</span></div>
                 </div>
-                {total < 30000 && <p className="text-xs text-gold mt-3 text-center">Add ₦{(30000 - total).toLocaleString()} more for free shipping!</p>}
+                {afterDiscount < 30000 && <p className="text-xs text-gold mt-3 text-center">Add ₦{(30000 - afterDiscount).toLocaleString()} more for free shipping!</p>}
                 <Button asChild className="w-full mt-6 bg-gold text-white hover:bg-gold-dark rounded-full py-6 text-xs font-semibold tracking-wider uppercase">
                   <Link href="/shop/checkout">Proceed to Checkout</Link>
                 </Button>

@@ -12,6 +12,7 @@ const bookingSchema = z.object({
   startTime: z.string(),
   notes: z.string().optional(),
   paymentMethod: z.enum(["deposit", "full", "later"]),
+  couponCode: z.string().optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -85,11 +86,53 @@ export async function POST(request: NextRequest) {
     }
 
     const totalAmount = Number(service.price);
+
+    // Validate and apply coupon
+    let discount = 0;
+    let couponId: string | null = null;
+    let couponCodeVal: string | null = null;
+
+    if (data.couponCode) {
+      const coupon = await prisma.coupon.findUnique({
+        where: { code: data.couponCode.trim().toUpperCase() },
+      });
+
+      if (!coupon || !coupon.isActive) {
+        return NextResponse.json({ error: "Invalid coupon code" }, { status: 400 });
+      }
+      if (coupon.expiresAt && coupon.expiresAt < new Date()) {
+        return NextResponse.json({ error: "This coupon has expired" }, { status: 400 });
+      }
+      if (coupon.usageLimit && coupon.usedCount >= coupon.usageLimit) {
+        return NextResponse.json({ error: "This coupon has reached its usage limit" }, { status: 400 });
+      }
+      if (coupon.appliesTo !== "ALL" && coupon.appliesTo !== "SERVICES") {
+        return NextResponse.json({ error: "This coupon is not valid for service bookings" }, { status: 400 });
+      }
+      if (coupon.perUserLimit) {
+        const userUses = await prisma.appointment.count({ where: { couponId: coupon.id, customerProfile: { userId: session.user.id } } });
+        if (userUses >= coupon.perUserLimit) {
+          return NextResponse.json({ error: "You have already used this coupon the maximum number of times" }, { status: 400 });
+        }
+      }
+
+      if (coupon.type === "PERCENTAGE") {
+        discount = totalAmount * (Number(coupon.value) / 100);
+        if (coupon.maxDiscountAmount) discount = Math.min(discount, Number(coupon.maxDiscountAmount));
+      } else {
+        discount = Math.min(Number(coupon.value), totalAmount);
+      }
+      discount = Math.round(discount * 100) / 100;
+      couponId = coupon.id;
+      couponCodeVal = coupon.code;
+    }
+
+    const finalAmount = Math.max(totalAmount - discount, 0);
     const depositPaid =
       data.paymentMethod === "deposit"
-        ? Number(service.depositAmount || 0) || totalAmount * 0.3
+        ? Number(service.depositAmount || 0) || finalAmount * 0.3
         : data.paymentMethod === "full"
-        ? totalAmount
+        ? finalAmount
         : 0;
 
     const appointment = await prisma.appointment.create({
@@ -101,8 +144,10 @@ export async function POST(request: NextRequest) {
         date: new Date(data.date),
         startTime: data.startTime,
         endTime,
-        totalAmount,
+        totalAmount: finalAmount,
         depositPaid,
+        discount,
+        ...(couponId && { couponId, couponCode: couponCodeVal! }),
         notes: data.notes,
         status: depositPaid > 0 ? "CONFIRMED" : "PENDING",
       },
@@ -128,6 +173,14 @@ export async function POST(request: NextRequest) {
         },
       });
       paymentId = payment.id;
+    }
+
+    // Increment coupon usage
+    if (couponId) {
+      await prisma.coupon.update({
+        where: { id: couponId },
+        data: { usedCount: { increment: 1 } },
+      });
     }
 
     // Send booking placed notification
