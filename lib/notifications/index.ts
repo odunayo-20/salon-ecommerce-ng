@@ -98,3 +98,71 @@ export async function getAdminUserIds(): Promise<string[]> {
   });
   return admins.map((a) => a.id);
 }
+
+const adminInAppTemplates: Record<string, (data: Record<string, unknown>) => { title: string; message: string; actionUrl?: string }> = {
+  "appointment.created": (d) => ({
+    title: "New Booking",
+    message: `${d.customerName as string} booked a ${d.serviceName as string} appointment for ${d.date as string}.`,
+    actionUrl: "/admin/appointments",
+  }),
+  "appointment.confirmed": (d) => ({
+    title: "Booking Confirmed",
+    message: `${d.customerName as string}'s ${d.serviceName as string} appointment has been confirmed.`,
+    actionUrl: "/admin/appointments",
+  }),
+  "appointment.cancelled": (d) => ({
+    title: "Booking Cancelled",
+    message: `${d.customerName as string} cancelled their ${d.serviceName as string} appointment.${d.reason ? ` Reason: ${d.reason as string}` : ""}`,
+    actionUrl: "/admin/appointments",
+  }),
+  "order.placed": (d) => ({
+    title: "New Order",
+    message: `${d.customerName as string} placed order ${d.orderNumber as string} — ₦${(d.total as number).toLocaleString()}.`,
+    actionUrl: "/admin/orders",
+  }),
+  "payment.received": (d) => ({
+    title: "Payment Received",
+    message: `₦${(d.amount as number).toLocaleString()} payment received for ${d.reference as string}.`,
+    actionUrl: "/admin/orders",
+  }),
+  "review.created": (d) => ({
+    title: "New Review",
+    message: `${d.customerName as string} left a ${d.rating as number}-star review on ${d.targetName as string}.`,
+    actionUrl: "/admin/reviews",
+  }),
+};
+
+export async function notifyAdmins(
+  event: NotificationEventType,
+  data: Record<string, unknown>,
+  channels?: NotificationChannel[]
+): Promise<void> {
+  const adminIds = await getAdminUserIds();
+  if (adminIds.length === 0) return;
+
+  const config = eventConfigs[event];
+  if (!config) return;
+
+  const activeChannels = channels || config.channels;
+  const inAppChannel_ = activeChannels.includes("IN_APP" as NotificationChannel)
+    ? inAppChannel
+    : null;
+
+  if (!inAppChannel_) return;
+
+  const templateFn = adminInAppTemplates[event];
+  if (!templateFn) return;
+
+  const content = templateFn(data);
+
+  await Promise.allSettled(
+    adminIds.map((userId) =>
+      inAppChannel_.send(userId, {
+        title: content.title,
+        message: content.message,
+        actionUrl: content.actionUrl,
+        data,
+      })
+    )
+  );
+}

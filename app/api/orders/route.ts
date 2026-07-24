@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { generateOrderNumber } from "@/utils/helpers";
-import { notify } from "@/lib/notifications";
+import { notify, notifyAdmins } from "@/lib/notifications";
 import { z } from "zod";
 
 const orderItemSchema = z.object({
@@ -197,6 +197,11 @@ export async function POST(request: NextRequest) {
           total,
           shippingAddress: data.shippingAddress,
         },
+      });
+      await notifyAdmins("order.placed", {
+        customerName: session.user.name || "Valued Customer",
+        orderNumber: order.orderNumber,
+        total,
       });
     } catch {
       // Notification failure shouldn't block order

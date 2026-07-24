@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import { notify } from "@/lib/notifications";
+import { notify, notifyAdmins } from "@/lib/notifications";
 
 export async function GET(
   _request: NextRequest,
@@ -107,6 +107,10 @@ export async function PATCH(
             userId: appointment.customerProfile.user.id,
             event: "appointment.cancelled",
             data: { ...base, reason: cancelReason || undefined },
+          });
+          await notifyAdmins("appointment.cancelled", {
+            ...base,
+            reason: cancelReason || undefined,
           });
         }
       } catch {

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { generateBookingReference } from "@/utils/helpers";
-import { notify } from "@/lib/notifications";
+import { notify, notifyAdmins } from "@/lib/notifications";
 import { z } from "zod";
 
 const bookingSchema = z.object({
@@ -202,6 +202,16 @@ export async function POST(request: NextRequest) {
           depositPaid: Number(depositPaid),
           reference: appointment.reference,
         },
+      });
+      await notifyAdmins("appointment.created", {
+        customerName: session.user.name || "Valued Client",
+        serviceName: appointment.service.name,
+        date: new Date(data.date).toLocaleDateString("en-NG", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        }),
+        time: data.startTime,
       });
     } catch {
       // Notification failure shouldn't block booking

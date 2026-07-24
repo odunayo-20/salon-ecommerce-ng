@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { constructWebhookEvent } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
-import { notify } from "@/lib/notifications";
+import { notify, notifyAdmins } from "@/lib/notifications";
 
 export async function POST(request: NextRequest) {
   try {
@@ -58,6 +58,16 @@ export async function POST(request: NextRequest) {
                   reference: appointment.reference,
                 },
               });
+              await notifyAdmins("appointment.confirmed", {
+                customerName: appointment.customerProfile.user.name || "Valued Client",
+                serviceName: appointment.service.name,
+                date: appointment.date.toLocaleDateString("en-NG", {
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                }),
+                time: appointment.startTime,
+              });
             } catch {
               // Notification failure — non-critical
             }
@@ -103,6 +113,11 @@ export async function POST(request: NextRequest) {
                   total: Number(order.total),
                   shippingAddress: order.shippingAddress || "",
                 },
+              });
+              await notifyAdmins("order.placed", {
+                customerName: order.customerProfile.user.name || "Valued Customer",
+                orderNumber: order.orderNumber,
+                total: Number(order.total),
               });
             } catch {
               // Notification failure — non-critical

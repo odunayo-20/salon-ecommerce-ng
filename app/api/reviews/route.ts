@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import { notifyAdmins } from "@/lib/notifications";
 
 export async function GET(request: Request) {
   try {
@@ -119,8 +120,20 @@ export async function POST(request: NextRequest) {
       },
       include: {
         user: { select: { id: true, name: true, image: true } },
+        product: { select: { id: true, name: true } },
+        service: { select: { id: true, name: true } },
       },
     });
+
+    try {
+      await notifyAdmins("review.created", {
+        customerName: review.user.name || "Anonymous",
+        rating: review.rating,
+        targetName: review.product?.name || review.service?.name || "an item",
+      });
+    } catch {
+      // Notification failure — non-critical
+    }
 
     return NextResponse.json({
       review: {

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { verifyTransaction } from "@/lib/paystack";
-import { notify } from "@/lib/notifications";
+import { notify, notifyAdmins } from "@/lib/notifications";
 
 export async function POST(request: NextRequest) {
   try {
@@ -65,6 +65,16 @@ export async function POST(request: NextRequest) {
                 time: appointment.startTime,
                 reference: appointment.reference,
               },
+            });
+            await notifyAdmins("appointment.confirmed", {
+              customerName: appointment.customerProfile.user.name || "Valued Client",
+              serviceName: appointment.service.name,
+              date: appointment.date.toLocaleDateString("en-NG", {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              }),
+              time: appointment.startTime,
             });
           } catch {
             // Notification failure — non-critical
