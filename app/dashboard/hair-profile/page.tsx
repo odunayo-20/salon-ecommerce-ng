@@ -1,14 +1,56 @@
 "use client";
 
-import { useState } from "react";
-import { Loader2 } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { Loader2, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
+interface HairProfile {
+  hairType: string;
+  hairLength: string;
+  hairDensity: string;
+  scalpCondition: string;
+  allergies: string;
+  notes: string;
+}
+
+const defaultProfile: HairProfile = {
+  hairType: "KINKY_COILY",
+  hairLength: "Shoulder Length",
+  hairDensity: "Medium",
+  scalpCondition: "Normal",
+  allergies: "",
+  notes: "",
+};
+
 export default function HairProfilePage() {
-  const [profile, setProfile] = useState({ hairType: "KINKY_COILY", hairLength: "Shoulder Length", density: "Medium", scalpCondition: "Normal", allergies: "", notes: "" });
+  const [profile, setProfile] = useState<HairProfile>(defaultProfile);
+  const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [error, setError] = useState("");
+
+  const fetchProfile = useCallback(async () => {
+    try {
+      const res = await fetch("/api/hair-profile");
+      const data = await res.json();
+      if (res.ok && data.profile) {
+        setProfile({
+          hairType: data.profile.hairType || "KINKY_COILY",
+          hairLength: data.profile.hairLength || "Shoulder Length",
+          hairDensity: data.profile.hairDensity || "Medium",
+          scalpCondition: data.profile.scalpCondition || "Normal",
+          allergies: data.profile.allergies || "",
+          notes: data.profile.notes || "",
+        });
+      }
+    } catch {
+      // Use defaults on error
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchProfile(); }, [fetchProfile]);
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -30,6 +72,31 @@ export default function HairProfilePage() {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="bg-white border border-border rounded-xl p-6">
+        <div className="h-5 w-32 bg-cream rounded mb-6 animate-pulse" />
+        <div className="grid sm:grid-cols-2 gap-4 mb-6">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i}>
+              <div className="h-3.5 w-20 bg-cream rounded mb-2 animate-pulse" />
+              <div className="h-10 w-full bg-cream rounded-lg animate-pulse" />
+            </div>
+          ))}
+        </div>
+        <div className="mb-6">
+          <div className="h-3.5 w-16 bg-cream rounded mb-2 animate-pulse" />
+          <div className="h-10 w-full bg-cream rounded-lg animate-pulse" />
+        </div>
+        <div className="mb-6">
+          <div className="h-3.5 w-16 bg-cream rounded mb-2 animate-pulse" />
+          <div className="h-24 w-full bg-cream rounded-lg animate-pulse" />
+        </div>
+        <div className="h-9 w-32 bg-cream rounded-full animate-pulse" />
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white border border-border rounded-xl p-6">
       <h2 className="font-heading font-semibold text-charcoal mb-6">Hair Profile</h2>
@@ -49,7 +116,7 @@ export default function HairProfilePage() {
           </div>
           <div>
             <label className="block text-sm font-medium text-charcoal mb-1.5">Hair Density</label>
-            <select value={profile.density} onChange={(e) => setProfile({ ...profile, density: e.target.value })} className="w-full bg-cream border border-border rounded-lg px-4 py-2.5 text-sm text-charcoal focus:outline-none focus:border-gold">
+            <select value={profile.hairDensity} onChange={(e) => setProfile({ ...profile, hairDensity: e.target.value })} className="w-full bg-cream border border-border rounded-lg px-4 py-2.5 text-sm text-charcoal focus:outline-none focus:border-gold">
               {["Fine", "Medium", "Thick", "Very Thick"].map((d) => <option key={d} value={d}>{d}</option>)}
             </select>
           </div>
@@ -63,7 +130,12 @@ export default function HairProfilePage() {
         <div><label className="block text-sm font-medium text-charcoal mb-1.5">Allergies</label><input type="text" value={profile.allergies} onChange={(e) => setProfile({ ...profile, allergies: e.target.value })} placeholder="Any known allergies..." className="w-full bg-cream border border-border rounded-lg px-4 py-2.5 text-sm text-charcoal placeholder:text-muted-foreground/60 focus:outline-none focus:border-gold" /></div>
         <div><label className="block text-sm font-medium text-charcoal mb-1.5">Notes</label><textarea value={profile.notes} onChange={(e) => setProfile({ ...profile, notes: e.target.value })} placeholder="Additional notes about your hair..." className="w-full bg-cream border border-border rounded-lg px-4 py-2.5 text-sm text-charcoal placeholder:text-muted-foreground/60 focus:outline-none focus:border-gold resize-none h-24" /></div>
         {error && <p className="text-red-500 text-sm">{error}</p>}
-        {saveSuccess && <p className="text-green-600 text-sm">Hair profile saved successfully!</p>}
+        {saveSuccess && (
+          <div className="flex items-center gap-2 text-green-600 text-sm">
+            <Check className="h-4 w-4" />
+            <span>Hair profile saved successfully!</span>
+          </div>
+        )}
         <Button onClick={handleSave} disabled={isSaving} className="bg-charcoal text-white hover:bg-charcoal-light rounded-full px-8 py-2.5 text-xs font-semibold tracking-wider uppercase">
           {isSaving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
           {isSaving ? "Saving..." : "Save Profile"}
