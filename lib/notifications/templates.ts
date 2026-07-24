@@ -9,6 +9,7 @@ import {
   orderProcessingEmail,
   orderShippedEmail,
   orderDeliveredEmail,
+  lowStockAlertEmail,
 } from "@/lib/resend";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
@@ -332,6 +333,25 @@ export const eventConfigs: Record<NotificationEventType, EventConfig> = {
           </body>
           </html>
         `,
+      }),
+    },
+  },
+
+  "inventory.low_stock": {
+    channels: ["IN_APP", "EMAIL"],
+    template: {
+      inApp: (d) => ({
+        title: "Low Stock Alert",
+        message: `${d.productName as string} has ${d.currentStock as number} units left (threshold: ${d.threshold as number}).`,
+        actionUrl: "/admin/inventory",
+      }),
+      email: (d) => ({
+        subject: `Low Stock — ${d.productName as string}`,
+        html: lowStockAlertEmail({
+          productName: d.productName as string,
+          currentStock: d.currentStock as number,
+          threshold: d.threshold as number,
+        }),
       }),
     },
   },

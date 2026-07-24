@@ -135,6 +135,11 @@ const adminInAppTemplates: Record<string, (data: Record<string, unknown>) => { t
     message: `${d.customerName as string} left a ${d.rating as number}-star review on ${d.targetName as string}.`,
     actionUrl: "/admin/reviews",
   }),
+  "inventory.low_stock": (d) => ({
+    title: "Low Stock Alert",
+    message: `${d.productName as string} has only ${d.currentStock as number} units left (threshold: ${d.threshold as number}).`,
+    actionUrl: "/admin/inventory",
+  }),
 };
 
 export async function notifyAdmins(

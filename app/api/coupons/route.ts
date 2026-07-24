@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import { logAudit } from "@/lib/audit";
 import { z } from "zod";
 
 const couponSchema = z.object({
@@ -90,6 +91,14 @@ export async function POST(request: NextRequest) {
         isActive: data.isActive ?? true,
         appliesTo: data.appliesTo ?? "ALL",
       },
+    });
+
+    await logAudit({
+      userId: session.user.id,
+      action: "CREATE",
+      entityType: "COUPON",
+      entityId: coupon.id,
+      entityName: coupon.code,
     });
 
     return NextResponse.json({

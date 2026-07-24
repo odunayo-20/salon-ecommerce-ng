@@ -1,5 +1,7 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/lib/auth";
+import { logAudit } from "@/lib/audit";
 
 export async function GET(request: Request) {
   try {
@@ -26,6 +28,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    const session = await auth();
     const body = await request.json();
     const { name, slug, description, image, type, sortOrder, isActive } = body;
 
@@ -49,6 +52,16 @@ export async function POST(request: Request) {
         isActive: isActive !== undefined ? isActive : true,
       },
     });
+
+    if (session?.user?.id) {
+      await logAudit({
+        userId: session.user.id,
+        action: "CREATE",
+        entityType: "CATEGORY",
+        entityId: category.id,
+        entityName: category.name,
+      });
+    }
 
     return NextResponse.json({ category }, { status: 201 });
   } catch (error) {

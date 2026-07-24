@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { notify, notifyAdmins } from "@/lib/notifications";
+import { logAudit, diffObjects } from "@/lib/audit";
 
 export async function GET(
   _request: NextRequest,
@@ -80,6 +81,21 @@ export async function PATCH(
         customerProfile: { include: { user: { select: { id: true, name: true, email: true, image: true } } } },
       },
     });
+
+    const changes = diffObjects(
+      { status: existing.status, notes: existing.notes },
+      { status: appointment.status, notes: appointment.notes }
+    );
+    if (changes) {
+      await logAudit({
+        userId: session.user.id,
+        action: "UPDATE",
+        entityType: "APPOINTMENT",
+        entityId: id,
+        entityName: `${appointment.service.name} (${appointment.reference})`,
+        changes,
+      });
+    }
 
     // Send lifecycle notifications for COMPLETED / CANCELLED
     if (status && appointment.customerProfile?.user?.id) {

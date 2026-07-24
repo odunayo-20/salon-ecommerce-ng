@@ -1,100 +1,143 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const session = await auth();
     if (!session?.user?.id || session.user.role !== "ADMIN") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const { searchParams } = new URL(request.url);
+    const from = searchParams.get("from");
+    const to = searchParams.get("to");
+    const granularity = searchParams.get("granularity") || "daily"; // daily, weekly, monthly
 
-    const [
-      totalAppointments,
-      monthAppointments,
-      lastMonthAppointments,
-      totalCustomers,
-      monthCustomers,
-      lastMonthCustomers,
-      totalServices,
-      totalStylists,
-      recentAppointments,
-      statusCounts,
-      popularServices,
-      monthlyRevenue,
-      lastMonthRevenue,
-    ] = await Promise.all([
-      prisma.appointment.count(),
-      prisma.appointment.count({ where: { createdAt: { gte: startOfMonth } } }),
-      prisma.appointment.count({ where: { createdAt: { gte: startOfLastMonth, lt: startOfMonth } } }),
-      prisma.user.count({ where: { role: "CUSTOMER" } }),
-      prisma.user.count({ where: { role: "CUSTOMER", createdAt: { gte: startOfMonth } } }),
-      prisma.user.count({ where: { role: "CUSTOMER", createdAt: { gte: startOfLastMonth, lt: startOfMonth } } }),
-      prisma.service.count({ where: { isActive: true } }),
-      prisma.stylistProfile.count({ where: { isActive: true } }),
-      prisma.appointment.findMany({
-        take: 5,
-        orderBy: [{ date: "desc" }, { startTime: "desc" }],
-        include: {
-          service: { select: { name: true } },
-          stylist: { include: { user: { select: { name: true } } } },
-          customerProfile: { include: { user: { select: { name: true } } } },
-        },
-      }),
+    const now = new Date();
+    const dateFrom = from ? new Date(from) : new Date(now.getFullYear(), now.getMonth() - 11, 1);
+    const dateTo = to ? new Date(to) : now;
+
+    // ─── Revenue time-series ───
+    const payments = await prisma.payment.findMany({
+      where: { status: "PAID", paidAt: { gte: dateFrom, lte: dateTo } },
+      select: { amount: true, paidAt: true, appointmentId: true, orderId: true },
+      orderBy: { paidAt: "asc" },
+    });
+
+    // ─── Appointment revenue ───
+    const appointmentRevenue = payments
+      .filter((p) => p.appointmentId)
+      .reduce((sum, p) => sum + Number(p.amount), 0);
+
+    // ─── Order revenue ───
+    const orderRevenue = payments
+      .filter((p) => p.orderId)
+      .reduce((sum, p) => sum + Number(p.amount), 0);
+
+    // ─── Build time-series buckets ───
+    const revenueMap = new Map<string, { revenue: number; orders: number; appointments: number }>();
+    const bucketFn = (d: Date): string => {
+      if (granularity === "monthly") return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      if (granularity === "weekly") {
+        const startOfYear = new Date(d.getFullYear(), 0, 1);
+        const weekNum = Math.ceil(((d.getTime() - startOfYear.getTime()) / 86400000 + startOfYear.getDay() + 1) / 7);
+        return `${d.getFullYear()}-W${String(weekNum).padStart(2, "0")}`;
+      }
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    };
+
+    for (const p of payments) {
+      const key = p.paidAt ? bucketFn(new Date(p.paidAt)) : "unknown";
+      const entry = revenueMap.get(key) || { revenue: 0, orders: 0, appointments: 0 };
+      entry.revenue += Number(p.amount);
+      if (p.orderId) entry.orders++;
+      if (p.appointmentId) entry.appointments++;
+      revenueMap.set(key, entry);
+    }
+
+    const timeSeries = Array.from(revenueMap.entries()).map(([date, data]) => ({
+      date,
+      ...data,
+    }));
+
+    // ─── Status breakdown ───
+    const [orderStatuses, appointmentStatuses] = await Promise.all([
+      prisma.order.groupBy({ by: ["status"], _count: true }),
       prisma.appointment.groupBy({ by: ["status"], _count: true }),
-      prisma.appointment.groupBy({
-        by: ["serviceId"],
-        _count: true,
-        orderBy: { _count: { serviceId: "desc" } },
-        take: 5,
-      }),
-      prisma.appointment.aggregate({ _sum: { totalAmount: true }, where: { createdAt: { gte: startOfMonth }, status: { notIn: ["CANCELLED"] } } }),
-      prisma.appointment.aggregate({ _sum: { totalAmount: true }, where: { createdAt: { gte: startOfLastMonth, lt: startOfMonth }, status: { notIn: ["CANCELLED"] } } }),
     ]);
 
-    const serviceIds = popularServices.map((ps) => ps.serviceId);
-    const services = await prisma.service.findMany({ where: { id: { in: serviceIds } }, select: { id: true, name: true } });
-    const serviceMap = new Map(services.map((s) => [s.id, s.name]));
+    // ─── Top products by revenue ───
+    const topProducts = await prisma.orderItem.groupBy({
+      by: ["productId"],
+      _sum: { price: true, quantity: true },
+      _count: true,
+      orderBy: { _sum: { price: "desc" } },
+      take: 10,
+    });
 
-    const apptChange = lastMonthAppointments > 0 ? Math.round(((monthAppointments - lastMonthAppointments) / lastMonthAppointments) * 100) : 0;
-    const custChange = lastMonthCustomers > 0 ? Math.round(((monthCustomers - lastMonthCustomers) / lastMonthCustomers) * 100) : 0;
-    const thisRevenue = Number(monthlyRevenue._sum.totalAmount || 0);
-    const lastRevenue = Number(lastMonthRevenue._sum.totalAmount || 0);
-    const revChange = lastRevenue > 0 ? Math.round(((thisRevenue - lastRevenue) / lastRevenue) * 100) : 0;
+    const productIds = topProducts.map((p) => p.productId);
+    const products = await prisma.product.findMany({
+      where: { id: { in: productIds } },
+      select: { id: true, name: true, slug: true },
+    });
+    const productMap = new Map(products.map((p) => [p.id, p]));
 
-    const statusMap: Record<string, number> = {};
-    statusCounts.forEach((sc) => { statusMap[sc.status] = sc._count; });
+    const topProductsWithNames = topProducts.map((tp) => ({
+      name: productMap.get(tp.productId)?.name || "Unknown",
+      slug: productMap.get(tp.productId)?.slug,
+      revenue: Number(tp._sum.price || 0),
+      quantity: tp._sum.quantity || 0,
+      orders: tp._count,
+    }));
+
+    // ─── Top services ───
+    const topServices = await prisma.appointment.groupBy({
+      by: ["serviceId"],
+      _sum: { totalAmount: true },
+      _count: true,
+      orderBy: { _sum: { totalAmount: "desc" } },
+      take: 10,
+    });
+
+    const serviceIds = topServices.map((s) => s.serviceId);
+    const services = await prisma.service.findMany({
+      where: { id: { in: serviceIds } },
+      select: { id: true, name: true, slug: true },
+    });
+    const serviceMap = new Map(services.map((s) => [s.id, s]));
+
+    const topServicesWithNames = topServices.map((ts) => ({
+      name: serviceMap.get(ts.serviceId)?.name || "Unknown",
+      revenue: Number(ts._sum.totalAmount || 0),
+      bookings: ts._count,
+    }));
+
+    // ─── Summary stats ───
+    const totalRevenue = payments.reduce((sum, p) => sum + Number(p.amount), 0);
+    const totalOrders = await prisma.order.count({ where: { createdAt: { gte: dateFrom, lte: dateTo } } });
+    const totalAppointments = await prisma.appointment.count({ where: { createdAt: { gte: dateFrom, lte: dateTo } } });
+    const totalCustomers = await prisma.user.count({ where: { role: "CUSTOMER" } });
+    const newCustomers = await prisma.user.count({ where: { role: "CUSTOMER", createdAt: { gte: dateFrom, lte: dateTo } } });
 
     return NextResponse.json({
-      stats: {
-        appointments: { total: totalAppointments, month: monthAppointments, change: apptChange },
-        customers: { total: totalCustomers, month: monthCustomers, change: custChange },
-        revenue: { month: thisRevenue, change: revChange },
-        services: totalServices,
-        stylists: totalStylists,
-        statusCounts: statusMap,
+      summary: {
+        totalRevenue,
+        appointmentRevenue,
+        orderRevenue,
+        totalOrders,
+        totalAppointments,
+        totalCustomers,
+        newCustomers,
       },
-      recentAppointments: recentAppointments.map((a) => ({
-        id: a.id,
-        reference: a.reference,
-        customer: a.customerProfile.user.name,
-        service: a.service.name,
-        stylist: a.stylist?.user.name || null,
-        time: a.startTime,
-        status: a.status,
-        date: a.date,
-      })),
-      popularServices: popularServices.map((ps) => ({
-        name: serviceMap.get(ps.serviceId) || "Unknown",
-        bookings: ps._count,
-      })),
+      timeSeries,
+      orderStatuses: orderStatuses.map((s) => ({ status: s.status, count: s._count })),
+      appointmentStatuses: appointmentStatuses.map((s) => ({ status: s.status, count: s._count })),
+      topProducts: topProductsWithNames,
+      topServices: topServicesWithNames,
     });
   } catch (error) {
-    console.error("Admin analytics error:", error);
+    console.error("Analytics error:", error);
     return NextResponse.json({ error: "Failed to fetch analytics" }, { status: 500 });
   }
 }

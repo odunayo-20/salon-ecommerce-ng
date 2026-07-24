@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Calendar, Package, Users, Scissors, Loader2 } from "lucide-react";
+import { Calendar, Package, Users, Scissors, Loader2, Warehouse, ClipboardList, BarChart3, Tag } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAdminAnalytics } from "@/hooks/queries";
 
@@ -137,6 +137,21 @@ export default function AdminDashboard() {
           </div>
         </div>
       )}
+
+      {/* Quick Links */}
+      <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {[
+          { label: "Inventory", href: "/admin/inventory", icon: Warehouse, color: "text-amber-600" },
+          { label: "Audit Log", href: "/admin/audit-log", icon: ClipboardList, color: "text-purple-600" },
+          { label: "Analytics", href: "/admin/analytics", icon: BarChart3, color: "text-blue-600" },
+          { label: "Coupons", href: "/admin/coupons", icon: Tag, color: "text-emerald-600" },
+        ].map((link) => (
+          <Link key={link.href} href={link.href} className="bg-white border border-border rounded-xl p-4 hover:shadow-sm transition-shadow group">
+            <link.icon className={cn("h-5 w-5 mb-2", link.color)} />
+            <p className="text-sm font-medium text-charcoal group-hover:text-gold transition-colors">{link.label}</p>
+          </Link>
+        ))}
+      </div>
     </div>
   );
 }

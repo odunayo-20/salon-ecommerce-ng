@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Scissors, Package, Calendar, Users, UserCog, Star, PenTool, BarChart3, Menu, X, FolderTree, Clock, Tag, MessageSquare } from "lucide-react";
+import { LayoutDashboard, Scissors, Package, Calendar, Users, UserCog, Star, PenTool, BarChart3, Menu, X, FolderTree, Clock, Tag, MessageSquare, Warehouse, ClipboardList } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
@@ -13,6 +13,7 @@ const adminLinks = [
   { label: "Categories", href: "/admin/categories", icon: FolderTree },
   { label: "Services", href: "/admin/services", icon: Scissors },
   { label: "Products", href: "/admin/products", icon: Package },
+  { label: "Inventory", href: "/admin/inventory", icon: Warehouse },
   { label: "Appointments", href: "/admin/appointments", icon: Calendar },
   { label: "Orders", href: "/admin/orders", icon: Package },
   { label: "Coupons", href: "/admin/coupons", icon: Tag },
@@ -23,6 +24,7 @@ const adminLinks = [
   { label: "Reviews", href: "/admin/reviews", icon: Star },
   { label: "Blog", href: "/admin/blog", icon: PenTool },
   { label: "Analytics", href: "/admin/analytics", icon: BarChart3 },
+  { label: "Audit Log", href: "/admin/audit-log", icon: ClipboardList },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

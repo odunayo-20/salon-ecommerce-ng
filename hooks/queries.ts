@@ -45,6 +45,100 @@ export function useAdminAnalytics(pollInterval = 30_000) {
   });
 }
 
+// ─── Admin Analytics V2 (Charts) ───────────────────────────────
+export interface AdminAnalyticsV2 {
+  summary: {
+    totalRevenue: number; appointmentRevenue: number; orderRevenue: number;
+    totalOrders: number; totalAppointments: number;
+    totalCustomers: number; newCustomers: number;
+  };
+  timeSeries: { date: string; revenue: number; orders: number; appointments: number }[];
+  orderStatuses: { status: string; count: number }[];
+  appointmentStatuses: { status: string; count: number }[];
+  topProducts: { name: string; slug?: string; revenue: number; quantity: number; orders: number }[];
+  topServices: { name: string; revenue: number; bookings: number }[];
+}
+
+export function useAdminAnalyticsV2(params?: { from?: string; to?: string; granularity?: string }) {
+  const sp = new URLSearchParams();
+  if (params?.from) sp.set("from", params.from);
+  if (params?.to) sp.set("to", params.to);
+  if (params?.granularity) sp.set("granularity", params.granularity);
+  const qs = sp.toString();
+  return useQuery<AdminAnalyticsV2>({
+    queryKey: ["admin-analytics-v2", params],
+    queryFn: () => q(`/api/admin/analytics${qs ? `?${qs}` : ""}`),
+    refetchInterval: 60_000,
+  });
+}
+
+// ─── Admin Inventory ────────────────────────────────────────────
+export interface InventoryProduct {
+  id: string; name: string; sku: string | null; stock: number; lowStock: number;
+  category: string; image: string | null;
+  variants: { id: string; name: string; stock: number }[];
+  isLowStock: boolean; isOutOfStock: boolean;
+}
+export interface StockMovement {
+  id: string; productName: string; variantName: string | null;
+  type: string; quantity: number; previousQty: number; newQty: number;
+  reference: string | null; note: string | null; createdAt: string;
+}
+
+export function useInventory(params?: { search?: string; lowStock?: boolean; category?: string }, pollInterval = 60_000) {
+  const sp = new URLSearchParams();
+  if (params?.search) sp.set("search", params.search);
+  if (params?.lowStock) sp.set("lowStock", "true");
+  if (params?.category) sp.set("category", params.category);
+  const qs = sp.toString();
+  return useQuery<{ products: InventoryProduct[]; recentMovements: StockMovement[]; lowStockCount: number }>({
+    queryKey: ["admin-inventory", params],
+    queryFn: () => q(`/api/admin/inventory${qs ? `?${qs}` : ""}`),
+    refetchInterval: pollInterval,
+  });
+}
+
+export function useAdjustStock() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { productId: string; variantId?: string; type: string; quantity: number; note?: string }) =>
+      m("/api/admin/inventory", "POST", body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-inventory"] }),
+  });
+}
+
+export function useBulkUpdateStock() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { items: { productId: string; stock: number }[]; note?: string }) =>
+      m("/api/admin/inventory/bulk", "PATCH", body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-inventory"] }),
+  });
+}
+
+// ─── Admin Audit Log ────────────────────────────────────────────
+export interface AuditLogEntry {
+  id: string; action: string; entityType: string; entityId: string | null;
+  entityName: string | null; changes: Record<string, { old: unknown; new: unknown }> | null;
+  ipAddress: string | null; createdAt: string;
+  user: { id: string; name: string | null; email: string | null } | null;
+}
+
+export function useAuditLog(params?: { action?: string; entityType?: string; from?: string; to?: string; page?: number }) {
+  const sp = new URLSearchParams();
+  if (params?.action) sp.set("action", params.action);
+  if (params?.entityType) sp.set("entityType", params.entityType);
+  if (params?.from) sp.set("from", params.from);
+  if (params?.to) sp.set("to", params.to);
+  if (params?.page) sp.set("page", String(params.page));
+  const qs = sp.toString();
+  return useQuery<{ logs: AuditLogEntry[]; entityTypes: string[]; pagination: { page: number; limit: number; total: number; totalPages: number } }>({
+    queryKey: ["admin-audit-log", params],
+    queryFn: () => q(`/api/admin/audit${qs ? `?${qs}` : ""}`),
+    refetchInterval: 30_000,
+  });
+}
+
 // ─── Admin Orders ─────────────────────────────────────────────────
 export interface AdminOrderItem {
   id: string; name: string; price: number; quantity: number; image: string | null;

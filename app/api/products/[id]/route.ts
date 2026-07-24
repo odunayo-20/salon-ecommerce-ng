@@ -1,5 +1,7 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/lib/auth";
+import { logAudit, diffObjects } from "@/lib/audit";
 
 export async function GET(
   _request: Request,
@@ -47,6 +49,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await auth();
     const { id } = await params;
     const body = await request.json();
     const {
@@ -119,6 +122,21 @@ export async function PUT(
       },
     });
 
+    const changes = diffObjects(
+      { name: existing.name, price: Number(existing.price), stock: existing.stock, isActive: existing.isActive, isFeatured: existing.isFeatured },
+      { name: product.name, price: Number(product.price), stock: product.stock, isActive: product.isActive, isFeatured: product.isFeatured }
+    );
+    if (changes && session?.user?.id) {
+      await logAudit({
+        userId: session.user.id,
+        action: "UPDATE",
+        entityType: "PRODUCT",
+        entityId: id,
+        entityName: product.name,
+        changes,
+      });
+    }
+
     return NextResponse.json({
       product: {
         ...product,
@@ -137,6 +155,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await auth();
     const { id } = await params;
 
     const existing = await prisma.product.findUnique({
@@ -158,6 +177,16 @@ export async function DELETE(
     await prisma.wishlist.deleteMany({ where: { productId: id } });
     await prisma.cartItem.deleteMany({ where: { productId: id } });
     await prisma.product.delete({ where: { id } });
+
+    if (session?.user?.id) {
+      await logAudit({
+        userId: session.user.id,
+        action: "DELETE",
+        entityType: "PRODUCT",
+        entityId: id,
+        entityName: existing.name,
+      });
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import { logAudit } from "@/lib/audit";
 
 export async function GET(request: Request) {
   try {
@@ -69,6 +70,18 @@ export async function PATCH(request: NextRequest) {
       },
     });
 
+    await logAudit({
+      userId: session.user.id,
+      action: "UPDATE",
+      entityType: "REVIEW",
+      entityId: id,
+      entityName: review.title || "Review",
+      changes: {
+        ...(isApproved !== undefined && { isApproved: { old: undefined, new: isApproved } }),
+        ...(isFeatured !== undefined && { isFeatured: { old: undefined, new: isFeatured } }),
+      },
+    });
+
     return NextResponse.json({ review });
   } catch (error) {
     console.error("Admin review update error:", error);
@@ -91,6 +104,14 @@ export async function DELETE(request: NextRequest) {
     if (!review) return NextResponse.json({ error: "Review not found" }, { status: 404 });
 
     await prisma.review.delete({ where: { id } });
+
+    await logAudit({
+      userId: session.user.id,
+      action: "DELETE",
+      entityType: "REVIEW",
+      entityId: id,
+      entityName: review.title || "Review",
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {

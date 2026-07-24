@@ -1,5 +1,7 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/lib/auth";
+import { logAudit, diffObjects } from "@/lib/audit";
 
 export async function GET(
   _request: Request,
@@ -29,6 +31,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await auth();
     const { id } = await params;
     const body = await request.json();
     const { name, slug, description, image, type, sortOrder, isActive } = body;
@@ -58,6 +61,16 @@ export async function PUT(
       },
     });
 
+    if (session?.user?.id) {
+      const changes = diffObjects(
+        { name: existing.name, slug: existing.slug, isActive: existing.isActive },
+        { name: category.name, slug: category.slug, isActive: category.isActive }
+      );
+      if (changes) {
+        await logAudit({ userId: session.user.id, action: "UPDATE", entityType: "CATEGORY", entityId: id, entityName: category.name, changes });
+      }
+    }
+
     return NextResponse.json({ category });
   } catch (error) {
     console.error("Failed to update category:", error);
@@ -70,6 +83,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await auth();
     const { id } = await params;
 
     const existing = await prisma.category.findUnique({
@@ -89,6 +103,10 @@ export async function DELETE(
     }
 
     await prisma.category.delete({ where: { id } });
+
+    if (session?.user?.id) {
+      await logAudit({ userId: session.user.id, action: "DELETE", entityType: "CATEGORY", entityId: id, entityName: existing.name });
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

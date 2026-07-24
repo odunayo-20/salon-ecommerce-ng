@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import { logAudit, diffObjects } from "@/lib/audit";
 
 export async function GET(
   request: NextRequest,
@@ -76,6 +77,21 @@ export async function PUT(
       },
     });
 
+    const changes = diffObjects(
+      { code: coupon.code, type: coupon.type, value: Number(coupon.value), isActive: coupon.isActive, appliesTo: coupon.appliesTo },
+      { code: updated.code, type: updated.type, value: Number(updated.value), isActive: updated.isActive, appliesTo: updated.appliesTo }
+    );
+    if (changes) {
+      await logAudit({
+        userId: session.user.id,
+        action: "UPDATE",
+        entityType: "COUPON",
+        entityId: id,
+        entityName: updated.code,
+        changes,
+      });
+    }
+
     return NextResponse.json({
       coupon: {
         ...updated,
@@ -107,6 +123,14 @@ export async function DELETE(
     }
 
     await prisma.coupon.delete({ where: { id } });
+
+    await logAudit({
+      userId: session.user.id,
+      action: "DELETE",
+      entityType: "COUPON",
+      entityId: id,
+      entityName: coupon.code,
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {

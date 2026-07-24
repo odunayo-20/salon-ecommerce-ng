@@ -785,3 +785,42 @@ export function passwordResetCodeEmail(params: {
     </html>
   `;
 }
+
+export function lowStockAlertEmail(params: {
+  productName: string;
+  currentStock: number;
+  threshold: number;
+}) {
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head><meta charset="utf-8"></head>
+    <body style="font-family: 'Helvetica Neue', Arial, sans-serif; background: #faf9f7; margin: 0; padding: 40px 20px;">
+      <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 8px; overflow: hidden;">
+        <div style="background: #dc2626; padding: 40px; text-align: center;">
+          <h1 style="color: #ffffff; font-size: 22px; margin: 0; letter-spacing: 2px; text-transform: uppercase;">Low Stock Alert</h1>
+        </div>
+        <div style="padding: 40px;">
+          <p style="color: #666; font-size: 16px; line-height: 1.6;">The following product has dropped below its restock threshold:</p>
+          
+          <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 24px; margin: 24px 0;">
+            <p style="color: #1a1a1a; font-size: 18px; font-weight: 600; margin: 0 0 8px;">${params.productName}</p>
+            <p style="color: #dc2626; font-size: 15px; margin: 0;">
+              Current stock: <strong>${params.currentStock}</strong> &nbsp;|&nbsp; Threshold: <strong>${params.threshold}</strong>
+            </p>
+          </div>
+
+          <p style="color: #666; font-size: 15px; line-height: 1.6;">Please restock this item to avoid running out of inventory.</p>
+
+          <div style="text-align: center; margin: 32px 0;">
+            <a href="${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/admin/inventory" style="display: inline-block; background: #1a1a1a; color: #ffffff; padding: 12px 32px; border-radius: 50px; text-decoration: none; font-size: 13px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase;">View Inventory</a>
+          </div>
+        </div>
+        <div style="background: #faf9f7; padding: 24px; text-align: center;">
+          <p style="color: #999; font-size: 12px; margin: 0;">${process.env.NEXT_PUBLIC_APP_NAME || "MecBill Tech Salon"} | Inventory Alerts</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+}

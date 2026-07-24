@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { generateOrderNumber } from "@/utils/helpers";
 import { notify, notifyAdmins } from "@/lib/notifications";
+import { checkAndNotifyLowStock } from "@/lib/inventory";
 import { z } from "zod";
 
 const orderItemSchema = z.object({
@@ -178,12 +179,26 @@ export async function POST(request: NextRequest) {
         include: { items: true },
       });
 
-      // Decrement stock
+      // Decrement stock and log movement
       for (const item of data.items) {
-        await tx.product.update({
-          where: { id: item.productId },
-          data: { stock: { decrement: item.quantity } },
-        });
+        const product = await tx.product.findUnique({ where: { id: item.productId }, select: { stock: true, name: true } });
+        if (product) {
+          await tx.product.update({
+            where: { id: item.productId },
+            data: { stock: { decrement: item.quantity } },
+          });
+          await tx.stockMovement.create({
+            data: {
+              productId: item.productId,
+              type: "SALE",
+              quantity: -item.quantity,
+              previousQty: product.stock,
+              newQty: product.stock - item.quantity,
+              reference: newOrder.orderNumber,
+              note: `Order ${newOrder.orderNumber}`,
+            },
+          });
+        }
       }
 
       // Increment coupon usage
@@ -209,6 +224,17 @@ export async function POST(request: NextRequest) {
 
       return newOrder;
     });
+
+    // Check low stock after transaction commits
+    for (const item of data.items) {
+      const afterProduct = await prisma.product.findUnique({
+        where: { id: item.productId },
+        select: { stock: true, lowStock: true },
+      });
+      if (afterProduct && afterProduct.stock <= afterProduct.lowStock) {
+        await checkAndNotifyLowStock(item.productId, afterProduct.stock);
+      }
+    }
 
     // Create payment record
     const paymentRef = `PAY-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 6)}`;

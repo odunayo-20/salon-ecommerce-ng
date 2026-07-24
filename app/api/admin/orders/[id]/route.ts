@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { notify } from "@/lib/notifications";
+import { logAudit, diffObjects } from "@/lib/audit";
+
+const STATUSES_THAT_RESTORE_STOCK = new Set(["CANCELLED", "REFUNDED"]);
 
 export async function PATCH(
   request: NextRequest,
@@ -17,19 +20,28 @@ export async function PATCH(
     const body = await request.json();
     const { status, trackingNumber, notes } = body;
 
-    const existing = await prisma.order.findUnique({ where: { id } });
+    const existing = await prisma.order.findUnique({
+      where: { id },
+      include: { items: true },
+    });
     if (!existing) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
+    const newStatus = status?.toUpperCase();
+    const shouldRestoreStock =
+      newStatus &&
+      STATUSES_THAT_RESTORE_STOCK.has(newStatus) &&
+      !STATUSES_THAT_RESTORE_STOCK.has(existing.status);
+
     const updateData: Record<string, unknown> = {};
     if (status) {
-      updateData.status = status.toUpperCase();
-      if (status.toUpperCase() === "SHIPPED" && trackingNumber) {
+      updateData.status = newStatus;
+      if (newStatus === "SHIPPED" && trackingNumber) {
         updateData.trackingNumber = trackingNumber;
         updateData.shippedAt = new Date();
       }
-      if (status.toUpperCase() === "DELIVERED") {
+      if (newStatus === "DELIVERED") {
         updateData.deliveredAt = new Date();
       }
     }
@@ -45,6 +57,67 @@ export async function PATCH(
         payments: { select: { id: true, amount: true, status: true, method: true, reference: true } },
       },
     });
+
+    // Restore stock + mark payments REFUNDED
+    if (shouldRestoreStock) {
+      for (const item of existing.items) {
+        const product = await prisma.product.findUnique({
+          where: { id: item.productId },
+          select: { stock: true, name: true },
+        });
+        if (!product) continue;
+
+        const newQty = product.stock + item.quantity;
+        await prisma.$transaction([
+          prisma.product.update({
+            where: { id: item.productId },
+            data: { stock: newQty },
+          }),
+          prisma.stockMovement.create({
+            data: {
+              productId: item.productId,
+              type: "RETURN",
+              quantity: item.quantity,
+              previousQty: product.stock,
+              newQty,
+              reference: order.orderNumber,
+              note: `Cancelled order ${order.orderNumber}`,
+              createdBy: session.user.id,
+            },
+          }),
+        ]);
+
+        await logAudit({
+          userId: session.user.id,
+          action: "UPDATE",
+          entityType: "PRODUCT",
+          entityId: item.productId,
+          entityName: product.name,
+          changes: { stock: { old: product.stock, new: newQty } },
+        });
+      }
+
+      // Mark PENDING payments as REFUNDED
+      await prisma.payment.updateMany({
+        where: { orderId: id, status: "PENDING" },
+        data: { status: "REFUNDED" },
+      });
+    }
+
+    const changes = diffObjects(
+      { status: existing.status, trackingNumber: existing.trackingNumber, notes: existing.notes },
+      { status: order.status, trackingNumber: order.trackingNumber, notes: order.notes }
+    );
+    if (changes) {
+      await logAudit({
+        userId: session.user.id,
+        action: "UPDATE",
+        entityType: "ORDER",
+        entityId: id,
+        entityName: order.orderNumber,
+        changes,
+      });
+    }
 
     // Send status update notifications
     if (status && order.customerProfile?.user?.id) {

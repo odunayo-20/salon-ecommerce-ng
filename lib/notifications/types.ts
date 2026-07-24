@@ -14,7 +14,8 @@ export type NotificationEventType =
   | "order.delivered"
   | "payment.received"
   | "review.created"
-  | "account.created";
+  | "account.created"
+  | "inventory.low_stock";
 
 export interface NotificationPayload {
   userId: string;

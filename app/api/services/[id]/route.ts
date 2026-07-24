@@ -1,5 +1,7 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/lib/auth";
+import { logAudit, diffObjects } from "@/lib/audit";
 
 export async function GET(
   _request: Request,
@@ -44,6 +46,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await auth();
     const { id } = await params;
     const body = await request.json();
     const { name, slug, description, duration, price, depositAmount, categoryId, isActive, isPopular, sortOrder } = body;
@@ -84,6 +87,23 @@ export async function PUT(
       include: { category: { select: { id: true, name: true, slug: true } } },
     });
 
+    if (session?.user?.id) {
+      const changes = diffObjects(
+        { name: existing.name, price: Number(existing.price), duration: existing.duration, isActive: existing.isActive },
+        { name: service.name, price: Number(service.price), duration: service.duration, isActive: service.isActive }
+      );
+      if (changes) {
+        await logAudit({
+          userId: session.user.id,
+          action: "UPDATE",
+          entityType: "SERVICE",
+          entityId: id,
+          entityName: service.name,
+          changes,
+        });
+      }
+    }
+
     return NextResponse.json({
       service: {
         ...service,
@@ -102,6 +122,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await auth();
     const { id } = await params;
 
     const existing = await prisma.service.findUnique({
@@ -122,6 +143,16 @@ export async function DELETE(
 
     await prisma.stylistService.deleteMany({ where: { serviceId: id } });
     await prisma.service.delete({ where: { id } });
+
+    if (session?.user?.id) {
+      await logAudit({
+        userId: session.user.id,
+        action: "DELETE",
+        entityType: "SERVICE",
+        entityId: id,
+        entityName: existing.name,
+      });
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {
