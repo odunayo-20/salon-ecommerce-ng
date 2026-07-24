@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Globe, Hash, MessageCircle, MapPin, Phone, Mail } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { NewsletterForm } from "./newsletter-form";
 
 const footerLinks = {
   services: [
@@ -55,16 +55,7 @@ export function Footer() {
                 Get exclusive offers, hair care tips, and first access to new products.
               </p>
             </div>
-            <div className="flex gap-3">
-              <input
-                type="email"
-                placeholder="Your email address"
-                className="flex-1 bg-white/10 border border-white/10 rounded-full px-6 py-3 text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-gold transition-colors"
-              />
-              <Button className="bg-gold text-white hover:bg-gold-dark rounded-full px-8 text-xs font-semibold tracking-wider uppercase">
-                Subscribe
-              </Button>
-            </div>
+            <NewsletterForm source="footer" />
           </div>
         </div>
       </div>

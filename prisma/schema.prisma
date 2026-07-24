@@ -761,3 +761,15 @@ model Referral {
 
   @@unique([referrerId, referredId])
 }
+
+// ─── Newsletter ─────────────────────────────────────────────
+
+model NewsletterSubscriber {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  isActive  Boolean  @default(true)
+  source    String   @default("footer")
+  createdAt DateTime @default(now())
+
+  @@index([email])
+}

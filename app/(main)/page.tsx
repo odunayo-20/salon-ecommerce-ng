@@ -1,13 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Star, Sparkles, Clock, Award, Users, Loader2 } from "lucide-react";
+import { ArrowRight, Star, Sparkles, Award, Users, Loader2, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { ProductCard } from "@/components/shop/product-card";
 import { ServiceCard } from "@/components/booking/service-card";
-import { BeforeAfterSlider } from "@/components/ui/before-after-slider";
 import { ReviewCarousel } from "@/components/ui/review-carousel";
-import { InstagramGallery } from "@/components/home/instagram-gallery";
 import { FAQAccordion } from "@/components/ui/faq-accordion";
 import { useServices, useProducts, useFeaturedReviews } from "@/hooks/queries";
 
@@ -19,20 +19,11 @@ const faqItems = [
   { question: "Do you sell hair extensions and wigs?", answer: "Yes, we offer a premium collection of human hair extensions, braiding hair, wigs, closures, and frontals. All our hair is ethically sourced and quality-tested. Shop online or visit the salon." },
 ];
 
-const instagramImages = [
-  { src: "", alt: "Hairstyle transformation", href: "https://instagram.com" },
-  { src: "", alt: "Braids styling", href: "https://instagram.com" },
-  { src: "", alt: "Natural hair care", href: "https://instagram.com" },
-  { src: "", alt: "Wig installation", href: "https://instagram.com" },
-  { src: "", alt: "Salon interior", href: "https://instagram.com" },
-  { src: "", alt: "Hair products", href: "https://instagram.com" },
-];
-
 const stats = [
   { icon: Users, value: "10,000+", label: "Happy Clients" },
   { icon: Award, value: "8+", label: "Years Experience" },
   { icon: Sparkles, value: "50+", label: "Services Offered" },
-  { icon: Clock, value: "98%", label: "Satisfaction Rate" },
+  { icon: Star, value: "4.9", label: "Average Rating" },
 ];
 
 interface ApiReview {
@@ -55,7 +46,35 @@ export default function HomePage() {
   const services = svcData?.services ?? [];
   const products = prodData?.products ?? [];
   const reviews = revData?.reviews?.length ? revData.reviews : fallbackReviews;
-  const loading = svcLoading || prodLoading || revLoading;
+
+  const [newsletterEmail, setNewsletterEmail] = useState("");
+  const [newsletterStatus, setNewsletterStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [newsletterMsg, setNewsletterMsg] = useState("");
+
+  const handleNewsletter = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newsletterEmail.trim()) return;
+    setNewsletterStatus("loading");
+    try {
+      const res = await fetch("/api/newsletter", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: newsletterEmail, source: "homepage" }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setNewsletterStatus("success");
+        setNewsletterMsg(data.message);
+        setNewsletterEmail("");
+      } else {
+        setNewsletterStatus("error");
+        setNewsletterMsg(data.error || "Something went wrong");
+      }
+    } catch {
+      setNewsletterStatus("error");
+      setNewsletterMsg("Something went wrong");
+    }
+  };
 
   return (
     <div className="flex flex-col">
@@ -126,7 +145,7 @@ export default function HomePage() {
               <Link href="/book">View All Services<ArrowRight className="h-4 w-4 ml-1.5" /></Link>
             </Button>
           </div>
-          {loading ? (
+          {svcLoading ? (
             <div className="py-12 text-center"><Loader2 className="h-6 w-6 text-gold animate-spin mx-auto" /></div>
           ) : services.length === 0 ? (
             <div className="py-12 text-center"><p className="text-muted-foreground text-sm">No services available yet.</p></div>
@@ -144,23 +163,8 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Before/After Transformations */}
-      <section className="py-20 md:py-28 bg-cream">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="text-center mb-12">
-            <span className="text-gold text-xs font-semibold tracking-[0.2em] uppercase">Transformations</span>
-            <h2 className="font-heading text-3xl md:text-4xl font-bold text-charcoal mt-2 tracking-tight">Real Results, Real Confidence</h2>
-            <p className="text-muted-foreground mt-3 max-w-lg mx-auto">See the incredible transformations our clients experience</p>
-          </div>
-          <div className="grid md:grid-cols-2 gap-8">
-            <BeforeAfterSlider beforeImage="" afterImage="" beforeAlt="Before braids" afterAlt="After braids" />
-            <BeforeAfterSlider beforeImage="" afterImage="" beforeAlt="Before treatment" afterAlt="After treatment" />
-          </div>
-        </div>
-      </section>
-
       {/* Featured Products */}
-      <section className="py-20 md:py-28">
+      <section className="py-20 md:py-28 bg-cream">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-12">
             <div>
@@ -171,7 +175,7 @@ export default function HomePage() {
               <Link href="/shop">Shop All Products<ArrowRight className="h-4 w-4 ml-1.5" /></Link>
             </Button>
           </div>
-          {loading ? (
+          {prodLoading ? (
             <div className="py-12 text-center"><Loader2 className="h-6 w-6 text-gold animate-spin mx-auto" /></div>
           ) : products.length === 0 ? (
             <div className="py-12 text-center"><p className="text-muted-foreground text-sm">No products available yet.</p></div>
@@ -191,7 +195,7 @@ export default function HomePage() {
       </section>
 
       {/* Client Reviews */}
-      <section className="py-20 md:py-28 bg-cream">
+      <section className="py-20 md:py-28">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-12">
             <span className="text-gold text-xs font-semibold tracking-[0.2em] uppercase">Testimonials</span>
@@ -202,7 +206,7 @@ export default function HomePage() {
       </section>
 
       {/* Why Choose Us */}
-      <section className="py-20 md:py-28">
+      <section className="py-20 md:py-28 bg-cream">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             <div>
@@ -224,10 +228,10 @@ export default function HomePage() {
               </div>
             </div>
             <div className="relative">
-              <div className="aspect-[4/5] bg-cream rounded-2xl overflow-hidden">
-                <div className="w-full h-full bg-gradient-to-br from-gold/20 to-cream flex items-center justify-center"><span className="text-muted-foreground text-sm">Salon Image</span></div>
+              <div className="aspect-[4/5] bg-white rounded-2xl overflow-hidden border border-border">
+                <div className="w-full h-full bg-gradient-to-br from-gold/10 to-cream flex items-center justify-center"><span className="text-muted-foreground text-sm">Salon Image</span></div>
               </div>
-              <div className="absolute -bottom-6 -left-6 bg-white rounded-xl p-5 shadow-xl max-w-[200px]">
+              <div className="absolute -bottom-6 -left-6 bg-white rounded-xl p-5 shadow-xl max-w-[200px] border border-border">
                 <div className="flex items-center gap-1">{[...Array(5)].map((_, i) => <Star key={i} className="h-3 w-3 fill-gold text-gold" />)}</div>
                 <p className="text-xs text-muted-foreground mt-1">Rated 4.9/5 by 500+ clients</p>
               </div>
@@ -236,14 +240,27 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Instagram Gallery */}
+      {/* Newsletter CTA */}
       <section className="py-20 md:py-28">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="text-center mb-12">
-            <span className="text-gold text-xs font-semibold tracking-[0.2em] uppercase">@mecbilltechsalon</span>
-            <h2 className="font-heading text-3xl md:text-4xl font-bold text-charcoal mt-2 tracking-tight">Follow Our Journey</h2>
-          </div>
-          <InstagramGallery images={instagramImages} />
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 text-center">
+          <span className="text-gold text-xs font-semibold tracking-[0.2em] uppercase">Stay Connected</span>
+          <h2 className="font-heading text-3xl md:text-4xl font-bold text-charcoal mt-2 tracking-tight">Join the MecBill Community</h2>
+          <p className="text-muted-foreground mt-3 max-w-lg mx-auto">Get exclusive offers, hair care tips, and first access to new products delivered to your inbox.</p>
+          <form onSubmit={handleNewsletter} className="flex gap-3 mt-8 max-w-md mx-auto">
+            <Input
+              type="email"
+              placeholder="Your email address"
+              value={newsletterEmail}
+              onChange={(e) => { setNewsletterEmail(e.target.value); setNewsletterStatus("idle"); }}
+              className="flex-1 bg-cream border-border rounded-full"
+              required
+            />
+            <Button type="submit" disabled={newsletterStatus === "loading"} className="bg-gold text-white hover:bg-gold-dark rounded-full px-8 text-xs font-semibold tracking-wider uppercase">
+              {newsletterStatus === "loading" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Subscribe"}
+            </Button>
+          </form>
+          {newsletterStatus === "success" && <p className="text-sm text-green-600 mt-3 flex items-center justify-center gap-1"><Check className="h-4 w-4" />{newsletterMsg}</p>}
+          {newsletterStatus === "error" && <p className="text-sm text-red-600 mt-3">{newsletterMsg}</p>}
         </div>
       </section>
 
