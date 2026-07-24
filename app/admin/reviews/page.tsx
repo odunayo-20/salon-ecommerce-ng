@@ -1,52 +1,34 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { Star, Loader2, CheckCircle2, XCircle, Trash2, Search, X, StarOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-
-interface Review {
-  id: string; rating: number; title: string | null; comment: string | null;
-  isApproved: boolean; isFeatured: boolean; createdAt: string;
-  customer: string | null; customerImage: string | null;
-  productName: string | null; serviceName: string | null;
-}
+import { useAdminReviews, useUpdateAdminReview, useDeleteAdminReview } from "@/hooks/queries";
 
 export default function AdminReviewsPage() {
-  const [reviews, setReviews] = useState<Review[]>([]);
-  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "pending" | "approved">("all");
   const [search, setSearch] = useState("");
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState("");
 
-  const fetchReviews = useCallback(async () => {
-    setLoading(true);
-    try {
-      const params = new URLSearchParams();
-      if (filter === "approved") params.set("isApproved", "true");
-      if (filter === "pending") params.set("isApproved", "false");
-      if (search.trim()) params.set("search", search.trim());
-      const res = await fetch(`/api/admin/reviews?${params}`);
-      const data = await res.json();
-      setReviews(data.reviews || []);
-    } catch { /* silent */ }
-    finally { setLoading(false); }
-  }, [filter, search]);
+  const params = {
+    ...(filter === "approved" ? { isApproved: "true" } : filter === "pending" ? { isApproved: "false" } : {}),
+    ...(search.trim() ? { search: search.trim() } : {}),
+  };
 
-  useEffect(() => { fetchReviews(); }, [fetchReviews]);
+  const { data, isLoading } = useAdminReviews(params);
+  const reviews = data?.reviews || [];
+  const updateReview = useUpdateAdminReview();
+  const deleteReview = useDeleteAdminReview();
+
   useEffect(() => { if (successMsg) { const t = setTimeout(() => setSuccessMsg(""), 3000); return () => clearTimeout(t); } }, [successMsg]);
 
   const toggleApproval = async (id: string, isApproved: boolean) => {
     setUpdatingId(id);
     try {
-      await fetch("/api/admin/reviews", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, isApproved }),
-      });
+      await updateReview.mutateAsync({ id, isApproved });
       setSuccessMsg(isApproved ? "Review approved" : "Review unapproved");
-      fetchReviews();
     } catch { /* silent */ }
     finally { setUpdatingId(null); }
   };
@@ -54,27 +36,19 @@ export default function AdminReviewsPage() {
   const toggleFeatured = async (id: string, isFeatured: boolean) => {
     setUpdatingId(id);
     try {
-      await fetch("/api/admin/reviews", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, isFeatured }),
-      });
+      await updateReview.mutateAsync({ id, isFeatured });
       setSuccessMsg(isFeatured ? "Review featured" : "Review unfeatured");
-      fetchReviews();
     } catch { /* silent */ }
     finally { setUpdatingId(null); }
   };
 
-  const handleDelete = async (r: Review) => {
+  const handleDelete = async (r: typeof reviews[0]) => {
     const label = r.productName || r.serviceName || "this review";
     if (!confirm(`Delete review by "${r.customer || "Anonymous"}" for ${label}? This cannot be undone.`)) return;
     setUpdatingId(r.id);
     try {
-      const res = await fetch(`/api/admin/reviews?id=${r.id}`, { method: "DELETE" });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      await deleteReview.mutateAsync(r.id);
       setSuccessMsg("Review deleted");
-      fetchReviews();
     } catch (err) {
       setSuccessMsg(err instanceof Error ? err.message : "Failed to delete");
     } finally { setUpdatingId(null); }
@@ -115,7 +89,7 @@ export default function AdminReviewsPage() {
         </div>
       </div>
 
-      {loading ? (
+      {isLoading ? (
         <div className="bg-white border border-border rounded-2xl p-12 text-center"><Loader2 className="h-6 w-6 text-gold animate-spin mx-auto" /></div>
       ) : reviews.length === 0 ? (
         <div className="bg-white border border-border rounded-2xl p-12 text-center"><p className="text-muted-foreground">{search ? "No reviews match your search" : "No reviews found"}</p></div>

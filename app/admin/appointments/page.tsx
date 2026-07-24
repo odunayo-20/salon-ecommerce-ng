@@ -1,28 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Search, X, Loader2, Calendar, Clock, User, Eye, XCircle, CheckCircle, RefreshCw, Trash2, Mail } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-interface Appointment {
-  id: string;
-  reference: string;
-  date: string;
-  startTime: string;
-  endTime: string;
-  status: string;
-  notes: string | null;
-  totalAmount: number;
-  depositPaid: number;
-  cancelledAt: string | null;
-  cancelReason: string | null;
-  isRescheduled: boolean;
-  service: { id: string; name: string; duration: number; price: number };
-  stylist: { id: string; user: { id: string; name: string | null; image: string | null } } | null;
-  customerProfile: { user: { id: string; name: string | null; email: string | null; phone: string | null; image: string | null } };
-  payments?: { id: string; amount: number; status: string; createdAt: string }[];
-}
+import { useAdminAppointments, useUpdateAdminAppointment, type AdminAppointment } from "@/hooks/queries";
 
 const statusColors: Record<string, string> = {
   PENDING: "bg-amber-50 text-amber-700",
@@ -43,52 +25,35 @@ const statusLabels: Record<string, string> = {
 };
 
 export default function AdminAppointmentsPage() {
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterDate, setFilterDate] = useState("");
-  const [selected, setSelected] = useState<Appointment | null>(null);
+  const [selected, setSelected] = useState<AdminAppointment | null>(null);
   const [showDetail, setShowDetail] = useState(false);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [sendingReceiptId, setSendingReceiptId] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
 
-  const fetchAppointments = useCallback(async () => {
-    try {
-      const params = new URLSearchParams();
-      if (filterStatus !== "all") params.set("status", filterStatus);
-      if (search) params.set("search", search);
-      if (filterDate) params.set("date", filterDate);
-      const res = await fetch(`/api/admin/appointments?${params}`);
-      const data = await res.json();
-      setAppointments(data.appointments || []);
-    } catch {
-      setErrorMsg("Failed to load appointments");
-    } finally {
-      setLoading(false);
-    }
-  }, [filterStatus, search, filterDate]);
+  const { data, isLoading } = useAdminAppointments({ status: filterStatus, search, date: filterDate }, 60_000);
+  const appointments = data?.appointments ?? [];
+  const updateAppointment = useUpdateAdminAppointment();
 
-  useEffect(() => { fetchAppointments(); }, [fetchAppointments]);
   useEffect(() => { if (successMsg) { const t = setTimeout(() => setSuccessMsg(""), 3000); return () => clearTimeout(t); } }, [successMsg]);
 
-  const updateStatus = async (id: string, status: string, cancelReason?: string) => {
+  const updateStatus = (id: string, status: string, cancelReason?: string) => {
     setUpdatingId(id);
-    try {
-      const res = await fetch(`/api/admin/appointments/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status, cancelReason }),
-      });
-      if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
-      setSuccessMsg(`Appointment ${status.toLowerCase()}`);
-      fetchAppointments();
-      if (selected?.id === id) { setShowDetail(false); setSelected(null); }
-    } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : "Failed to update");
-    } finally { setUpdatingId(null); }
+    updateAppointment.mutate(
+      { id, status, cancelReason },
+      {
+        onSuccess: () => {
+          setSuccessMsg(`Appointment ${status.toLowerCase()}`);
+          if (selected?.id === id) { setShowDetail(false); setSelected(null); }
+        },
+        onError: (err) => { setErrorMsg(err instanceof Error ? err.message : "Failed to update"); },
+        onSettled: () => { setUpdatingId(null); },
+      }
+    );
   };
 
   const handleDelete = async (id: string) => {
@@ -97,7 +62,6 @@ export default function AdminAppointmentsPage() {
       const res = await fetch(`/api/admin/appointments/${id}`, { method: "DELETE" });
       if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
       setSuccessMsg("Appointment deleted");
-      fetchAppointments();
       if (selected?.id === id) { setShowDetail(false); setSelected(null); }
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : "Failed to delete");
@@ -148,7 +112,7 @@ export default function AdminAppointmentsPage() {
       </div>
 
       {/* Loading / Empty */}
-      {loading ? (
+      {isLoading ? (
         <div className="bg-white border border-border rounded-2xl p-12 text-center">
           <Loader2 className="h-6 w-6 text-gold animate-spin mx-auto" />
           <p className="text-sm text-muted-foreground mt-3">Loading appointments...</p>

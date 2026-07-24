@@ -1,24 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { Plus, Search, Tag, Trash2, Pencil, Loader2, X, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-
-interface Coupon {
-  id: string;
-  code: string;
-  type: "PERCENTAGE" | "FIXED";
-  value: number;
-  minOrderAmount: number | null;
-  maxDiscountAmount: number | null;
-  usageLimit: number | null;
-  usedCount: number;
-  perUserLimit: number | null;
-  expiresAt: string | null;
-  isActive: boolean;
-  appliesTo: "ALL" | "PRODUCTS" | "SERVICES";
-}
+import { useAdminCoupons, useUpsertCoupon, useDeleteCoupon } from "@/hooks/queries";
 
 const emptyForm = {
   code: "",
@@ -56,8 +42,6 @@ function LoadingSkeleton() {
 }
 
 export default function AdminCouponsPage() {
-  const [coupons, setCoupons] = useState<Coupon[]>([]);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -65,21 +49,15 @@ export default function AdminCouponsPage() {
   const [saving, setSaving] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
 
-  const fetchCoupons = useCallback(async () => {
-    try {
-      const params = new URLSearchParams();
-      if (search) params.set("search", search);
-      const res = await fetch(`/api/coupons?${params}`);
-      const data = await res.json();
-      if (res.ok) setCoupons(data.coupons);
-    } catch {
-      toast.error("Failed to load coupons");
-    } finally {
-      setLoading(false);
-    }
-  }, [search]);
+  const { data, isLoading } = useAdminCoupons();
+  const coupons = data?.coupons || [];
 
-  useEffect(() => { fetchCoupons(); }, [fetchCoupons]);
+  const upsertCoupon = useUpsertCoupon();
+  const deleteCoupon = useDeleteCoupon();
+
+  const filteredCoupons = search
+    ? coupons.filter((c) => c.code.toLowerCase().includes(search.toLowerCase()))
+    : coupons;
 
   const openCreate = () => {
     setEditingId(null);
@@ -87,7 +65,7 @@ export default function AdminCouponsPage() {
     setShowModal(true);
   };
 
-  const openEdit = (coupon: Coupon) => {
+  const openEdit = (coupon: typeof coupons[0]) => {
     setEditingId(coupon.id);
     setForm({
       code: coupon.code,
@@ -111,6 +89,8 @@ export default function AdminCouponsPage() {
     setSaving(true);
     try {
       const body = {
+        method: editingId ? "PUT" : "POST",
+        ...(editingId ? { id: editingId } : {}),
         code: form.code.trim(),
         type: form.type,
         value: Number(form.value),
@@ -122,19 +102,9 @@ export default function AdminCouponsPage() {
         appliesTo: form.appliesTo,
       };
 
-      const url = editingId ? `/api/coupons/${editingId}` : "/api/coupons";
-      const method = editingId ? "PUT" : "POST";
-      const res = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      const data = await res.json();
-      if (!res.ok) return toast.error(data.error || "Failed to save coupon");
-
+      await upsertCoupon.mutateAsync(body);
       toast.success(editingId ? "Coupon updated" : "Coupon created");
       setShowModal(false);
-      fetchCoupons();
     } catch {
       toast.error("Failed to save coupon");
     } finally {
@@ -144,38 +114,30 @@ export default function AdminCouponsPage() {
 
   const handleDelete = async (id: string) => {
     try {
-      const res = await fetch(`/api/coupons/${id}`, { method: "DELETE" });
-      if (!res.ok) return toast.error("Failed to delete coupon");
+      await deleteCoupon.mutateAsync(id);
       toast.success("Coupon deleted");
       setShowDeleteConfirm(null);
-      fetchCoupons();
     } catch {
       toast.error("Failed to delete coupon");
     }
   };
 
-  const toggleActive = async (coupon: Coupon) => {
+  const toggleActive = async (coupon: typeof coupons[0]) => {
     try {
-      const res = await fetch(`/api/coupons/${coupon.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ isActive: !coupon.isActive }),
-      });
-      if (!res.ok) return toast.error("Failed to update coupon");
-      fetchCoupons();
+      await upsertCoupon.mutateAsync({ method: "PUT", id: coupon.id, isActive: !coupon.isActive });
     } catch {
       toast.error("Failed to update coupon");
     }
   };
 
-  const getStatus = (coupon: Coupon) => {
+  const getStatus = (coupon: typeof coupons[0]) => {
     if (!coupon.isActive) return { label: "Disabled", color: "bg-gray-100 text-gray-700" };
     if (coupon.expiresAt && new Date(coupon.expiresAt) < new Date()) return { label: "Expired", color: "bg-red-100 text-red-700" };
     if (coupon.usageLimit && coupon.usedCount >= coupon.usageLimit) return { label: "Used Up", color: "bg-amber-100 text-amber-700" };
     return { label: "Active", color: "bg-green-100 text-green-700" };
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="py-8">
         <div className="flex items-center justify-between mb-8">
@@ -218,14 +180,14 @@ export default function AdminCouponsPage() {
         </div>
       </div>
 
-      {coupons.length === 0 ? (
+      {filteredCoupons.length === 0 ? (
         <div className="text-center py-20">
           <Tag className="h-12 w-12 text-muted-foreground/30 mx-auto mb-4" />
           <p className="text-muted-foreground">No coupons found</p>
         </div>
       ) : (
         <div className="space-y-3 sm:hidden">
-          {coupons.map((coupon) => {
+          {filteredCoupons.map((coupon) => {
             const status = getStatus(coupon);
             return (
               <div key={coupon.id} className="bg-white border border-border rounded-xl p-4">
@@ -292,7 +254,7 @@ export default function AdminCouponsPage() {
         </div>
       )}
 
-      {coupons.length > 0 && (
+      {filteredCoupons.length > 0 && (
         <div className="bg-white border border-border rounded-xl overflow-hidden hidden sm:block">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -309,7 +271,7 @@ export default function AdminCouponsPage() {
                 </tr>
               </thead>
               <tbody>
-                {coupons.map((coupon) => {
+                {filteredCoupons.map((coupon) => {
                   const status = getStatus(coupon);
                   return (
                     <tr key={coupon.id} className="border-b border-border/50 hover:bg-cream/30">

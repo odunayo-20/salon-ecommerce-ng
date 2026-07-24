@@ -1,37 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus, Pencil, Trash2, X, Loader2, Package, Star, Search, Upload, Image as ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-interface Category { id: string; name: string; slug: string; }
-
-interface Product {
-  id: string;
-  name: string;
-  slug: string;
-  description: string | null;
-  shortDesc: string | null;
-  price: number;
-  comparePrice: number | null;
-  sku: string | null;
-  image: string | null;
-  images: string[];
-  categoryId: string;
-  stock: number;
-  lowStock: number;
-  isActive: boolean;
-  isFeatured: boolean;
-  hairTexture: string | null;
-  hairLength: string | null;
-  hairColor: string | null;
-  category: Category;
-  reviewCount: number;
-  orderCount: number;
-  wishlistCount: number;
-  variantCount: number;
-}
+import { useAdminProducts, useUpsertProduct, useDeleteProduct, useAdminCategories, AdminProduct } from "@/hooks/queries";
 
 const emptyForm = {
   name: "", slug: "", description: "", shortDesc: "",
@@ -47,11 +20,8 @@ function slugify(text: string) {
 }
 
 export default function AdminProductsPage() {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
-  const [editing, setEditing] = useState<Product | null>(null);
+  const [editing, setEditing] = useState<AdminProduct | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
@@ -61,39 +31,24 @@ export default function AdminProductsPage() {
   const [filterStatus, setFilterStatus] = useState<"all" | "active" | "inactive">("all");
   const [viewMode, setViewMode] = useState<"table" | "grid">("grid");
 
-  const fetchProducts = useCallback(async () => {
-    try {
-      const params = new URLSearchParams();
-      if (filterCategory !== "all") params.set("categoryId", filterCategory);
-      if (filterStatus === "active") params.set("isActive", "true");
-      if (filterStatus === "inactive") params.set("isActive", "false");
-      if (search) params.set("search", search);
-      params.set("limit", "100");
-      const res = await fetch(`/api/products?${params}`);
-      const data = await res.json();
-      setProducts(data.products || []);
-    } catch {
-      setErrorMsg("Failed to load products");
-    } finally {
-      setLoading(false);
-    }
-  }, [filterCategory, filterStatus, search]);
+  const { data: productsData, isLoading } = useAdminProducts({
+    ...(filterCategory !== "all" ? {} : {}),
+    ...(filterStatus === "active" ? { isActive: "true" } : filterStatus === "inactive" ? { isActive: "false" } : {}),
+    ...(search ? { search } : {}),
+  });
+  const products = productsData?.products || [];
 
-  const fetchCategories = useCallback(async () => {
-    try {
-      const res = await fetch("/api/categories?type=product");
-      const data = await res.json();
-      setCategories(data.categories || []);
-    } catch { /* silent */ }
-  }, []);
+  const { data: catData } = useAdminCategories("product");
+  const categories = catData?.categories || [];
 
-  useEffect(() => { fetchCategories(); }, [fetchCategories]);
-  useEffect(() => { fetchProducts(); }, [fetchProducts]);
+  const upsertProduct = useUpsertProduct();
+  const deleteProduct = useDeleteProduct();
+
   useEffect(() => { if (successMsg) { const t = setTimeout(() => setSuccessMsg(""), 3000); return () => clearTimeout(t); } }, [successMsg]);
 
   const openAdd = () => { setEditing(null); setForm(emptyForm); setShowModal(true); setErrorMsg(""); };
 
-  const openEdit = (p: Product) => {
+  const openEdit = (p: AdminProduct) => {
     setEditing(p);
     setForm({
       name: p.name, slug: p.slug, description: p.description || "", shortDesc: p.shortDesc || "",
@@ -117,6 +72,8 @@ export default function AdminProductsPage() {
     setErrorMsg("");
     try {
       const payload = {
+        method: editing ? "PUT" : "POST",
+        ...(editing ? { id: editing.id as string } : {}),
         ...form,
         comparePrice: form.comparePrice > 0 ? form.comparePrice : null,
         sku: form.sku || null,
@@ -129,51 +86,36 @@ export default function AdminProductsPage() {
         tags: form.tags ? form.tags.split(",").map((t) => t.trim()).filter(Boolean) : [],
       };
 
-      if (editing) {
-        const res = await fetch(`/api/products/${editing.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error);
-        setSuccessMsg("Product updated successfully");
-      } else {
-        const res = await fetch("/api/products", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error);
-        setSuccessMsg("Product created successfully");
-      }
+      await upsertProduct.mutateAsync(payload);
+      setSuccessMsg(editing ? "Product updated successfully" : "Product created successfully");
       setShowModal(false);
-      fetchProducts();
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : "Something went wrong");
     } finally { setSaving(false); }
   };
 
-  const handleDelete = async (p: Product) => {
+  const handleDelete = async (p: AdminProduct) => {
     if (p.orderCount > 0) { setErrorMsg(`Cannot delete "${p.name}" — it has ${p.orderCount} order history entries. Deactivate instead.`); return; }
     if (!confirm(`Delete "${p.name}"? This cannot be undone.`)) return;
     try {
-      const res = await fetch(`/api/products/${p.id}`, { method: "DELETE" });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      await deleteProduct.mutateAsync(p.id);
       setSuccessMsg("Product deleted");
-      fetchProducts();
     } catch (err) { setErrorMsg(err instanceof Error ? err.message : "Failed to delete"); }
   };
 
-  const toggleActive = async (p: Product) => {
+  const toggleActive = async (p: AdminProduct) => {
     try {
-      await fetch(`/api/products/${p.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ isActive: !p.isActive }) });
-      fetchProducts();
+      await upsertProduct.mutateAsync({ method: "PUT", id: p.id, isActive: !p.isActive });
     } catch { setErrorMsg("Failed to toggle"); }
   };
 
-  const toggleFeatured = async (p: Product) => {
+  const toggleFeatured = async (p: AdminProduct) => {
     try {
-      await fetch(`/api/products/${p.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ isFeatured: !p.isFeatured }) });
-      fetchProducts();
+      await upsertProduct.mutateAsync({ method: "PUT", id: p.id, isFeatured: !p.isFeatured });
     } catch { setErrorMsg("Failed to toggle"); }
   };
 
-  const isLowStock = (p: Product) => p.stock <= p.lowStock;
+  const isLowStock = (p: AdminProduct) => p.stock <= p.lowStock;
 
   return (
     <div className="space-y-6">
@@ -216,7 +158,7 @@ export default function AdminProductsPage() {
       </div>
 
       {/* Content */}
-      {loading ? (
+      {isLoading ? (
         <div className="bg-white border border-border rounded-2xl p-12 text-center">
           <Loader2 className="h-6 w-6 text-gold animate-spin mx-auto" />
           <p className="text-sm text-muted-foreground mt-3">Loading products...</p>

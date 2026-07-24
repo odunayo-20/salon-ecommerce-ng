@@ -1,6 +1,5 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ArrowRight, Star, Sparkles, Clock, Award, Users, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -10,17 +9,7 @@ import { BeforeAfterSlider } from "@/components/ui/before-after-slider";
 import { ReviewCarousel } from "@/components/ui/review-carousel";
 import { InstagramGallery } from "@/components/home/instagram-gallery";
 import { FAQAccordion } from "@/components/ui/faq-accordion";
-
-interface ApiService {
-  id: string; name: string; slug: string; description?: string | null;
-  price: number; duration: number; isPopular: boolean;
-  category: { id: string; name: string; slug: string; type: string };
-}
-interface ApiProduct {
-  id: string; name: string; slug: string; price: number;
-  comparePrice?: number | null; images: string[];
-  stock: number; reviewCount: number; rating?: number;
-}
+import { useServices, useProducts, useFeaturedReviews } from "@/hooks/queries";
 
 const faqItems = [
   { question: "How do I book an appointment?", answer: "You can book directly through our website by selecting your service, preferred stylist, and available time slot. A deposit is required to secure your booking. You can also reach us on WhatsApp for personalized assistance." },
@@ -59,29 +48,14 @@ const fallbackReviews: ApiReview[] = [
 ];
 
 export default function HomePage() {
-  const [services, setServices] = useState<ApiService[]>([]);
-  const [products, setProducts] = useState<ApiProduct[]>([]);
-  const [reviews, setReviews] = useState<ApiReview[]>(fallbackReviews);
-  const [loading, setLoading] = useState(true);
+  const { data: svcData, isLoading: svcLoading } = useServices({ isActive: "true", isPopular: "true", limit: 4 });
+  const { data: prodData, isLoading: prodLoading } = useProducts({ isActive: "true", isFeatured: "true", limit: 4 });
+  const { data: revData, isLoading: revLoading } = useFeaturedReviews(10);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const [svcRes, prodRes, revRes] = await Promise.all([
-          fetch("/api/services?isActive=true&isPopular=true&limit=4"),
-          fetch("/api/products?isActive=true&isFeatured=true&limit=4"),
-          fetch("/api/reviews?isFeatured=true&limit=10"),
-        ]);
-        const svcData = await svcRes.json();
-        const prodData = await prodRes.json();
-        const revData = await revRes.json();
-        setServices(svcData.services || []);
-        setProducts(prodData.products || []);
-        if (revData.reviews?.length > 0) setReviews(revData.reviews);
-      } catch { /* silent */ }
-      finally { setLoading(false); }
-    })();
-  }, []);
+  const services = svcData?.services ?? [];
+  const products = prodData?.products ?? [];
+  const reviews = revData?.reviews?.length ? revData.reviews : fallbackReviews;
+  const loading = svcLoading || prodLoading || revLoading;
 
   return (
     <div className="flex flex-col">

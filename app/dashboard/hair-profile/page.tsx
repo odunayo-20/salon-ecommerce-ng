@@ -1,19 +1,11 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { Loader2, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useHairProfile, useSaveHairProfile } from "@/hooks/queries";
 
-interface HairProfile {
-  hairType: string;
-  hairLength: string;
-  hairDensity: string;
-  scalpCondition: string;
-  allergies: string;
-  notes: string;
-}
-
-const defaultProfile: HairProfile = {
+const defaultProfile = {
   hairType: "KINKY_COILY",
   hairLength: "Shoulder Length",
   hairDensity: "Medium",
@@ -23,56 +15,44 @@ const defaultProfile: HairProfile = {
 };
 
 export default function HairProfilePage() {
-  const [profile, setProfile] = useState<HairProfile>(defaultProfile);
-  const [loading, setLoading] = useState(true);
+  const { data, isLoading } = useHairProfile();
+  const saveMutation = useSaveHairProfile();
+  const [profile, setProfile] = useState(defaultProfile);
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [error, setError] = useState("");
 
-  const fetchProfile = useCallback(async () => {
-    try {
-      const res = await fetch("/api/hair-profile");
-      const data = await res.json();
-      if (res.ok && data.profile) {
-        setProfile({
-          hairType: data.profile.hairType || "KINKY_COILY",
-          hairLength: data.profile.hairLength || "Shoulder Length",
-          hairDensity: data.profile.hairDensity || "Medium",
-          scalpCondition: data.profile.scalpCondition || "Normal",
-          allergies: data.profile.allergies || "",
-          notes: data.profile.notes || "",
-        });
-      }
-    } catch {
-      // Use defaults on error
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    if (data?.profile) {
+      setProfile({
+        hairType: data.profile.hairType || "KINKY_COILY",
+        hairLength: data.profile.hairLength || "Shoulder Length",
+        hairDensity: data.profile.hairDensity || "Medium",
+        scalpCondition: data.profile.scalpCondition || "Normal",
+        allergies: data.profile.allergies || "",
+        notes: data.profile.notes || "",
+      });
     }
-  }, []);
+  }, [data?.profile]);
 
-  useEffect(() => { fetchProfile(); }, [fetchProfile]);
-
-  const handleSave = async () => {
+  const handleSave = () => {
     setIsSaving(true);
     setError("");
     setSaveSuccess(false);
-    try {
-      const res = await fetch("/api/hair-profile", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(profile),
-      });
-      if (!res.ok) throw new Error("Failed to save profile");
-      setSaveSuccess(true);
-      setTimeout(() => setSaveSuccess(false), 3000);
-    } catch {
-      setError("Something went wrong. Please try again.");
-    } finally {
-      setIsSaving(false);
-    }
+    saveMutation.mutate(profile as any, {
+      onSuccess: () => {
+        setSaveSuccess(true);
+        setTimeout(() => setSaveSuccess(false), 3000);
+        setIsSaving(false);
+      },
+      onError: () => {
+        setError("Something went wrong. Please try again.");
+        setIsSaving(false);
+      },
+    });
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="bg-white border border-border rounded-xl p-6">
         <div className="h-5 w-32 bg-cream rounded mb-6 animate-pulse" />

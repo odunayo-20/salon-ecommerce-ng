@@ -1,20 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Star, Scissors, Clock, Award, ArrowRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-
-interface StylistData {
-  id: string;
-  bio: string | null;
-  specialties: string[];
-  experience: number;
-  isActive: boolean;
-  user: { id: string; name: string | null; email: string | null; image: string | null };
-  services: { service: { id: string; name: string; slug: string; price: number; duration: number } }[];
-  appointmentCount: number;
-}
+import { usePublicStylists } from "@/hooks/queries";
 
 function RatingStars({ rating, count }: { rating: number; count?: number }) {
   return (
@@ -30,19 +19,8 @@ function RatingStars({ rating, count }: { rating: number; count?: number }) {
 }
 
 export default function StylistsPage() {
-  const [stylists, setStylists] = useState<StylistData[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await fetch("/api/stylists?isActive=true");
-        const data = await res.json();
-        setStylists(data.stylists || []);
-      } catch { /* silent */ }
-      finally { setLoading(false); }
-    })();
-  }, []);
+  const { data, isLoading: loading } = usePublicStylists();
+  const stylists = data?.stylists ?? [];
 
   const featured = stylists[0];
   const rest = stylists.slice(1);

@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { Calendar, CreditCard, RefreshCw, Receipt } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useDashboardBookings, useVerifyPayment, useInitiatePayment } from "@/hooks/queries";
 
 interface Payment {
   id: string; amount: number; status: string; method: string;
@@ -49,31 +50,24 @@ const statusLabels: Record<string, string> = {
 export default function DashboardPage() {
   const { data: session } = useSession();
   const firstName = session?.user?.name?.split(" ")[0] || "Beautiful";
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [loading, setLoading] = useState(true);
   const [payingId, setPayingId] = useState<string | null>(null);
 
-  const fetchAppointments = useCallback(async () => {
-    try {
-      const res = await fetch("/api/bookings");
-      const data = await res.json();
-      setAppointments(data.appointments || []);
+  const { data, isLoading: loading, refetch } = useDashboardBookings(30_000);
+  const appointments = data?.appointments ?? [];
 
-      for (const apt of data.appointments || []) {
-        for (const p of apt.payments || []) {
-          if (p.status === "PENDING") {
-            fetch("/api/payments/verify", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ paymentId: p.id }),
-            });
-          }
+  const verifyPayment = useVerifyPayment();
+  const initiatePayment = useInitiatePayment();
+
+  useEffect(() => {
+    if (!data?.appointments) return;
+    for (const apt of data.appointments) {
+      for (const p of apt.payments || []) {
+        if (p.status === "PENDING") {
+          verifyPayment.mutate(p.id);
         }
       }
-    } catch { /* silent */ } finally { setLoading(false); }
-  }, []);
-
-  useEffect(() => { fetchAppointments(); }, [fetchAppointments]);
+    }
+  }, [data?.appointments]);
 
   const upcoming = appointments.filter((a) => ["PENDING", "CONFIRMED"].includes(a.status));
   const past = appointments.filter((a) => !["PENDING", "CONFIRMED"].includes(a.status));
@@ -90,31 +84,18 @@ export default function DashboardPage() {
     try {
       for (const p of apt.payments) {
         if (p.status === "PENDING") {
-          await fetch("/api/payments/verify", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ paymentId: p.id }),
-          });
+          await verifyPayment.mutateAsync(p.id);
         }
       }
 
-      const refreshRes = await fetch("/api/bookings");
-      const refreshData = await refreshRes.json();
-      const updatedApt = (refreshData.appointments || []).find((a: Appointment) => a.id === apt.id);
+      const { data: refreshed } = await refetch();
+      const refreshedApt = (refreshed?.appointments ?? []).find((a) => a.id === apt.id);
 
-      if (updatedApt) {
-        setAppointments((prev) => prev.map((a) => (a.id === updatedApt.id ? updatedApt : a)));
-        if (updatedApt.isFullyPaid) return;
-      }
+      if (refreshedApt?.isFullyPaid) { setPayingId(null); return; }
 
-      const res = await fetch("/api/payments/initiate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ appointmentId: apt.id }),
-      });
-      const data = await res.json();
-      if (res.ok && data.checkoutUrl) {
-        window.location.href = data.checkoutUrl;
+      const res = await initiatePayment.mutateAsync({ appointmentId: apt.id }) as { checkoutUrl?: string };
+      if (res?.checkoutUrl) {
+        window.location.href = res.checkoutUrl;
       }
     } catch { /* silent */ }
     finally { setPayingId(null); }
@@ -184,7 +165,7 @@ export default function DashboardPage() {
             <h2 className="font-heading font-semibold text-charcoal mb-1">Welcome, {firstName}</h2>
             <p className="text-sm text-muted-foreground">Here&apos;s what&apos;s happening with your appointments.</p>
           </div>
-          <Button onClick={() => { setLoading(true); fetchAppointments(); }} variant="outline" size="sm" className="rounded-full text-xs min-h-[44px] min-w-[44px]">
+          <Button onClick={() => refetch()} variant="outline" size="sm" className="rounded-full text-xs min-h-[44px] min-w-[44px]">
             <RefreshCw className="h-3 w-3 mr-1" /> Refresh
           </Button>
         </div>

@@ -1,25 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus, Pencil, Trash2, X, Loader2, UserCog, Search, Mail, Award } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-interface Service { id: string; name: string; slug: string; price: number; duration: number; }
-interface StylistService { id: string; service: Service; }
-interface User { id: string; name: string | null; email: string | null; image: string | null; phone: string | null; }
-
-interface Stylist {
-  id: string;
-  userId: string;
-  bio: string | null;
-  specialties: string[];
-  experience: number | null;
-  isActive: boolean;
-  user: User;
-  services: StylistService[];
-  appointmentCount: number;
-}
+import { useAdminStylists, useUpsertStylist, useDeleteStylist, useAdminServices } from "@/hooks/queries";
 
 const allSpecialties = [
   "Braids", "Knotless Braids", "Box Braids", "Cornrows", "Feed-in Braids",
@@ -35,11 +20,8 @@ const emptyForm = {
 };
 
 export default function AdminStylistsPage() {
-  const [stylists, setStylists] = useState<Stylist[]>([]);
-  const [allServices, setAllServices] = useState<Service[]>([]);
-  const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
-  const [editing, setEditing] = useState<Stylist | null>(null);
+  const [editing, setEditing] = useState<{ id: string; userId: string; bio: string | null; specialties: string[]; experience: number | null; isActive: boolean; user: { id: string; name: string | null; email: string | null; image: string | null; phone: string | null }; services: { id: string; service: { id: string; name: string; slug: string; price: number; duration: number } }[]; appointmentCount: number } | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
@@ -47,37 +29,23 @@ export default function AdminStylistsPage() {
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<"all" | "active" | "inactive">("all");
 
-  const fetchStylists = useCallback(async () => {
-    try {
-      const params = new URLSearchParams();
-      if (filterStatus === "active") params.set("isActive", "true");
-      if (filterStatus === "inactive") params.set("isActive", "false");
-      if (search) params.set("search", search);
-      const res = await fetch(`/api/stylists?${params}`);
-      const data = await res.json();
-      setStylists(data.stylists || []);
-    } catch {
-      setErrorMsg("Failed to load stylists");
-    } finally {
-      setLoading(false);
-    }
-  }, [filterStatus, search]);
+  const { data: stylistsData, isLoading } = useAdminStylists({
+    ...(filterStatus === "active" ? { isActive: "true" } : filterStatus === "inactive" ? { isActive: "false" } : {}),
+    ...(search ? { search } : {}),
+  });
+  const stylists = stylistsData?.stylists || [];
 
-  const fetchServices = useCallback(async () => {
-    try {
-      const res = await fetch("/api/services?isActive=true&limit=200");
-      const data = await res.json();
-      setAllServices(data.services || []);
-    } catch { /* silent */ }
-  }, []);
+  const { data: servicesData } = useAdminServices({ isActive: "true" });
+  const allServices = servicesData?.services || [];
 
-  useEffect(() => { fetchServices(); }, [fetchServices]);
-  useEffect(() => { fetchStylists(); }, [fetchStylists]);
+  const upsertStylist = useUpsertStylist();
+  const deleteStylist = useDeleteStylist();
+
   useEffect(() => { if (successMsg) { const t = setTimeout(() => setSuccessMsg(""), 3000); return () => clearTimeout(t); } }, [successMsg]);
 
   const openAdd = () => { setEditing(null); setForm(emptyForm); setShowModal(true); setErrorMsg(""); };
 
-  const openEdit = (s: Stylist) => {
+  const openEdit = (s: typeof stylists[0]) => {
     setEditing(s);
     setForm({
       name: s.user.name || "",
@@ -99,52 +67,30 @@ export default function AdminStylistsPage() {
     setSaving(true);
     setErrorMsg("");
     try {
-      if (editing) {
-        const res = await fetch(`/api/stylists/${editing.id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(form),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error);
-        setSuccessMsg("Stylist updated successfully");
-      } else {
-        const res = await fetch("/api/stylists", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(form),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error);
-        setSuccessMsg("Stylist created successfully");
-      }
+      await upsertStylist.mutateAsync({
+        method: editing ? "PUT" : "POST",
+        ...(editing ? { id: editing.id } : {}),
+        ...form,
+      });
+      setSuccessMsg(editing ? "Stylist updated successfully" : "Stylist created successfully");
       setShowModal(false);
-      fetchStylists();
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : "Something went wrong");
     } finally { setSaving(false); }
   };
 
-  const handleDelete = async (s: Stylist) => {
+  const handleDelete = async (s: typeof stylists[0]) => {
     if (s.appointmentCount > 0) { setErrorMsg(`Cannot delete "${s.user.name}" — has ${s.appointmentCount} appointments. Deactivate instead.`); return; }
     if (!confirm(`Delete "${s.user.name}"? This will also remove their user account.`)) return;
     try {
-      const res = await fetch(`/api/stylists/${s.id}`, { method: "DELETE" });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      await deleteStylist.mutateAsync(s.id);
       setSuccessMsg("Stylist deleted");
-      fetchStylists();
     } catch (err) { setErrorMsg(err instanceof Error ? err.message : "Failed to delete"); }
   };
 
-  const toggleActive = async (s: Stylist) => {
+  const toggleActive = async (s: typeof stylists[0]) => {
     try {
-      await fetch(`/api/stylists/${s.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ isActive: !s.isActive }),
-      });
-      fetchStylists();
+      await upsertStylist.mutateAsync({ method: "PUT", id: s.id, isActive: !s.isActive });
     } catch { setErrorMsg("Failed to toggle"); }
   };
 
@@ -195,7 +141,7 @@ export default function AdminStylistsPage() {
       </div>
 
       {/* Cards */}
-      {loading ? (
+      {isLoading ? (
         <div className="bg-white border border-border rounded-2xl p-12 text-center">
           <Loader2 className="h-6 w-6 text-gold animate-spin mx-auto" />
           <p className="text-sm text-muted-foreground mt-3">Loading stylists...</p>

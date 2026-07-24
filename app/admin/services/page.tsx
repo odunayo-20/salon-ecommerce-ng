@@ -1,33 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus, Pencil, Trash2, X, Loader2, Scissors, Star, Search, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-interface Category {
-  id: string;
-  name: string;
-  slug: string;
-}
-
-interface Service {
-  id: string;
-  name: string;
-  slug: string;
-  description: string | null;
-  duration: number;
-  price: number;
-  depositAmount: number | null;
-  image: string | null;
-  categoryId: string;
-  isActive: boolean;
-  isPopular: boolean;
-  sortOrder: number;
-  category: Category;
-  reviewCount: number;
-  appointmentCount: number;
-}
+import { useAdminServices, useUpsertService, useDeleteService, useAdminCategories } from "@/hooks/queries";
 
 const emptyForm = {
   name: "",
@@ -54,11 +31,8 @@ function formatDuration(mins: number) {
 }
 
 export default function AdminServicesPage() {
-  const [services, setServices] = useState<Service[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
-  const [editingService, setEditingService] = useState<Service | null>(null);
+  const [editingService, setEditingService] = useState<{ id: string; name: string; slug: string; description: string | null; duration: number; price: number; depositAmount: number | null; image: string | null; categoryId: string; isActive: boolean; isPopular: boolean; sortOrder: number; category: { id: string; name: string; slug: string }; reviewCount: number; appointmentCount: number } | null>(null);
   const [formData, setFormData] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
@@ -67,42 +41,18 @@ export default function AdminServicesPage() {
   const [filterCategory, setFilterCategory] = useState("all");
   const [filterStatus, setFilterStatus] = useState<"all" | "active" | "inactive">("all");
 
-  const fetchServices = useCallback(async () => {
-    try {
-      const params = new URLSearchParams();
-      if (filterCategory !== "all") params.set("categoryId", filterCategory);
-      if (filterStatus === "active") params.set("isActive", "true");
-      if (filterStatus === "inactive") params.set("isActive", "false");
-      if (search) params.set("search", search);
-      params.set("limit", "100");
+  const { data, isLoading } = useAdminServices({
+    ...(filterCategory !== "all" ? {} : {}),
+    ...(filterStatus === "active" ? { isActive: "true" } : filterStatus === "inactive" ? { isActive: "false" } : {}),
+    ...(search ? { search } : {}),
+  });
+  const services = data?.services || [];
 
-      const res = await fetch(`/api/services?${params}`);
-      const data = await res.json();
-      setServices(data.services || []);
-    } catch {
-      setErrorMsg("Failed to load services");
-    } finally {
-      setLoading(false);
-    }
-  }, [filterCategory, filterStatus, search]);
+  const { data: catData } = useAdminCategories("service");
+  const categories = catData?.categories || [];
 
-  const fetchCategories = useCallback(async () => {
-    try {
-      const res = await fetch("/api/categories?type=service");
-      const data = await res.json();
-      setCategories(data.categories || []);
-    } catch {
-      // silent
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchCategories();
-  }, [fetchCategories]);
-
-  useEffect(() => {
-    fetchServices();
-  }, [fetchServices]);
+  const upsertService = useUpsertService();
+  const deleteService = useDeleteService();
 
   useEffect(() => {
     if (successMsg) {
@@ -118,7 +68,7 @@ export default function AdminServicesPage() {
     setErrorMsg("");
   };
 
-  const openEdit = (s: Service) => {
+  const openEdit = (s: typeof services[0]) => {
     setEditingService(s);
     setFormData({
       name: s.name,
@@ -151,31 +101,15 @@ export default function AdminServicesPage() {
 
     try {
       const payload = {
+        method: editingService ? "PUT" : "POST",
+        ...(editingService ? { id: editingService.id } : {}),
         ...formData,
         depositAmount: formData.depositAmount > 0 ? formData.depositAmount : null,
       };
 
-      if (editingService) {
-        const res = await fetch(`/api/services/${editingService.id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error);
-        setSuccessMsg("Service updated successfully");
-      } else {
-        const res = await fetch("/api/services", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error);
-        setSuccessMsg("Service created successfully");
-      }
+      await upsertService.mutateAsync(payload);
+      setSuccessMsg(editingService ? "Service updated successfully" : "Service created successfully");
       setShowModal(false);
-      fetchServices();
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : "Something went wrong");
     } finally {
@@ -183,7 +117,7 @@ export default function AdminServicesPage() {
     }
   };
 
-  const handleDelete = async (s: Service) => {
+  const handleDelete = async (s: typeof services[0]) => {
     if (s.appointmentCount > 0) {
       setErrorMsg(`Cannot delete "${s.name}" — it has ${s.appointmentCount} appointments. Deactivate instead.`);
       return;
@@ -191,39 +125,24 @@ export default function AdminServicesPage() {
     if (!confirm(`Delete "${s.name}"? This cannot be undone.`)) return;
 
     try {
-      const res = await fetch(`/api/services/${s.id}`, { method: "DELETE" });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      await deleteService.mutateAsync(s.id);
       setSuccessMsg("Service deleted");
-      fetchServices();
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : "Failed to delete");
     }
   };
 
-  const toggleActive = async (s: Service) => {
+  const toggleActive = async (s: typeof services[0]) => {
     try {
-      const res = await fetch(`/api/services/${s.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ isActive: !s.isActive }),
-      });
-      if (!res.ok) throw new Error("Failed");
-      fetchServices();
+      await upsertService.mutateAsync({ method: "PUT", id: s.id, isActive: !s.isActive });
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : "Failed");
     }
   };
 
-  const togglePopular = async (s: Service) => {
+  const togglePopular = async (s: typeof services[0]) => {
     try {
-      const res = await fetch(`/api/services/${s.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ isPopular: !s.isPopular }),
-      });
-      if (!res.ok) throw new Error("Failed");
-      fetchServices();
+      await upsertService.mutateAsync({ method: "PUT", id: s.id, isPopular: !s.isPopular });
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : "Failed");
     }
@@ -291,7 +210,7 @@ export default function AdminServicesPage() {
         </div>
       </div>
 
-      {loading ? (
+      {isLoading ? (
         <div className="bg-white border border-border rounded-2xl p-12 text-center">
           <Loader2 className="h-6 w-6 text-gold animate-spin mx-auto" />
           <p className="text-sm text-muted-foreground mt-3">Loading services...</p>

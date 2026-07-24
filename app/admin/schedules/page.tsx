@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Clock, Loader2, Plus, Trash2, Save, Ban, CalendarDays } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useScheduleStylists, useScheduleData, useSaveSchedule, useDeleteBlockedTime } from "@/hooks/queries";
 
-interface Stylist { id: string; name: string; }
 interface AvailSlot { id?: string; dayOfWeek: number; startTime: string; endTime: string; isBreak: boolean; }
 interface BlockedSlot { id: string; date: string; startTime: string | null; endTime: string | null; reason: string | null; }
 
@@ -19,12 +19,9 @@ const emptyDay = (day: number): AvailSlot[] => [
 ];
 
 export default function AdminSchedulesPage() {
-  const [stylists, setStylists] = useState<Stylist[]>([]);
   const [selectedStylist, setSelectedStylist] = useState("");
   const [availability, setAvailability] = useState<Record<number, AvailSlot[]>>({});
   const [blockedTimes, setBlockedTimes] = useState<BlockedSlot[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
 
@@ -34,38 +31,28 @@ export default function AdminSchedulesPage() {
   const [newBlockReason, setNewBlockReason] = useState("");
   const [addingBlock, setAddingBlock] = useState(false);
 
-  useEffect(() => {
-    fetch("/api/admin/schedules")
-      .then((r) => r.json())
-      .then((data) => setStylists(data.stylists || []));
-  }, []);
+  const { data: stylistsData } = useScheduleStylists();
+  const stylists = stylistsData?.stylists || [];
 
-  const fetchSchedule = useCallback(async (sId: string) => {
-    setLoading(true);
-    setError("");
-    try {
-      const res = await fetch(`/api/admin/schedules?stylistId=${sId}`);
-      const data = await res.json();
+  const { data: scheduleData, isLoading: loadingSchedule } = useScheduleData(selectedStylist);
+
+  const saveSchedule = useSaveSchedule();
+  const deleteBlockedTime = useDeleteBlockedTime(selectedStylist);
+
+  useEffect(() => {
+    if (scheduleData) {
       const grouped: Record<number, AvailSlot[]> = {};
       for (let d = 0; d <= 6; d++) grouped[d] = [];
-      for (const a of data.availability || []) {
+      for (const a of scheduleData.availability || []) {
         grouped[a.dayOfWeek].push(a);
       }
       for (const d of Object.keys(grouped)) {
         grouped[Number(d)].sort((a: AvailSlot, b: AvailSlot) => a.startTime.localeCompare(b.startTime));
       }
       setAvailability(grouped);
-      setBlockedTimes(data.blockedTimes || []);
-    } catch {
-      setError("Failed to load schedule");
-    } finally {
-      setLoading(false);
+      setBlockedTimes(scheduleData.blockedTimes || []);
     }
-  }, []);
-
-  useEffect(() => {
-    if (selectedStylist) fetchSchedule(selectedStylist);
-  }, [selectedStylist, fetchSchedule]);
+  }, [scheduleData]);
 
   const toggleDay = (day: number) => {
     setAvailability((prev) => {
@@ -105,7 +92,6 @@ export default function AdminSchedulesPage() {
 
   const saveAvailability = async () => {
     if (!selectedStylist) return;
-    setSaving(true);
     setError("");
     setSuccess("");
     try {
@@ -115,18 +101,11 @@ export default function AdminSchedulesPage() {
           all.push(s);
         }
       }
-      const res = await fetch("/api/admin/schedules", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ stylistId: selectedStylist, action: "saveAvailability", availability: all }),
-      });
-      if (!res.ok) throw new Error("Failed to save");
+      await saveSchedule.mutateAsync({ stylistId: selectedStylist, availability: all });
       setSuccess("Schedule saved successfully");
       setTimeout(() => setSuccess(""), 3000);
     } catch {
       setError("Failed to save schedule");
-    } finally {
-      setSaving(false);
     }
   };
 
@@ -135,21 +114,18 @@ export default function AdminSchedulesPage() {
     setAddingBlock(true);
     setError("");
     try {
-      const res = await fetch("/api/admin/schedules", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          stylistId: selectedStylist,
-          action: "addBlockedTime",
+      const result = await saveSchedule.mutateAsync({
+        stylistId: selectedStylist,
+        blockedTime: {
           date: newBlockDate,
-          startTime: newBlockStart || null,
-          endTime: newBlockEnd || null,
-          reason: newBlockReason || null,
-        }),
+          startTime: newBlockStart || undefined,
+          endTime: newBlockEnd || undefined,
+          reason: newBlockReason || undefined,
+        },
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      setBlockedTimes((prev) => [...prev, data.blocked].sort((a, b) => a.date.localeCompare(b.date)));
+      if ((result as Record<string, unknown>)?.blocked) {
+        setBlockedTimes((prev) => [...prev, (result as Record<string, unknown>).blocked as BlockedSlot].sort((a, b) => a.date.localeCompare(b.date)));
+      }
       setNewBlockDate("");
       setNewBlockStart("");
       setNewBlockEnd("");
@@ -163,8 +139,7 @@ export default function AdminSchedulesPage() {
 
   const removeBlockedTime = async (id: string) => {
     try {
-      await fetch(`/api/admin/schedules?id=${id}&type=blockedTime`, { method: "DELETE" });
-      setBlockedTimes((prev) => prev.filter((b) => b.id !== id));
+      await deleteBlockedTime.mutateAsync(id);
     } catch {
       setError("Failed to remove block");
     }
@@ -198,7 +173,7 @@ export default function AdminSchedulesPage() {
           {error && <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl p-4">{error}</div>}
           {success && <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm rounded-xl p-4">{success}</div>}
 
-          {loading ? (
+          {loadingSchedule ? (
             <div className="bg-white border border-border rounded-xl p-12 text-center">
               <Loader2 className="h-6 w-6 text-gold animate-spin mx-auto" />
             </div>
@@ -209,8 +184,8 @@ export default function AdminSchedulesPage() {
                   <h3 className="font-heading font-semibold text-charcoal flex items-center gap-2">
                     <Clock className="h-4 w-4 text-gold" /> Weekly Schedule
                   </h3>
-                  <Button onClick={saveAvailability} disabled={saving} className="min-h-[44px] bg-charcoal text-white hover:bg-charcoal-light rounded-full text-xs font-semibold tracking-wider uppercase px-6">
-                    {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : <Save className="h-3.5 w-3.5 mr-1.5" />}
+                  <Button onClick={saveAvailability} disabled={saveSchedule.isPending} className="min-h-[44px] bg-charcoal text-white hover:bg-charcoal-light rounded-full text-xs font-semibold tracking-wider uppercase px-6">
+                    {saveSchedule.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : <Save className="h-3.5 w-3.5 mr-1.5" />}
                     Save
                   </Button>
                 </div>

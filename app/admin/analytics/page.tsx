@@ -1,20 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { Loader2 } from "lucide-react";
-
-interface AnalyticsData {
-  stats: {
-    appointments: { total: number; month: number; change: number };
-    customers: { total: number; month: number; change: number };
-    revenue: { month: number; change: number };
-    services: number;
-    stylists: number;
-    statusCounts: Record<string, number>;
-  };
-  recentAppointments: { id: string; reference: string; customer: string; service: string; stylist: string | null; time: string; status: string; date: string }[];
-  popularServices: { name: string; bookings: number }[];
-}
+import { useAdminAnalytics } from "@/hooks/queries";
 
 const statusColors: Record<string, string> = {
   PENDING: "bg-amber-50 text-amber-700", CONFIRMED: "bg-blue-50 text-blue-700",
@@ -23,21 +10,9 @@ const statusColors: Record<string, string> = {
 };
 
 export default function AdminAnalyticsPage() {
-  const [data, setData] = useState<AnalyticsData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { data, isLoading } = useAdminAnalytics();
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await fetch("/api/admin/analytics");
-        const json = await res.json();
-        setData(json);
-      } catch { /* silent */ }
-      finally { setLoading(false); }
-    })();
-  }, []);
-
-  if (loading) return <div className="py-20 text-center"><Loader2 className="h-8 w-8 text-gold animate-spin mx-auto" /></div>;
+  if (isLoading) return <div className="py-20 text-center"><Loader2 className="h-8 w-8 text-gold animate-spin mx-auto" /></div>;
   if (!data) return <div className="py-20 text-center text-muted-foreground">Failed to load analytics.</div>;
 
   const { stats } = data;

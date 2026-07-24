@@ -1,16 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { Package, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-
-interface OrderItem { id: string; name: string; price: number; quantity: number; image: string | null; slug: string; }
-interface Order {
-  id: string; orderNumber: string; status: string; total: number;
-  createdAt: string; items: OrderItem[];
-}
+import { useDashboardOrders } from "@/hooks/queries";
 
 const statusColors: Record<string, string> = {
   PENDING: "bg-amber-50 text-amber-700", PROCESSING: "bg-blue-50 text-blue-700",
@@ -55,19 +49,8 @@ function OrdersSkeleton() {
 }
 
 export default function DashboardOrdersPage() {
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const fetchOrders = useCallback(async () => {
-    try {
-      const res = await fetch("/api/orders");
-      const data = await res.json();
-      setOrders(data.orders || []);
-    } catch { /* silent */ }
-    finally { setLoading(false); }
-  }, []);
-
-  useEffect(() => { fetchOrders(); }, [fetchOrders]);
+  const { data, isLoading: loading } = useDashboardOrders(60_000);
+  const orders = data?.orders ?? [];
 
   const formatDate = (d: string) => new Date(d).toLocaleDateString("en-NG", { month: "short", day: "numeric", year: "numeric" });
 

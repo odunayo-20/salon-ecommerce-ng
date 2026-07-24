@@ -1,34 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { Calendar, Package, Users, Scissors, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-interface Stats {
-  appointments: { total: number; month: number; change: number };
-  customers: { total: number; month: number; change: number };
-  revenue: { month: number; change: number };
-  services: number;
-  stylists: number;
-  statusCounts: Record<string, number>;
-}
-
-interface RecentAppointment {
-  id: string;
-  reference: string;
-  customer: string | null;
-  service: string;
-  stylist: string | null;
-  time: string;
-  status: string;
-  date: string;
-}
-
-interface PopularService {
-  name: string;
-  bookings: number;
-}
+import { useAdminAnalytics } from "@/hooks/queries";
 
 const statusColors: Record<string, string> = {
   PENDING: "bg-amber-50 text-amber-700",
@@ -45,26 +20,15 @@ const statusLabels: Record<string, string> = {
 };
 
 export default function AdminDashboard() {
-  const [stats, setStats] = useState<Stats | null>(null);
-  const [recent, setRecent] = useState<RecentAppointment[]>([]);
-  const [popular, setPopular] = useState<PopularService[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data, isLoading } = useAdminAnalytics(30_000);
 
-  const fetchData = useCallback(async () => {
-    try {
-      const res = await fetch("/api/admin/analytics");
-      const data = await res.json();
-      setStats(data.stats);
-      setRecent(data.recentAppointments || []);
-      setPopular(data.popularServices || []);
-    } catch { /* silent */ } finally { setLoading(false); }
-  }, []);
-
-  useEffect(() => { fetchData(); }, [fetchData]);
+  const stats = data?.stats ?? null;
+  const recent = data?.recentAppointments ?? [];
+  const popular = data?.popularServices ?? [];
 
   const formatDate = (d: string) => new Date(d).toLocaleDateString("en-NG", { weekday: "short", month: "short", day: "numeric" });
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center py-20">
         <Loader2 className="h-6 w-6 text-gold animate-spin" />

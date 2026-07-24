@@ -1,17 +1,11 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { Loader2, PenTool, Plus, Pencil, Trash2, X, Search, Eye, EyeOff, Star, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-
-interface BlogPost {
-  id: string; title: string; slug: string; excerpt: string | null; content: string;
-  coverImage: string | null; category: string; tags: string[]; isPublished: boolean;
-  isFeatured: boolean; viewCount: number; publishedAt: string | null;
-  createdAt: string; author: { id: string; name: string | null };
-}
+import { useAdminBlog, useUpsertBlogPost, useDeleteBlogPost } from "@/hooks/queries";
 
 const CATEGORIES = ["Hair Care", "Styling Tips", "Product Reviews", "Tutorials", "Industry News", "Salon Life", "General"];
 
@@ -23,10 +17,8 @@ const emptyForm = {
 
 export default function AdminBlogPage() {
   const { data: session } = useSession();
-  const [posts, setPosts] = useState<BlogPost[]>([]);
-  const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
-  const [editing, setEditing] = useState<BlogPost | null>(null);
+  const [editing, setEditing] = useState<{ id: string; title: string; slug: string; excerpt: string | null; content: string; coverImage: string | null; category: string; tags: string[]; isPublished: boolean; isFeatured: boolean } | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
@@ -35,25 +27,18 @@ export default function AdminBlogPage() {
   const [filterStatus, setFilterStatus] = useState<"all" | "published" | "draft">("all");
   const [uploading, setUploading] = useState(false);
 
-  const fetchPosts = useCallback(async () => {
-    try {
-      const params = new URLSearchParams({ limit: "100" });
-      if (search) params.set("search", search);
-      const res = await fetch(`/api/blog?${params}`);
-      const data = await res.json();
-      setPosts(data.posts || []);
-    } catch { /* silent */ }
-    finally { setLoading(false); }
-  }, [search]);
+  const { data, isLoading } = useAdminBlog({ search: search || undefined });
+  const posts = data?.posts || [];
+  const upsertPost = useUpsertBlogPost();
+  const deletePost = useDeleteBlogPost();
 
-  useEffect(() => { fetchPosts(); }, [fetchPosts]);
   useEffect(() => { if (successMsg) { const t = setTimeout(() => setSuccessMsg(""), 3000); return () => clearTimeout(t); } }, [successMsg]);
 
   const slugify = (text: string) => text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 
   const openAdd = () => { setEditing(null); setForm(emptyForm); setShowModal(true); setErrorMsg(""); };
 
-  const openEdit = (p: BlogPost) => {
+  const openEdit = (p: typeof posts[0]) => {
     setEditing(p);
     setForm({
       title: p.title, slug: p.slug, excerpt: p.excerpt || "",
@@ -91,12 +76,13 @@ export default function AdminBlogPage() {
     setErrorMsg("");
     try {
       const payload = {
+        method: editing ? "PATCH" : "POST",
         ...(editing ? { id: editing.id } : {}),
         title: form.title.trim(),
         slug: form.slug.trim() || slugify(form.title),
-        excerpt: form.excerpt.trim() || null,
+        excerpt: form.excerpt.trim() || undefined,
         content: form.content.trim(),
-        coverImage: form.coverImage.trim() || null,
+        coverImage: form.coverImage.trim() || undefined,
         category: form.category,
         tags: form.tags.split(",").map((t) => t.trim()).filter(Boolean),
         isPublished: form.isPublished,
@@ -104,49 +90,32 @@ export default function AdminBlogPage() {
         ...(!editing ? { authorId } : {}),
       };
 
-      const method = editing ? "PATCH" : "POST";
-      const res = await fetch("/api/blog", { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      await upsertPost.mutateAsync(payload);
       setSuccessMsg(editing ? "Post updated" : "Post created");
       setShowModal(false);
-      fetchPosts();
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : "Something went wrong");
     } finally { setSaving(false); }
   };
 
-  const handleDelete = async (p: BlogPost) => {
+  const handleDelete = async (p: typeof posts[0]) => {
     if (!confirm(`Delete "${p.title}"? This cannot be undone.`)) return;
     try {
-      const res = await fetch(`/api/blog?id=${p.id}`, { method: "DELETE" });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      await deletePost.mutateAsync(p.id);
       setSuccessMsg("Post deleted");
-      fetchPosts();
     } catch (err) { setErrorMsg(err instanceof Error ? err.message : "Failed to delete"); }
   };
 
-  const togglePublished = async (p: BlogPost) => {
+  const togglePublished = async (p: typeof posts[0]) => {
     try {
-      await fetch("/api/blog", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: p.id, isPublished: !p.isPublished }),
-      });
+      await upsertPost.mutateAsync({ method: "PATCH", id: p.id, title: p.title, slug: p.slug, content: p.content, category: p.category, tags: p.tags, isPublished: !p.isPublished, isFeatured: p.isFeatured, excerpt: p.excerpt || undefined, coverImage: p.coverImage || undefined });
       setSuccessMsg(p.isPublished ? "Unpublished" : "Published");
-      fetchPosts();
     } catch { setErrorMsg("Failed to toggle"); }
   };
 
-  const toggleFeatured = async (p: BlogPost) => {
+  const toggleFeatured = async (p: typeof posts[0]) => {
     try {
-      await fetch("/api/blog", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: p.id, isFeatured: !p.isFeatured }),
-      });
-      fetchPosts();
+      await upsertPost.mutateAsync({ method: "PATCH", id: p.id, title: p.title, slug: p.slug, content: p.content, category: p.category, tags: p.tags, isPublished: p.isPublished, isFeatured: !p.isFeatured, excerpt: p.excerpt || undefined, coverImage: p.coverImage || undefined });
     } catch { setErrorMsg("Failed to toggle"); }
   };
 
@@ -185,7 +154,7 @@ export default function AdminBlogPage() {
         </div>
       </div>
 
-      {loading ? (
+      {isLoading ? (
         <div className="bg-white border border-border rounded-2xl p-12 text-center"><Loader2 className="h-6 w-6 text-gold animate-spin mx-auto" /></div>
       ) : filtered.length === 0 ? (
         <div className="bg-white border border-border rounded-2xl p-12 text-center">

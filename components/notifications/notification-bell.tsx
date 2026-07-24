@@ -5,6 +5,7 @@ import { Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { NotificationPanel } from "./notification-panel";
+import { useUnreadCount } from "@/hooks/queries";
 
 interface NotificationBellProps {
   className?: string;
@@ -12,27 +13,11 @@ interface NotificationBellProps {
 }
 
 export function NotificationBell({ className, variant = "default" }: NotificationBellProps) {
-  const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
 
-  const fetchCount = async () => {
-    try {
-      const res = await fetch("/api/notifications/unread-count");
-      if (res.ok) {
-        const data = await res.json();
-        setUnreadCount(data.count);
-      }
-    } catch {
-      // silent
-    }
-  };
-
-  useEffect(() => {
-    fetchCount();
-    const interval = setInterval(fetchCount, 30000);
-    return () => clearInterval(interval);
-  }, []);
+  const { data, refetch } = useUnreadCount(15_000);
+  const unreadCount = data?.count ?? 0;
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -73,8 +58,8 @@ export function NotificationBell({ className, variant = "default" }: Notificatio
       {isOpen && (
         <NotificationPanel
           onClose={() => setIsOpen(false)}
-          onRead={() => setUnreadCount((c) => Math.max(0, c - 1))}
-          onReadAll={() => setUnreadCount(0)}
+          onRead={() => refetch()}
+          onReadAll={() => refetch()}
         />
       )}
     </div>

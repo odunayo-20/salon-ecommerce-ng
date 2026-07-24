@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, Suspense } from "react";
+import { useState, Suspense } from "react";
 import Image from "next/image";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Search, Grid3X3, LayoutGrid, Loader2 } from "lucide-react";
@@ -8,13 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ProductCard } from "@/components/shop/product-card";
 import { cn } from "@/lib/utils";
-
-interface ShopCategory { id: string; name: string; slug: string; image?: string | null; _count?: { products: number } }
-interface ShopProduct {
-  id: string; name: string; slug: string; price: number; comparePrice?: number | null;
-  images: string[]; stock: number; category: { id: string; name: string; slug: string };
-  reviewCount: number; rating?: number; isFeatured: boolean; isActive: boolean;
-}
+import { useProducts, useShopCategories } from "@/hooks/queries";
 
 export default function ShopPage() {
   return (
@@ -27,13 +21,16 @@ export default function ShopPage() {
 function ShopPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const [products, setProducts] = useState<ShopProduct[]>([]);
-  const [categories, setCategories] = useState<ShopCategory[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: prodData, isLoading: prodLoading } = useProducts({ isActive: "true", limit: 100 });
+  const { data: catData, isLoading: catLoading } = useShopCategories();
   const [activeCategory, setActiveCategory] = useState(() => searchParams.get("category") || "all");
   const [sortBy, setSortBy] = useState("newest");
   const [searchQuery, setSearchQuery] = useState("");
   const [gridSize, setGridSize] = useState<3 | 4>(3);
+
+  const products = prodData?.products ?? [];
+  const categories = catData?.categories ?? [];
+  const loading = prodLoading || catLoading;
 
   const updateCategory = (slug: string) => {
     setActiveCategory(slug);
@@ -46,22 +43,6 @@ function ShopPageContent() {
     const qs = params.toString();
     router.replace(`/shop${qs ? `?${qs}` : ""}`, { scroll: false });
   };
-
-  const fetchData = useCallback(async () => {
-    try {
-      const [prodRes, catRes] = await Promise.all([
-        fetch("/api/products?isActive=true&limit=100"),
-        fetch("/api/categories?type=product&includeCount=true"),
-      ]);
-      const prodData = await prodRes.json();
-      const catData = await catRes.json();
-      setProducts(prodData.products || []);
-      setCategories(catData.categories || []);
-    } catch { /* silent */ }
-    finally { setLoading(false); }
-  }, []);
-
-  useEffect(() => { fetchData(); }, [fetchData]);
 
   const filtered = products.filter((p) => {
     if (activeCategory !== "all" && p.category?.slug !== activeCategory) return false;

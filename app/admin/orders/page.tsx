@@ -1,20 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Search, X, Loader2, Eye, Package } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-interface OrderItem { id: string; name: string; price: number; quantity: number; image: string | null; }
-interface OrderPayment { id: string; amount: number; status: string; method: string; reference: string; }
-interface Order {
-  id: string; orderNumber: string; status: string; subtotal: number; shippingCost: number; discount: number; total: number;
-  shippingAddress: string | null; notes: string | null; trackingNumber: string | null;
-  createdAt: string;
-  items: OrderItem[];
-  customerProfile: { user: { id: string; name: string | null; email: string | null; image: string | null } };
-  payments: OrderPayment[];
-}
+import { useAdminOrders, useUpdateAdminOrder, type AdminOrder } from "@/hooks/queries";
 
 const statusColors: Record<string, string> = {
   PENDING: "bg-amber-50 text-amber-700", PROCESSING: "bg-blue-50 text-blue-700",
@@ -27,44 +17,33 @@ const statusLabels: Record<string, string> = {
 };
 
 export default function AdminOrdersPage() {
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
-  const [selected, setSelected] = useState<Order | null>(null);
+  const [selected, setSelected] = useState<AdminOrder | null>(null);
   const [showDetail, setShowDetail] = useState(false);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
 
-  const fetchOrders = useCallback(async () => {
-    try {
-      const params = new URLSearchParams();
-      if (filterStatus !== "all") params.set("status", filterStatus);
-      if (search) params.set("search", search);
-      const res = await fetch(`/api/admin/orders?${params}`);
-      const data = await res.json();
-      setOrders(data.orders || []);
-    } catch { setErrorMsg("Failed to load orders"); }
-    finally { setLoading(false); }
-  }, [filterStatus, search]);
+  const { data, isLoading } = useAdminOrders({ status: filterStatus, search }, 60_000);
+  const orders = data?.orders ?? [];
+  const updateOrder = useUpdateAdminOrder();
 
-  useEffect(() => { fetchOrders(); }, [fetchOrders]);
   useEffect(() => { if (successMsg) { const t = setTimeout(() => setSuccessMsg(""), 3000); return () => clearTimeout(t); } }, [successMsg]);
 
-  const updateStatus = async (id: string, status: string) => {
+  const updateStatus = (id: string, status: string) => {
     setUpdatingId(id);
-    try {
-      const res = await fetch(`/api/admin/orders/${id}`, {
-        method: "PATCH", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
-      });
-      if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
-      setSuccessMsg(`Order ${status.toLowerCase()}`);
-      fetchOrders();
-      if (selected?.id === id) { setShowDetail(false); setSelected(null); }
-    } catch (err) { setErrorMsg(err instanceof Error ? err.message : "Failed"); }
-    finally { setUpdatingId(null); }
+    updateOrder.mutate(
+      { id, status },
+      {
+        onSuccess: () => {
+          setSuccessMsg(`Order ${status.toLowerCase()}`);
+          if (selected?.id === id) { setShowDetail(false); setSelected(null); }
+        },
+        onError: (err) => { setErrorMsg(err instanceof Error ? err.message : "Failed"); },
+        onSettled: () => { setUpdatingId(null); },
+      }
+    );
   };
 
   const formatDate = (d: string) => new Date(d).toLocaleDateString("en-NG", { month: "short", day: "numeric", year: "numeric" });
@@ -91,7 +70,7 @@ export default function AdminOrdersPage() {
         </div>
       </div>
 
-      {loading ? (
+      {isLoading ? (
         <div className="bg-white border border-border rounded-2xl p-12 text-center"><Loader2 className="h-6 w-6 text-gold animate-spin mx-auto" /></div>
       ) : orders.length === 0 ? (
         <div className="bg-white border border-border rounded-2xl p-12 text-center"><Package className="h-10 w-10 text-border mx-auto mb-3" /><p className="text-muted-foreground">No orders found</p></div>

@@ -1,23 +1,11 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Plus, Pencil, Trash2, X, Loader2, FolderTree, Package, ChevronDown, ChevronUp, Upload, ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-interface Category {
-  id: string;
-  name: string;
-  slug: string;
-  description: string | null;
-  image: string | null;
-  type: string;
-  sortOrder: number;
-  isActive: boolean;
-  createdAt: string;
-  _count?: { services: number; products: number };
-}
+import { useAdminCategories, useCreateCategory, useUpdateCategory, useDeleteCategory } from "@/hooks/queries";
 
 const emptyForm = {
   name: "",
@@ -37,10 +25,8 @@ function slugify(text: string) {
 }
 
 export default function AdminCategoriesPage() {
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [editingCategory, setEditingCategory] = useState<{ id: string; name: string; slug: string; description: string | null; image: string | null; type: string; sortOrder: number; isActive: boolean; createdAt: string; _count?: { services: number; products: number } } | null>(null);
   const [formData, setFormData] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
@@ -48,6 +34,12 @@ export default function AdminCategoriesPage() {
   const [filterType, setFilterType] = useState<string>("all");
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
+
+  const { data, isLoading } = useAdminCategories(filterType !== "all" ? filterType : undefined);
+  const categories = data?.categories || [];
+  const createCategory = useCreateCategory();
+  const updateCategory = useUpdateCategory();
+  const deleteCategory = useDeleteCategory();
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -67,22 +59,6 @@ export default function AdminCategoriesPage() {
     }
   };
 
-  const fetchCategories = useCallback(async () => {
-    try {
-      const res = await fetch(`/api/categories?includeCount=true${filterType !== "all" ? `&type=${filterType}` : ""}`);
-      const data = await res.json();
-      setCategories(data.categories || []);
-    } catch {
-      setErrorMsg("Failed to load categories");
-    } finally {
-      setLoading(false);
-    }
-  }, [filterType]);
-
-  useEffect(() => {
-    fetchCategories();
-  }, [fetchCategories]);
-
   useEffect(() => {
     if (successMsg) {
       const t = setTimeout(() => setSuccessMsg(""), 3000);
@@ -97,7 +73,7 @@ export default function AdminCategoriesPage() {
     setErrorMsg("");
   };
 
-  const openEdit = (cat: Category) => {
+  const openEdit = (cat: typeof categories[0]) => {
     setEditingCategory(cat);
     setFormData({
       name: cat.name,
@@ -127,26 +103,13 @@ export default function AdminCategoriesPage() {
 
     try {
       if (editingCategory) {
-        const res = await fetch(`/api/categories/${editingCategory.id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(formData),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error);
+        await updateCategory.mutateAsync({ id: editingCategory.id, ...formData });
         setSuccessMsg("Category updated successfully");
       } else {
-        const res = await fetch("/api/categories", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(formData),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error);
+        await createCategory.mutateAsync(formData);
         setSuccessMsg("Category created successfully");
       }
       setShowModal(false);
-      fetchCategories();
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : "Something went wrong");
     } finally {
@@ -154,7 +117,7 @@ export default function AdminCategoriesPage() {
     }
   };
 
-  const handleDelete = async (cat: Category) => {
+  const handleDelete = async (cat: typeof categories[0]) => {
     const count = (cat._count?.services || 0) + (cat._count?.products || 0);
     if (count > 0) {
       setErrorMsg(`Cannot delete "${cat.name}" — it has ${cat._count?.services || 0} services and ${cat._count?.products || 0} products. Reassign them first.`);
@@ -164,41 +127,26 @@ export default function AdminCategoriesPage() {
     if (!confirm(`Delete "${cat.name}"? This cannot be undone.`)) return;
 
     try {
-      const res = await fetch(`/api/categories/${cat.id}`, { method: "DELETE" });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      await deleteCategory.mutateAsync(cat.id);
       setSuccessMsg("Category deleted");
-      fetchCategories();
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : "Failed to delete");
     }
   };
 
-  const toggleActive = async (cat: Category) => {
+  const toggleActive = async (cat: typeof categories[0]) => {
     try {
-      const res = await fetch(`/api/categories/${cat.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ isActive: !cat.isActive }),
-      });
-      if (!res.ok) throw new Error("Failed to toggle");
-      fetchCategories();
+      await updateCategory.mutateAsync({ id: cat.id, isActive: !cat.isActive });
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : "Failed to toggle");
     }
   };
 
-  const moveSortOrder = async (cat: Category, direction: "up" | "down") => {
+  const moveSortOrder = async (cat: typeof categories[0], direction: "up" | "down") => {
     const newOrder = direction === "up" ? cat.sortOrder - 1 : cat.sortOrder + 1;
     if (newOrder < 0) return;
     try {
-      const res = await fetch(`/api/categories/${cat.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sortOrder: newOrder }),
-      });
-      if (!res.ok) throw new Error("Failed to reorder");
-      fetchCategories();
+      await updateCategory.mutateAsync({ id: cat.id, sortOrder: newOrder });
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : "Failed to reorder");
     }
@@ -254,7 +202,7 @@ export default function AdminCategoriesPage() {
       </div>
 
       {/* Loading / Empty */}
-      {loading ? (
+      {isLoading ? (
         <div className="bg-white border border-border rounded-2xl p-12 text-center">
           <Loader2 className="h-6 w-6 text-gold animate-spin mx-auto" />
           <p className="text-sm text-muted-foreground mt-3">Loading categories...</p>
