@@ -668,3 +668,32 @@ export function useCartCouponValidation() {
       m("/api/coupons/validate", "POST", body),
   });
 }
+
+// ─── Admin Consultations ──────────────────────────────────────────
+export interface AdminConsultation {
+  id: string; hairConcerns: string; desiredHairstyle: string | null;
+  hairType: string | null; additionalNotes: string | null;
+  adminNotes: string | null; recommendedService: string | null;
+  recommendedProduct: string | null; priceEstimate: number | null;
+  status: string; createdAt: string;
+  name: string | null; email: string | null; phone: string | null;
+  customerProfile: {
+    user: { name: string | null; email: string | null; phone: string | null };
+  } | null;
+}
+
+export function useConsultations() {
+  return useQuery<{ consultations: AdminConsultation[] }>({
+    queryKey: ["admin-consultations"],
+    queryFn: () => q("/api/consultations"),
+  });
+}
+
+export function useUpdateConsultation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { id: string; status?: string; adminNotes?: string; recommendedService?: string; recommendedProduct?: string; priceEstimate?: number }) =>
+      m(`/api/consultations?id=${body.id}`, "PATCH", body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-consultations"] }),
+  });
+}

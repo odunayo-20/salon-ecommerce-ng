@@ -1,12 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { Upload, Send, Loader2, CheckCircle } from "lucide-react";
+import { Upload, Send, Loader2, CheckCircle, User, Mail, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
 export default function ConsultationPage() {
-  const [formData, setFormData] = useState({ hairConcerns: "", desiredHairstyle: "", hairType: "", additionalNotes: "" });
+  const [formData, setFormData] = useState({
+    name: "", email: "", phone: "",
+    hairConcerns: "", desiredHairstyle: "", hairType: "", additionalNotes: "",
+  });
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -20,10 +23,16 @@ export default function ConsultationPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          name: formData.name || undefined,
+          email: formData.email || undefined,
+          phone: formData.phone || undefined,
           concerns: [formData.hairConcerns],
+          hairConcerns: formData.hairConcerns,
           desiredStyle: formData.desiredHairstyle,
+          desiredHairstyle: formData.desiredHairstyle,
           hairType: formData.hairType,
           notes: formData.additionalNotes,
+          additionalNotes: formData.additionalNotes,
           referenceImages: [],
         }),
       });
@@ -63,13 +72,33 @@ export default function ConsultationPage() {
         </div>
       </div>
       <form onSubmit={handleSubmit} className="max-w-3xl mx-auto px-4 sm:px-6 py-12 space-y-8">
+        {/* Contact Info */}
+        <div className="bg-white border border-border rounded-xl p-6">
+          <h3 className="font-heading font-semibold text-charcoal mb-4">Your Information</h3>
+          <p className="text-xs text-muted-foreground mb-4">Optional — helps us reach you with our recommendation.</p>
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-medium text-charcoal mb-1.5"><User className="h-3 w-3 inline mr-1" />Name</label>
+              <input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="Your name" className="w-full bg-cream border border-border rounded-lg px-4 py-2.5 text-sm text-charcoal placeholder:text-muted-foreground/60 focus:outline-none focus:border-gold" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-charcoal mb-1.5"><Mail className="h-3 w-3 inline mr-1" />Email</label>
+              <input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} placeholder="your@email.com" className="w-full bg-cream border border-border rounded-lg px-4 py-2.5 text-sm text-charcoal placeholder:text-muted-foreground/60 focus:outline-none focus:border-gold" />
+            </div>
+          </div>
+          <div className="mt-4">
+            <label className="block text-xs font-medium text-charcoal mb-1.5"><Phone className="h-3 w-3 inline mr-1" />Phone</label>
+            <input type="tel" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} placeholder="+234 ..." className="w-full bg-cream border border-border rounded-lg px-4 py-2.5 text-sm text-charcoal placeholder:text-muted-foreground/60 focus:outline-none focus:border-gold" />
+          </div>
+        </div>
+
         <div className="bg-white border border-border rounded-xl p-6">
           <label className="block font-heading font-semibold text-charcoal mb-2">What are your main hair concerns? *</label>
           <textarea value={formData.hairConcerns} onChange={(e) => setFormData({ ...formData, hairConcerns: e.target.value })} placeholder="e.g., My hair has been experiencing breakage at the edges..." className="w-full bg-cream border border-border rounded-lg px-4 py-3 text-sm text-charcoal placeholder:text-muted-foreground/60 focus:outline-none focus:border-gold resize-none h-32" required />
         </div>
         <div className="bg-white border border-border rounded-xl p-6">
           <label className="block font-heading font-semibold text-charcoal mb-2">What hairstyle are you looking for?</label>
-          <textarea value={formData.desiredHairstyle} onChange={(e) => setFormData({ ...formData, desiredHairstyle: e.target.value })} placeholder="e.g., I'd love to try knotless box braids..." className="w-full bg-cream border border-border rounded-lg px-4 py-3 text-sm text-charcoal placeholder:text-muted-foreground/60 focus:outline-none focus:border-gold resize-none h-24" />
+          <textarea value={formData.desiredHairstyle} onChange={(e) => setFormData({ ...formData, desiredHairstyle: e.target.value })} placeholder="e.g., I&apos;d love to try knotless box braids..." className="w-full bg-cream border border-border rounded-lg px-4 py-3 text-sm text-charcoal placeholder:text-muted-foreground/60 focus:outline-none focus:border-gold resize-none h-24" />
         </div>
         <div className="bg-white border border-border rounded-xl p-6">
           <label className="block font-heading font-semibold text-charcoal mb-4">What&apos;s your hair type?</label>
@@ -94,7 +123,7 @@ export default function ConsultationPage() {
         </div>
         {error && <p className="text-red-500 text-sm text-center">{error}</p>}
         <Button type="submit" disabled={isSubmitting} className="w-full bg-gold text-white hover:bg-gold-dark rounded-full py-6 text-xs font-semibold tracking-wider uppercase">
-          {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+          {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Send className="h-4 w-4 mr-2" />}
           {isSubmitting ? "Submitting..." : "Submit Consultation Request"}
         </Button>
       </form>
