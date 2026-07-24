@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
-import { Calendar, Loader2, CreditCard, RefreshCw, Receipt } from "lucide-react";
+import { Calendar, CreditCard, RefreshCw, Receipt } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -59,7 +59,6 @@ export default function DashboardPage() {
       const data = await res.json();
       setAppointments(data.appointments || []);
 
-      // Verify any pending payments in the background (fire-and-forget)
       for (const apt of data.appointments || []) {
         for (const p of apt.payments || []) {
           if (p.status === "PENDING") {
@@ -89,7 +88,6 @@ export default function DashboardPage() {
   const handlePayNow = async (apt: Appointment) => {
     setPayingId(apt.id);
     try {
-      // First verify any pending payment to make sure it's confirmed
       for (const p of apt.payments) {
         if (p.status === "PENDING") {
           await fetch("/api/payments/verify", {
@@ -100,7 +98,6 @@ export default function DashboardPage() {
         }
       }
 
-      // Re-fetch to get updated state
       const refreshRes = await fetch("/api/bookings");
       const refreshData = await refreshRes.json();
       const updatedApt = (refreshData.appointments || []).find((a: Appointment) => a.id === apt.id);
@@ -123,6 +120,62 @@ export default function DashboardPage() {
     finally { setPayingId(null); }
   };
 
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="bg-white border border-border rounded-xl p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="h-5 w-48 bg-cream rounded animate-pulse mb-2" />
+              <div className="h-3.5 w-64 bg-cream rounded animate-pulse" />
+            </div>
+            <div className="h-9 w-24 bg-cream rounded-full animate-pulse" />
+          </div>
+        </div>
+        <div className="bg-white border border-border rounded-xl p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="h-5 w-44 bg-cream rounded animate-pulse" />
+            <div className="h-4 w-20 bg-cream rounded animate-pulse" />
+          </div>
+          <div className="space-y-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="flex items-center gap-4 p-4 border border-border/50 rounded-xl">
+                <div className="h-12 w-12 rounded-full bg-cream animate-pulse shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <div className="h-4 w-32 bg-cream rounded animate-pulse mb-2" />
+                  <div className="h-3 w-48 bg-cream rounded animate-pulse mb-2" />
+                  <div className="flex items-center gap-2">
+                    <div className="h-5 w-16 bg-cream rounded-full animate-pulse" />
+                    <div className="h-5 w-20 bg-cream rounded-full animate-pulse" />
+                  </div>
+                </div>
+                <div className="text-right shrink-0">
+                  <div className="h-4 w-16 bg-cream rounded animate-pulse mb-2 ml-auto" />
+                  <div className="h-7 w-20 bg-cream rounded-full animate-pulse ml-auto" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="bg-white border border-border rounded-xl p-6">
+          <div className="h-5 w-40 bg-cream rounded animate-pulse mb-4" />
+          <div className="space-y-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="flex items-center gap-4 p-4 border border-border/50 rounded-xl">
+                <div className="flex-1 min-w-0">
+                  <div className="h-4 w-28 bg-cream rounded animate-pulse mb-2" />
+                  <div className="h-3 w-36 bg-cream rounded animate-pulse mb-2" />
+                  <div className="h-5 w-16 bg-cream rounded-full animate-pulse" />
+                </div>
+                <div className="h-4 w-16 bg-cream rounded animate-pulse" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="bg-white border border-border rounded-xl p-6">
@@ -131,131 +184,144 @@ export default function DashboardPage() {
             <h2 className="font-heading font-semibold text-charcoal mb-1">Welcome, {firstName}</h2>
             <p className="text-sm text-muted-foreground">Here&apos;s what&apos;s happening with your appointments.</p>
           </div>
-          <Button onClick={() => { setLoading(true); fetchAppointments(); }} variant="outline" size="sm" className="rounded-full text-xs">
+          <Button onClick={() => { setLoading(true); fetchAppointments(); }} variant="outline" size="sm" className="rounded-full text-xs min-h-[44px] min-w-[44px]">
             <RefreshCw className="h-3 w-3 mr-1" /> Refresh
           </Button>
         </div>
       </div>
 
-      {loading ? (
-        <div className="bg-white border border-border rounded-xl p-12 text-center">
-          <Loader2 className="h-6 w-6 text-gold animate-spin mx-auto" />
-          <p className="text-sm text-muted-foreground mt-3">Loading your appointments...</p>
+      <div className="bg-white border border-border rounded-xl p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-heading font-semibold text-charcoal">Upcoming Appointments</h2>
+          <Link href="/book" className="text-xs text-gold font-semibold min-h-[44px] min-w-[44px] inline-flex items-center justify-center">Book New</Link>
         </div>
-      ) : (
-        <>
-          {/* Upcoming */}
-          <div className="bg-white border border-border rounded-xl p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-heading font-semibold text-charcoal">Upcoming Appointments</h2>
-              <Link href="/book" className="text-xs text-gold font-semibold">Book New</Link>
-            </div>
-            {upcoming.length === 0 ? (
-              <div className="text-center py-8">
-                <Calendar className="h-8 w-8 text-border mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground">No upcoming appointments</p>
-                <Link href="/book"><Button className="mt-3 bg-charcoal text-white hover:bg-charcoal-light rounded-full text-xs font-semibold tracking-wider uppercase px-6">Book Now</Button></Link>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {upcoming.map((apt) => {
-                  return (
-                    <div key={apt.id} className="flex items-center gap-4 p-4 bg-gold/5 border border-gold/20 rounded-xl">
-                      <div className="h-12 w-12 rounded-full bg-gold/10 flex items-center justify-center shrink-0">
-                        <Calendar className="h-5 w-5 text-gold" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-sm font-semibold text-charcoal">{apt.service.name}</h3>
-                        <p className="text-xs text-muted-foreground">
-                          {apt.stylist?.user.name ? `with ${apt.stylist.user.name} · ` : ""}
-                          {formatDate(apt.date)} at {apt.startTime}
-                        </p>
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className={cn("inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider", statusColors[apt.status])}>{statusLabels[apt.status]}</span>
-                          {apt.isFullyPaid ? (
-                            <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-emerald-50 text-emerald-700">Paid in Full</span>
-                          ) : apt.hasPending ? (
-                            <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-amber-50 text-amber-700">Payment Due: ₦{apt.remaining.toLocaleString()}</span>
-                          ) : (
-                            <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-amber-50 text-amber-700">Balance: ₦{apt.remaining.toLocaleString()}</span>
-                          )}
-                        </div>
-                      </div>
-                      <div className="text-right shrink-0">
-                        <span className="text-sm font-semibold text-charcoal">₦{apt.totalAmount.toLocaleString()}</span>
-                        {!apt.isFullyPaid && apt.status !== "CANCELLED" && (
-                          <div className="mt-2">
-                            <Button onClick={() => handlePayNow(apt)} disabled={payingId === apt.id} size="sm" className="bg-gold text-white hover:bg-gold-dark rounded-full text-[10px] font-semibold tracking-wider uppercase px-4 h-7">
-                              {payingId === apt.id ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <CreditCard className="h-3 w-3 mr-1" />}
-                              Pay Now
-                            </Button>
-                          </div>
-                        )}
-                        {apt.isFullyPaid && getPaidPaymentId(apt) && (
-                          <div className="mt-2">
-                            <Link href={`/receipt/${getPaidPaymentId(apt)}`}>
-                              <Button size="sm" variant="outline" className="rounded-full text-[10px] font-semibold tracking-wider uppercase px-4 h-7 border-emerald-200 text-emerald-700 hover:bg-emerald-50">
-                                <Receipt className="h-3 w-3 mr-1" /> Receipt
-                              </Button>
-                            </Link>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+        {upcoming.length === 0 ? (
+          <div className="text-center py-8">
+            <Calendar className="h-8 w-8 text-border mx-auto mb-2" />
+            <p className="text-sm text-muted-foreground">No upcoming appointments</p>
+            <Link href="/book"><Button className="mt-3 bg-charcoal text-white hover:bg-charcoal-light rounded-full text-xs font-semibold tracking-wider uppercase px-6 min-h-[44px]">Book Now</Button></Link>
           </div>
-
-          {/* History */}
-          {past.length > 0 && (
-            <div className="bg-white border border-border rounded-xl p-6">
-              <h2 className="font-heading font-semibold text-charcoal mb-4">Appointment History</h2>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-border">
-                      {["Service", "Date", "Stylist", "Status", "Amount"].map((h) => (
-                        <th key={h} className="text-left py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {past.map((apt) => {
-                      return (
-                        <tr key={apt.id} className="border-b border-border/50 last:border-0">
-                          <td className="py-3 font-medium text-charcoal">{apt.service.name}</td>
-                          <td className="py-3 text-muted-foreground">{formatDate(apt.date)}</td>
-                          <td className="py-3 text-muted-foreground">{apt.stylist?.user.name || "—"}</td>
-                          <td className="py-3">
-                            <span className={cn("inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider", statusColors[apt.status])}>{statusLabels[apt.status]}</span>
-                          </td>
-                          <td className="py-3 text-right">
-                            <div className="flex items-center justify-end gap-2">
-                              <span className="font-medium text-charcoal">₦{apt.totalAmount.toLocaleString()}</span>
-                              {apt.isFullyPaid ? (
-                                <Link href={`/receipt/${getPaidPaymentId(apt)}`} className="text-[10px] text-emerald-600 font-semibold hover:underline flex items-center gap-1">
-                                  <Receipt className="h-3 w-3" /> Paid in Full
-                                </Link>
-                              ) : apt.status === "CANCELLED" ? (
-                                <span className="text-[10px] text-red-500 font-semibold">cancelled</span>
-                              ) : (
-                                <Button onClick={() => handlePayNow(apt)} disabled={payingId === apt.id} size="sm" className="bg-gold text-white hover:bg-gold-dark rounded-full text-[10px] font-semibold tracking-wider uppercase px-3 h-6">
-                                  {payingId === apt.id ? <Loader2 className="h-3 w-3 animate-spin" /> : `Pay ₦${apt.remaining.toLocaleString()}`}
-                                </Button>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+        ) : (
+          <div className="space-y-3">
+            {upcoming.map((apt) => (
+              <div key={apt.id} className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 bg-gold/5 border border-gold/20 rounded-xl">
+                <div className="flex items-center gap-4 flex-1 min-w-0">
+                  <div className="h-12 w-12 rounded-full bg-gold/10 flex items-center justify-center shrink-0">
+                    <Calendar className="h-5 w-5 text-gold" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-sm font-semibold text-charcoal">{apt.service.name}</h3>
+                    <p className="text-xs text-muted-foreground">
+                      {apt.stylist?.user.name ? `with ${apt.stylist.user.name} · ` : ""}
+                      {formatDate(apt.date)} at {apt.startTime}
+                    </p>
+                    <div className="flex flex-wrap items-center gap-2 mt-1">
+                      <span className={cn("inline-flex px-2 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wider", statusColors[apt.status])}>{statusLabels[apt.status]}</span>
+                      {apt.isFullyPaid ? (
+                        <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wider bg-emerald-50 text-emerald-700">Paid in Full</span>
+                      ) : apt.hasPending ? (
+                        <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wider bg-amber-50 text-amber-700">Payment Due: ₦{apt.remaining.toLocaleString()}</span>
+                      ) : (
+                        <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wider bg-amber-50 text-amber-700">Balance: ₦{apt.remaining.toLocaleString()}</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between sm:justify-end sm:flex-col sm:items-end gap-2 shrink-0">
+                  <span className="text-sm font-semibold text-charcoal">₦{apt.totalAmount.toLocaleString()}</span>
+                  {!apt.isFullyPaid && apt.status !== "CANCELLED" && (
+                    <Button onClick={() => handlePayNow(apt)} disabled={payingId === apt.id} size="sm" className="bg-gold text-white hover:bg-gold-dark rounded-full text-xs font-semibold tracking-wider uppercase px-4 min-h-[44px]">
+                      {payingId === apt.id ? <span className="h-3 w-3 animate-spin mr-1 inline-block border-2 border-current border-t-transparent rounded-full" /> : <CreditCard className="h-3 w-3 mr-1" />}
+                      Pay Now
+                    </Button>
+                  )}
+                  {apt.isFullyPaid && getPaidPaymentId(apt) && (
+                    <Link href={`/receipt/${getPaidPaymentId(apt)}`}>
+                      <Button size="sm" variant="outline" className="rounded-full text-xs font-semibold tracking-wider uppercase px-4 min-h-[44px] border-emerald-200 text-emerald-700 hover:bg-emerald-50">
+                        <Receipt className="h-3 w-3 mr-1" /> Receipt
+                      </Button>
+                    </Link>
+                  )}
+                </div>
               </div>
-            </div>
-          )}
-        </>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {past.length > 0 && (
+        <div className="bg-white border border-border rounded-xl p-6">
+          <h2 className="font-heading font-semibold text-charcoal mb-4">Appointment History</h2>
+          <div className="md:hidden space-y-3">
+            {past.map((apt) => (
+              <div key={apt.id} className="flex items-center justify-between p-4 border border-border/50 rounded-xl">
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-sm font-semibold text-charcoal truncate">{apt.service.name}</h3>
+                  <p className="text-xs text-muted-foreground">{formatDate(apt.date)}</p>
+                  <p className="text-xs text-muted-foreground">{apt.stylist?.user.name || "—"}</p>
+                  <div className="mt-1">
+                    <span className={cn("inline-flex px-2 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wider", statusColors[apt.status])}>{statusLabels[apt.status]}</span>
+                  </div>
+                </div>
+                <div className="text-right shrink-0 ml-4">
+                  <span className="text-sm font-medium text-charcoal">₦{apt.totalAmount.toLocaleString()}</span>
+                  <div className="mt-1">
+                    {apt.isFullyPaid ? (
+                      <Link href={`/receipt/${getPaidPaymentId(apt)}`} className="text-xs text-emerald-600 font-semibold hover:underline inline-flex items-center gap-1">
+                        <Receipt className="h-3 w-3" /> Paid
+                      </Link>
+                    ) : apt.status === "CANCELLED" ? (
+                      <span className="text-xs text-red-500 font-semibold">cancelled</span>
+                    ) : (
+                      <Button onClick={() => handlePayNow(apt)} disabled={payingId === apt.id} size="sm" className="bg-gold text-white hover:bg-gold-dark rounded-full text-xs font-semibold tracking-wider uppercase px-3 min-h-[44px]">
+                        {payingId === apt.id ? <span className="h-3 w-3 animate-spin inline-block border-2 border-current border-t-transparent rounded-full" /> : `Pay ₦${apt.remaining.toLocaleString()}`}
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="hidden md:block overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border">
+                  {["Service", "Date", "Stylist", "Status", "Amount"].map((h) => (
+                    <th key={h} className="text-left py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {past.map((apt) => (
+                  <tr key={apt.id} className="border-b border-border/50 last:border-0">
+                    <td className="py-3 font-medium text-charcoal">{apt.service.name}</td>
+                    <td className="py-3 text-muted-foreground">{formatDate(apt.date)}</td>
+                    <td className="py-3 text-muted-foreground">{apt.stylist?.user.name || "—"}</td>
+                    <td className="py-3">
+                      <span className={cn("inline-flex px-2.5 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wider", statusColors[apt.status])}>{statusLabels[apt.status]}</span>
+                    </td>
+                    <td className="py-3 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <span className="font-medium text-charcoal">₦{apt.totalAmount.toLocaleString()}</span>
+                        {apt.isFullyPaid ? (
+                          <Link href={`/receipt/${getPaidPaymentId(apt)}`} className="text-xs text-emerald-600 font-semibold hover:underline flex items-center gap-1">
+                            <Receipt className="h-3 w-3" /> Paid in Full
+                          </Link>
+                        ) : apt.status === "CANCELLED" ? (
+                          <span className="text-xs text-red-500 font-semibold">cancelled</span>
+                        ) : (
+                          <Button onClick={() => handlePayNow(apt)} disabled={payingId === apt.id} size="sm" className="bg-gold text-white hover:bg-gold-dark rounded-full text-xs font-semibold tracking-wider uppercase px-3 min-h-[44px]">
+                            {payingId === apt.id ? <span className="h-3 w-3 animate-spin inline-block border-2 border-current border-t-transparent rounded-full" /> : `Pay ₦${apt.remaining.toLocaleString()}`}
+                          </Button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       )}
     </div>
   );

@@ -59,7 +59,7 @@ export default function AdminProductsPage() {
   const [search, setSearch] = useState("");
   const [filterCategory, setFilterCategory] = useState("all");
   const [filterStatus, setFilterStatus] = useState<"all" | "active" | "inactive">("all");
-  const [viewMode, setViewMode] = useState<"table" | "grid">("table");
+  const [viewMode, setViewMode] = useState<"table" | "grid">("grid");
 
   const fetchProducts = useCallback(async () => {
     try {
@@ -182,34 +182,34 @@ export default function AdminProductsPage() {
           <h1 className="font-heading text-2xl font-bold text-charcoal tracking-tight">Products</h1>
           <p className="text-sm text-muted-foreground mt-1">Manage your shop inventory</p>
         </div>
-        <Button onClick={openAdd} className="bg-gold text-white hover:bg-gold-dark rounded-full text-xs font-semibold tracking-wider uppercase px-6">
+        <Button onClick={openAdd} className="bg-gold text-white hover:bg-gold-dark rounded-full text-xs font-semibold tracking-wider uppercase px-6 min-h-[44px]">
           <Plus className="h-4 w-4 mr-2" />Add Product
         </Button>
       </div>
 
-      {successMsg && <div className="bg-green-50 border border-green-200 text-green-700 text-sm rounded-lg px-4 py-3 flex items-center justify-between"><span>{successMsg}</span><button onClick={() => setSuccessMsg("")}><X className="h-4 w-4" /></button></div>}
-      {errorMsg && <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3 flex items-center justify-between"><span>{errorMsg}</span><button onClick={() => setErrorMsg("")}><X className="h-4 w-4" /></button></div>}
+      {successMsg && <div className="bg-green-50 border border-green-200 text-green-700 text-sm rounded-lg px-4 py-3 flex items-center justify-between"><span>{successMsg}</span><button onClick={() => setSuccessMsg("")} className="min-h-[44px] min-w-[44px] flex items-center justify-center shrink-0"><X className="h-4 w-4" /></button></div>}
+      {errorMsg && <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3 flex items-center justify-between"><span>{errorMsg}</span><button onClick={() => setErrorMsg("")} className="min-h-[44px] min-w-[44px] flex items-center justify-center shrink-0"><X className="h-4 w-4" /></button></div>}
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by name, description, or SKU..." className="w-full bg-white border border-border rounded-lg pl-10 pr-4 py-2.5 text-sm text-charcoal placeholder:text-muted-foreground focus:outline-none focus:border-gold" />
+          <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by name, description, or SKU..." className="w-full bg-white border border-border rounded-lg pl-10 pr-4 py-2.5 min-h-[44px] text-sm text-charcoal placeholder:text-muted-foreground focus:outline-none focus:border-gold" />
         </div>
-        <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)} className="bg-white border border-border rounded-lg px-4 py-2.5 text-sm text-charcoal focus:outline-none focus:border-gold">
+        <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)} className="bg-white border border-border rounded-lg px-4 min-h-[44px] text-sm text-charcoal focus:outline-none focus:border-gold">
           <option value="all">All Categories</option>
           {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
         <div className="flex gap-1 bg-white border border-border rounded-lg p-1">
           {(["all", "active", "inactive"] as const).map((s) => (
-            <button key={s} onClick={() => setFilterStatus(s)} className={cn("px-3 py-1.5 rounded-md text-xs font-medium transition-all capitalize", filterStatus === s ? "bg-charcoal text-white" : "text-muted-foreground hover:text-charcoal")}>{s}</button>
+            <button key={s} onClick={() => setFilterStatus(s)} className={cn("px-3 min-h-[44px] rounded-md text-xs font-medium transition-all capitalize", filterStatus === s ? "bg-charcoal text-white" : "text-muted-foreground hover:text-charcoal")}>{s}</button>
           ))}
         </div>
         <div className="flex gap-1 bg-white border border-border rounded-lg p-1">
-          <button onClick={() => setViewMode("table")} className={cn("p-1.5 rounded-md transition-all", viewMode === "table" ? "bg-charcoal text-white" : "text-muted-foreground")}>
+          <button onClick={() => setViewMode("table")} className={cn("min-h-[44px] min-w-[44px] flex items-center justify-center rounded-md transition-all", viewMode === "table" ? "bg-charcoal text-white" : "text-muted-foreground")}>
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
           </button>
-          <button onClick={() => setViewMode("grid")} className={cn("p-1.5 rounded-md transition-all", viewMode === "grid" ? "bg-charcoal text-white" : "text-muted-foreground")}>
+          <button onClick={() => setViewMode("grid")} className={cn("min-h-[44px] min-w-[44px] flex items-center justify-center rounded-md transition-all", viewMode === "grid" ? "bg-charcoal text-white" : "text-muted-foreground")}>
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
           </button>
         </div>
@@ -225,11 +225,11 @@ export default function AdminProductsPage() {
         <div className="bg-white border border-border rounded-2xl p-12 text-center">
           <Package className="h-10 w-10 text-border mx-auto mb-3" />
           <p className="text-muted-foreground">No products found</p>
-          <Button onClick={openAdd} variant="outline" className="mt-4 rounded-full text-xs font-semibold tracking-wider uppercase"><Plus className="h-4 w-4 mr-2" />Add your first product</Button>
+          <Button onClick={openAdd} variant="outline" className="mt-4 rounded-full text-xs font-semibold tracking-wider uppercase min-h-[44px]"><Plus className="h-4 w-4 mr-2" />Add your first product</Button>
         </div>
       ) : viewMode === "table" ? (
         /* TABLE VIEW */
-        <div className="bg-white border border-border rounded-2xl overflow-hidden">
+        <div className="hidden sm:block bg-white border border-border rounded-2xl overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
@@ -284,18 +284,22 @@ export default function AdminProductsPage() {
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <button onClick={() => toggleActive(p)} className={cn("relative inline-flex h-5 w-9 items-center rounded-full transition-colors shrink-0", p.isActive ? "bg-gold" : "bg-border")}>
-                          <span className={cn("inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform", p.isActive ? "translate-x-[18px]" : "translate-x-[3px]")} />
-                        </button>
-                        <button onClick={() => toggleFeatured(p)} className={cn("p-1 rounded transition-colors shrink-0", p.isFeatured ? "text-gold" : "text-border hover:text-gold/50")} title={p.isFeatured ? "Unfeature" : "Feature"}>
-                          <Star className={cn("h-4 w-4", p.isFeatured && "fill-gold")} />
-                        </button>
+                        <div className="min-h-[44px] min-w-[44px] flex items-center justify-center">
+                          <button onClick={() => toggleActive(p)} className={cn("relative inline-flex h-5 w-9 items-center rounded-full transition-colors shrink-0", p.isActive ? "bg-gold" : "bg-border")}>
+                            <span className={cn("inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform", p.isActive ? "translate-x-[18px]" : "translate-x-[3px]")} />
+                          </button>
+                        </div>
+                        <div className="min-h-[44px] min-w-[44px] flex items-center justify-center">
+                          <button onClick={() => toggleFeatured(p)} className={cn("p-2.5 rounded transition-colors shrink-0", p.isFeatured ? "text-gold" : "text-border hover:text-gold/50")} title={p.isFeatured ? "Unfeature" : "Feature"}>
+                            <Star className={cn("h-4 w-4", p.isFeatured && "fill-gold")} />
+                          </button>
+                        </div>
                       </div>
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-1">
-                        <button onClick={() => openEdit(p)} className="p-1.5 rounded-lg text-muted-foreground hover:text-gold hover:bg-gold/10 transition-colors"><Pencil className="h-4 w-4" /></button>
-                        <button onClick={() => handleDelete(p)} className="p-1.5 rounded-lg text-muted-foreground hover:text-red-500 hover:bg-red-50 transition-colors"><Trash2 className="h-4 w-4" /></button>
+                        <button onClick={() => openEdit(p)} className="p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg text-muted-foreground hover:text-gold hover:bg-gold/10 transition-colors"><Pencil className="h-4 w-4" /></button>
+                        <button onClick={() => handleDelete(p)} className="p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg text-muted-foreground hover:text-red-500 hover:bg-red-50 transition-colors"><Trash2 className="h-4 w-4" /></button>
                       </div>
                     </td>
                   </tr>
@@ -309,7 +313,7 @@ export default function AdminProductsPage() {
         </div>
       ) : (
         /* GRID VIEW */
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {products.map((p) => (
             <div key={p.id} className="bg-white border border-border rounded-xl overflow-hidden group hover:shadow-md transition-all">
               <div className="aspect-[4/3] bg-cream flex items-center justify-center relative">
@@ -332,12 +336,14 @@ export default function AdminProductsPage() {
                   <span className="text-xs text-muted-foreground">{p.orderCount} orders</span>
                 </div>
                 <div className="flex items-center gap-2 mt-4 pt-3 border-t border-border/50">
-                  <button onClick={() => toggleActive(p)} className={cn("relative inline-flex h-5 w-9 items-center rounded-full transition-colors", p.isActive ? "bg-gold" : "bg-border")}>
-                    <span className={cn("inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform", p.isActive ? "translate-x-[18px]" : "translate-x-[3px]")} />
-                  </button>
+                  <div className="min-h-[44px] min-w-[44px] flex items-center justify-center">
+                    <button onClick={() => toggleActive(p)} className={cn("relative inline-flex h-5 w-9 items-center rounded-full transition-colors", p.isActive ? "bg-gold" : "bg-border")}>
+                      <span className={cn("inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform", p.isActive ? "translate-x-[18px]" : "translate-x-[3px]")} />
+                    </button>
+                  </div>
                   <div className="flex-1" />
-                  <button onClick={() => openEdit(p)} className="p-1.5 rounded-lg text-muted-foreground hover:text-gold hover:bg-gold/10 transition-colors"><Pencil className="h-3.5 w-3.5" /></button>
-                  <button onClick={() => handleDelete(p)} className="p-1.5 rounded-lg text-muted-foreground hover:text-red-500 hover:bg-red-50 transition-colors"><Trash2 className="h-3.5 w-3.5" /></button>
+                  <button onClick={() => openEdit(p)} className="p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg text-muted-foreground hover:text-gold hover:bg-gold/10 transition-colors"><Pencil className="h-3.5 w-3.5" /></button>
+                  <button onClick={() => handleDelete(p)} className="p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg text-muted-foreground hover:text-red-500 hover:bg-red-50 transition-colors"><Trash2 className="h-3.5 w-3.5" /></button>
                 </div>
               </div>
             </div>
@@ -352,7 +358,7 @@ export default function AdminProductsPage() {
           <div className="relative bg-white rounded-2xl max-w-2xl w-full shadow-xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between px-6 py-4 border-b border-border sticky top-0 bg-white z-10">
               <h2 className="font-heading text-lg font-semibold text-charcoal">{editing ? "Edit Product" : "Add Product"}</h2>
-              <button onClick={() => setShowModal(false)} className="p-1 rounded-lg text-muted-foreground hover:text-charcoal hover:bg-cream"><X className="h-5 w-5" /></button>
+              <button onClick={() => setShowModal(false)} className="p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg text-muted-foreground hover:text-charcoal hover:bg-cream"><X className="h-5 w-5" /></button>
             </div>
 
             <div className="px-6 py-5 space-y-4">
@@ -360,12 +366,12 @@ export default function AdminProductsPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs font-semibold text-charcoal uppercase tracking-wider">Name *</label>
-                  <input type="text" value={form.name} onChange={(e) => { const n = e.target.value; setForm((p) => ({ ...p, name: n, slug: editing ? p.slug : slugify(n) })); }} placeholder="e.g. Raw Brazilian Bundles" className="mt-1.5 w-full bg-cream border border-border rounded-lg px-4 py-2.5 text-sm text-charcoal placeholder:text-muted-foreground focus:outline-none focus:border-gold" />
+                  <input type="text" value={form.name} onChange={(e) => { const n = e.target.value; setForm((p) => ({ ...p, name: n, slug: editing ? p.slug : slugify(n) })); }} placeholder="e.g. Raw Brazilian Bundles" className="mt-1.5 w-full bg-cream border border-border rounded-lg px-4 py-2.5 min-h-[44px] text-sm text-charcoal placeholder:text-muted-foreground focus:outline-none focus:border-gold" />
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-charcoal uppercase tracking-wider">Slug</label>
                   <div className="flex items-center mt-1.5"><span className="text-sm text-muted-foreground mr-1">/</span>
-                    <input type="text" value={form.slug} onChange={(e) => setForm((p) => ({ ...p, slug: slugify(e.target.value) }))} placeholder="auto-generated" className="w-full bg-cream border border-border rounded-lg px-4 py-2.5 text-sm text-charcoal placeholder:text-muted-foreground focus:outline-none focus:border-gold" />
+                    <input type="text" value={form.slug} onChange={(e) => setForm((p) => ({ ...p, slug: slugify(e.target.value) }))} placeholder="auto-generated" className="w-full bg-cream border border-border rounded-lg px-4 py-2.5 min-h-[44px] text-sm text-charcoal placeholder:text-muted-foreground focus:outline-none focus:border-gold" />
                   </div>
                 </div>
               </div>
@@ -374,14 +380,14 @@ export default function AdminProductsPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs font-semibold text-charcoal uppercase tracking-wider">Category *</label>
-                  <select value={form.categoryId} onChange={(e) => setForm((p) => ({ ...p, categoryId: e.target.value }))} className="mt-1.5 w-full bg-cream border border-border rounded-lg px-4 py-2.5 text-sm text-charcoal focus:outline-none focus:border-gold">
+                  <select value={form.categoryId} onChange={(e) => setForm((p) => ({ ...p, categoryId: e.target.value }))} className="mt-1.5 w-full bg-cream border border-border rounded-lg px-4 min-h-[44px] text-sm text-charcoal focus:outline-none focus:border-gold">
                     <option value="">Select category</option>
                     {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-charcoal uppercase tracking-wider">SKU</label>
-                  <input type="text" value={form.sku} onChange={(e) => setForm((p) => ({ ...p, sku: e.target.value }))} placeholder="Optional" className="mt-1.5 w-full bg-cream border border-border rounded-lg px-4 py-2.5 text-sm text-charcoal placeholder:text-muted-foreground focus:outline-none focus:border-gold" />
+                  <input type="text" value={form.sku} onChange={(e) => setForm((p) => ({ ...p, sku: e.target.value }))} placeholder="Optional" className="mt-1.5 w-full bg-cream border border-border rounded-lg px-4 py-2.5 min-h-[44px] text-sm text-charcoal placeholder:text-muted-foreground focus:outline-none focus:border-gold" />
                 </div>
               </div>
 
@@ -395,7 +401,7 @@ export default function AdminProductsPage() {
                       <button
                         type="button"
                         onClick={() => setForm((p) => ({ ...p, image: "" }))}
-                        className="absolute -top-2 -right-2 h-6 w-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600"
+                        className="absolute -top-2 -right-2 min-h-[44px] min-w-[44px] bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600"
                       >
                         <X className="h-3 w-3" />
                       </button>
@@ -444,7 +450,7 @@ export default function AdminProductsPage() {
                               const updated = parsed.filter((_: string, i: number) => i !== idx);
                               setForm((p) => ({ ...p, images: JSON.stringify(updated) }));
                             }}
-                            className="absolute -top-1.5 -right-1.5 h-5 w-5 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600"
+                            className="absolute -top-1.5 -right-1.5 min-h-[44px] min-w-[44px] bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600"
                           >
                             <X className="h-2.5 w-2.5" />
                           </button>
@@ -481,70 +487,74 @@ export default function AdminProductsPage() {
               </div>
 
               {/* Row 3: Price + Compare Price */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs font-semibold text-charcoal uppercase tracking-wider">Price (₦) *</label>
-                  <input type="number" value={form.price || ""} onChange={(e) => setForm((p) => ({ ...p, price: Number(e.target.value) }))} min={0} className="mt-1.5 w-full bg-cream border border-border rounded-lg px-4 py-2.5 text-sm text-charcoal focus:outline-none focus:border-gold" />
+                  <input type="number" value={form.price || ""} onChange={(e) => setForm((p) => ({ ...p, price: Number(e.target.value) }))} min={0} className="mt-1.5 w-full bg-cream border border-border rounded-lg px-4 py-2.5 min-h-[44px] text-sm text-charcoal focus:outline-none focus:border-gold" />
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-charcoal uppercase tracking-wider">Compare Price (₦)</label>
-                  <input type="number" value={form.comparePrice || ""} onChange={(e) => setForm((p) => ({ ...p, comparePrice: Number(e.target.value) }))} min={0} placeholder="Optional" className="mt-1.5 w-full bg-cream border border-border rounded-lg px-4 py-2.5 text-sm text-charcoal placeholder:text-muted-foreground focus:outline-none focus:border-gold" />
+                  <input type="number" value={form.comparePrice || ""} onChange={(e) => setForm((p) => ({ ...p, comparePrice: Number(e.target.value) }))} min={0} placeholder="Optional" className="mt-1.5 w-full bg-cream border border-border rounded-lg px-4 py-2.5 min-h-[44px] text-sm text-charcoal placeholder:text-muted-foreground focus:outline-none focus:border-gold" />
                 </div>
               </div>
 
               {/* Row 4: Stock + Low Stock */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs font-semibold text-charcoal uppercase tracking-wider">Stock Quantity</label>
-                  <input type="number" value={form.stock} onChange={(e) => setForm((p) => ({ ...p, stock: Number(e.target.value) }))} min={0} className="mt-1.5 w-full bg-cream border border-border rounded-lg px-4 py-2.5 text-sm text-charcoal focus:outline-none focus:border-gold" />
+                  <input type="number" value={form.stock} onChange={(e) => setForm((p) => ({ ...p, stock: Number(e.target.value) }))} min={0} className="mt-1.5 w-full bg-cream border border-border rounded-lg px-4 py-2.5 min-h-[44px] text-sm text-charcoal focus:outline-none focus:border-gold" />
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-charcoal uppercase tracking-wider">Low Stock Threshold</label>
-                  <input type="number" value={form.lowStock} onChange={(e) => setForm((p) => ({ ...p, lowStock: Number(e.target.value) }))} min={0} className="mt-1.5 w-full bg-cream border border-border rounded-lg px-4 py-2.5 text-sm text-charcoal focus:outline-none focus:border-gold" />
+                  <input type="number" value={form.lowStock} onChange={(e) => setForm((p) => ({ ...p, lowStock: Number(e.target.value) }))} min={0} className="mt-1.5 w-full bg-cream border border-border rounded-lg px-4 py-2.5 min-h-[44px] text-sm text-charcoal focus:outline-none focus:border-gold" />
                 </div>
               </div>
 
               {/* Description */}
               <div>
                 <label className="text-xs font-semibold text-charcoal uppercase tracking-wider">Description</label>
-                <textarea value={form.description} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))} placeholder="Full product description..." rows={4} className="mt-1.5 w-full bg-cream border border-border rounded-lg px-4 py-2.5 text-sm text-charcoal placeholder:text-muted-foreground focus:outline-none focus:border-gold resize-none" />
+                <textarea value={form.description} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))} placeholder="Full product description..." rows={4} className="mt-1.5 w-full bg-cream border border-border rounded-lg px-4 py-2.5 min-h-[44px] text-sm text-charcoal placeholder:text-muted-foreground focus:outline-none focus:border-gold resize-none" />
               </div>
 
               {/* Short Description */}
               <div>
                 <label className="text-xs font-semibold text-charcoal uppercase tracking-wider">Short Description</label>
-                <input type="text" value={form.shortDesc} onChange={(e) => setForm((p) => ({ ...p, shortDesc: e.target.value }))} placeholder="Brief one-liner..." className="mt-1.5 w-full bg-cream border border-border rounded-lg px-4 py-2.5 text-sm text-charcoal placeholder:text-muted-foreground focus:outline-none focus:border-gold" />
+                <input type="text" value={form.shortDesc} onChange={(e) => setForm((p) => ({ ...p, shortDesc: e.target.value }))} placeholder="Brief one-liner..." className="mt-1.5 w-full bg-cream border border-border rounded-lg px-4 py-2.5 min-h-[44px] text-sm text-charcoal placeholder:text-muted-foreground focus:outline-none focus:border-gold" />
               </div>
 
               {/* Hair Attributes */}
               <div>
                 <label className="text-xs font-semibold text-charcoal uppercase tracking-wider">Hair Attributes (optional)</label>
-                <div className="grid grid-cols-3 gap-3 mt-1.5">
-                  <input type="text" value={form.hairTexture} onChange={(e) => setForm((p) => ({ ...p, hairTexture: e.target.value }))} placeholder="Texture" className="bg-cream border border-border rounded-lg px-4 py-2.5 text-sm text-charcoal placeholder:text-muted-foreground focus:outline-none focus:border-gold" />
-                  <input type="text" value={form.hairLength} onChange={(e) => setForm((p) => ({ ...p, hairLength: e.target.value }))} placeholder="Length" className="bg-cream border border-border rounded-lg px-4 py-2.5 text-sm text-charcoal placeholder:text-muted-foreground focus:outline-none focus:border-gold" />
-                  <input type="text" value={form.hairColor} onChange={(e) => setForm((p) => ({ ...p, hairColor: e.target.value }))} placeholder="Color" className="bg-cream border border-border rounded-lg px-4 py-2.5 text-sm text-charcoal placeholder:text-muted-foreground focus:outline-none focus:border-gold" />
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-1.5">
+                  <input type="text" value={form.hairTexture} onChange={(e) => setForm((p) => ({ ...p, hairTexture: e.target.value }))} placeholder="Texture" className="bg-cream border border-border rounded-lg px-4 py-2.5 min-h-[44px] text-sm text-charcoal placeholder:text-muted-foreground focus:outline-none focus:border-gold" />
+                  <input type="text" value={form.hairLength} onChange={(e) => setForm((p) => ({ ...p, hairLength: e.target.value }))} placeholder="Length" className="bg-cream border border-border rounded-lg px-4 py-2.5 min-h-[44px] text-sm text-charcoal placeholder:text-muted-foreground focus:outline-none focus:border-gold" />
+                  <input type="text" value={form.hairColor} onChange={(e) => setForm((p) => ({ ...p, hairColor: e.target.value }))} placeholder="Color" className="bg-cream border border-border rounded-lg px-4 py-2.5 min-h-[44px] text-sm text-charcoal placeholder:text-muted-foreground focus:outline-none focus:border-gold" />
                 </div>
               </div>
 
               {/* Tags */}
               <div>
                 <label className="text-xs font-semibold text-charcoal uppercase tracking-wider">Tags (comma separated)</label>
-                <input type="text" value={form.tags} onChange={(e) => setForm((p) => ({ ...p, tags: e.target.value }))} placeholder="e.g. bestseller, new, premium" className="mt-1.5 w-full bg-cream border border-border rounded-lg px-4 py-2.5 text-sm text-charcoal placeholder:text-muted-foreground focus:outline-none focus:border-gold" />
+                <input type="text" value={form.tags} onChange={(e) => setForm((p) => ({ ...p, tags: e.target.value }))} placeholder="e.g. bestseller, new, premium" className="mt-1.5 w-full bg-cream border border-border rounded-lg px-4 py-2.5 min-h-[44px] text-sm text-charcoal placeholder:text-muted-foreground focus:outline-none focus:border-gold" />
               </div>
 
               {/* Toggles */}
               <div className="flex flex-col gap-3 pt-2">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-charcoal">Active</span>
-                  <button type="button" onClick={() => setForm((p) => ({ ...p, isActive: !p.isActive }))} className={cn("relative inline-flex h-5 w-9 items-center rounded-full transition-colors", form.isActive ? "bg-gold" : "bg-border")}>
-                    <span className={cn("inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform", form.isActive ? "translate-x-[18px]" : "translate-x-[3px]")} />
-                  </button>
+                  <div className="min-h-[44px] min-w-[44px] flex items-center justify-center">
+                    <button type="button" onClick={() => setForm((p) => ({ ...p, isActive: !p.isActive }))} className={cn("relative inline-flex h-5 w-9 items-center rounded-full transition-colors", form.isActive ? "bg-gold" : "bg-border")}>
+                      <span className={cn("inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform", form.isActive ? "translate-x-[18px]" : "translate-x-[3px]")} />
+                    </button>
+                  </div>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-charcoal">Featured</span>
-                  <button type="button" onClick={() => setForm((p) => ({ ...p, isFeatured: !p.isFeatured }))} className={cn("relative inline-flex h-5 w-9 items-center rounded-full transition-colors", form.isFeatured ? "bg-gold" : "bg-border")}>
-                    <span className={cn("inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform", form.isFeatured ? "translate-x-[18px]" : "translate-x-[3px]")} />
-                  </button>
+                  <div className="min-h-[44px] min-w-[44px] flex items-center justify-center">
+                    <button type="button" onClick={() => setForm((p) => ({ ...p, isFeatured: !p.isFeatured }))} className={cn("relative inline-flex h-5 w-9 items-center rounded-full transition-colors", form.isFeatured ? "bg-gold" : "bg-border")}>
+                      <span className={cn("inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform", form.isFeatured ? "translate-x-[18px]" : "translate-x-[3px]")} />
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -552,8 +562,8 @@ export default function AdminProductsPage() {
             </div>
 
             <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-border sticky bottom-0 bg-white">
-              <Button variant="outline" onClick={() => setShowModal(false)} className="rounded-full text-xs font-semibold tracking-wider uppercase">Cancel</Button>
-              <Button onClick={handleSave} disabled={saving} className="bg-gold text-white hover:bg-gold-dark rounded-full text-xs font-semibold tracking-wider uppercase px-6">
+              <Button variant="outline" onClick={() => setShowModal(false)} className="rounded-full text-xs font-semibold tracking-wider uppercase min-h-[44px]">Cancel</Button>
+              <Button onClick={handleSave} disabled={saving} className="bg-gold text-white hover:bg-gold-dark rounded-full text-xs font-semibold tracking-wider uppercase px-6 min-h-[44px]">
                 {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                 {editing ? "Update" : "Create"}
               </Button>

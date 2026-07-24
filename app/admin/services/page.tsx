@@ -231,32 +231,29 @@ export default function AdminServicesPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="font-heading text-2xl font-bold text-charcoal tracking-tight">Services</h1>
           <p className="text-sm text-muted-foreground mt-1">Manage your salon services and pricing</p>
         </div>
-        <Button onClick={openAdd} className="bg-gold text-white hover:bg-gold-dark rounded-full text-xs font-semibold tracking-wider uppercase px-6">
+        <Button onClick={openAdd} className="bg-gold text-white hover:bg-gold-dark rounded-full text-xs font-semibold tracking-wider uppercase px-6 min-h-[44px]">
           <Plus className="h-4 w-4 mr-2" />Add Service
         </Button>
       </div>
 
-      {/* Messages */}
       {successMsg && (
         <div className="bg-green-50 border border-green-200 text-green-700 text-sm rounded-lg px-4 py-3 flex items-center justify-between">
           <span>{successMsg}</span>
-          <button onClick={() => setSuccessMsg("")}><X className="h-4 w-4" /></button>
+          <button onClick={() => setSuccessMsg("")} className="min-h-[44px] min-w-[44px] flex items-center justify-center"><X className="h-4 w-4" /></button>
         </div>
       )}
       {errorMsg && (
         <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3 flex items-center justify-between">
           <span>{errorMsg}</span>
-          <button onClick={() => setErrorMsg("")}><X className="h-4 w-4" /></button>
+          <button onClick={() => setErrorMsg("")} className="min-h-[44px] min-w-[44px] flex items-center justify-center"><X className="h-4 w-4" /></button>
         </div>
       )}
 
-      {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -284,7 +281,7 @@ export default function AdminServicesPage() {
               key={status}
               onClick={() => setFilterStatus(status)}
               className={cn(
-                "px-3 py-1.5 rounded-md text-xs font-medium transition-all capitalize",
+                "px-3 py-1.5 rounded-md text-xs font-medium transition-all capitalize min-h-[44px] min-w-[44px] flex items-center justify-center",
                 filterStatus === status ? "bg-charcoal text-white" : "text-muted-foreground hover:text-charcoal"
               )}
             >
@@ -294,7 +291,6 @@ export default function AdminServicesPage() {
         </div>
       </div>
 
-      {/* Table */}
       {loading ? (
         <div className="bg-white border border-border rounded-2xl p-12 text-center">
           <Loader2 className="h-6 w-6 text-gold animate-spin mx-auto" />
@@ -304,102 +300,166 @@ export default function AdminServicesPage() {
         <div className="bg-white border border-border rounded-2xl p-12 text-center">
           <Scissors className="h-10 w-10 text-border mx-auto mb-3" />
           <p className="text-muted-foreground">No services found</p>
-          <Button onClick={openAdd} variant="outline" className="mt-4 rounded-full text-xs font-semibold tracking-wider uppercase">
+          <Button onClick={openAdd} variant="outline" className="mt-4 rounded-full text-xs font-semibold tracking-wider uppercase min-h-[44px]">
             <Plus className="h-4 w-4 mr-2" />Add your first service
           </Button>
         </div>
       ) : (
-        <div className="bg-white border border-border rounded-2xl overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-border bg-cream/50">
-                  <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Service</th>
-                  <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden md:table-cell">Category</th>
-                  <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Price</th>
-                  <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden sm:table-cell">Duration</th>
-                  <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden lg:table-cell">Bookings</th>
-                  <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status</th>
-                  <th className="text-right px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {services.map((s) => (
-                  <tr key={s.id} className="border-b border-border/50 last:border-0 hover:bg-cream/30 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="h-9 w-9 rounded-lg bg-cream flex items-center justify-center shrink-0">
-                          <Scissors className="h-4 w-4 text-gold" />
-                        </div>
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2">
-                            <p className="text-sm font-medium text-charcoal truncate">{s.name}</p>
-                            {s.isPopular && (
-                              <span className="text-[10px] bg-gold/10 text-gold px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
-                                <Star className="h-2.5 w-2.5 fill-gold" />Popular
-                              </span>
-                            )}
-                          </div>
-                          <code className="text-[10px] text-muted-foreground">/{s.slug}</code>
-                        </div>
+        <>
+          <div className="sm:hidden space-y-3">
+            {services.map((s) => (
+              <div key={s.id} className="bg-white border border-border rounded-2xl p-4 space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div className="h-9 w-9 rounded-lg bg-cream flex items-center justify-center shrink-0">
+                      <Scissors className="h-4 w-4 text-gold" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-sm font-medium text-charcoal truncate">{s.name}</p>
+                        {s.isPopular && (
+                          <span className="text-[10px] bg-gold/10 text-gold px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
+                            <Star className="h-2.5 w-2.5 fill-gold" />Popular
+                          </span>
+                        )}
                       </div>
-                    </td>
-                    <td className="px-6 py-4 hidden md:table-cell">
                       <span className="text-[10px] bg-cream px-2.5 py-1 rounded-full text-muted-foreground font-medium">{s.category.name}</span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="text-sm font-semibold text-charcoal">₦{s.price.toLocaleString()}</span>
-                      {s.depositAmount ? (
-                        <p className="text-[10px] text-muted-foreground">₦{s.depositAmount.toLocaleString()} deposit</p>
-                      ) : null}
-                    </td>
-                    <td className="px-6 py-4 hidden sm:table-cell">
-                      <span className="text-sm text-muted-foreground">{formatDuration(s.duration)}</span>
-                    </td>
-                    <td className="px-6 py-4 hidden lg:table-cell">
-                      <span className="text-sm text-muted-foreground">{s.appointmentCount}</span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <button onClick={() => toggleActive(s)} className={cn(
-                          "relative inline-flex h-5 w-9 items-center rounded-full transition-colors shrink-0",
-                          s.isActive ? "bg-gold" : "bg-border"
-                        )}>
-                          <span className={cn(
-                            "inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform",
-                            s.isActive ? "translate-x-[18px]" : "translate-x-[3px]"
-                          )} />
-                        </button>
-                        <button onClick={() => togglePopular(s)} className={cn(
-                          "p-1 rounded transition-colors shrink-0",
-                          s.isPopular ? "text-gold" : "text-border hover:text-gold/50"
-                        )} title={s.isPopular ? "Remove from popular" : "Mark as popular"}>
-                          <Star className={cn("h-4 w-4", s.isPopular && "fill-gold")} />
-                        </button>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <button onClick={() => openEdit(s)} className="p-1.5 rounded-lg text-muted-foreground hover:text-gold hover:bg-gold/10 transition-colors">
-                          <Pencil className="h-4 w-4" />
-                        </button>
-                        <button onClick={() => handleDelete(s)} className="p-1.5 rounded-lg text-muted-foreground hover:text-red-500 hover:bg-red-50 transition-colors">
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </td>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button onClick={() => openEdit(s)} className="p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg text-muted-foreground hover:text-gold hover:bg-gold/10 transition-colors">
+                      <Pencil className="h-4 w-4" />
+                    </button>
+                    <button onClick={() => handleDelete(s)} className="p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg text-muted-foreground hover:text-red-500 hover:bg-red-50 transition-colors">
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+                <div className="flex items-center gap-4 text-sm">
+                  <span className="font-semibold text-charcoal">₦{s.price.toLocaleString()}</span>
+                  <span className="text-muted-foreground">{formatDuration(s.duration)}</span>
+                  <span className="text-muted-foreground">{s.appointmentCount} bookings</span>
+                </div>
+                <div className="flex items-center gap-4 pt-1">
+                  <div className="min-h-[44px] flex items-center gap-2">
+                    <button onClick={() => toggleActive(s)} className={cn(
+                      "relative inline-flex h-5 w-9 items-center rounded-full transition-colors shrink-0",
+                      s.isActive ? "bg-gold" : "bg-border"
+                    )}>
+                      <span className={cn(
+                        "inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform",
+                        s.isActive ? "translate-x-[18px]" : "translate-x-[3px]"
+                      )} />
+                    </button>
+                    <span className="text-xs text-muted-foreground">{s.isActive ? "Active" : "Inactive"}</span>
+                  </div>
+                  <div className="min-h-[44px] flex items-center">
+                    <button onClick={() => togglePopular(s)} className={cn(
+                      "p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center rounded transition-colors shrink-0",
+                      s.isPopular ? "text-gold" : "text-border hover:text-gold/50"
+                    )} title={s.isPopular ? "Remove from popular" : "Mark as popular"}>
+                      <Star className={cn("h-4 w-4", s.isPopular && "fill-gold")} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+            <div className="px-1 py-1">
+              <p className="text-xs text-muted-foreground">{services.length} services</p>
+            </div>
+          </div>
+
+          <div className="hidden sm:block bg-white border border-border rounded-2xl overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-border bg-cream/50">
+                    <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Service</th>
+                    <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden md:table-cell">Category</th>
+                    <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Price</th>
+                    <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden sm:table-cell">Duration</th>
+                    <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden lg:table-cell">Bookings</th>
+                    <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status</th>
+                    <th className="text-right px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {services.map((s) => (
+                    <tr key={s.id} className="border-b border-border/50 last:border-0 hover:bg-cream/30 transition-colors">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="h-9 w-9 rounded-lg bg-cream flex items-center justify-center shrink-0">
+                            <Scissors className="h-4 w-4 text-gold" />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm font-medium text-charcoal truncate">{s.name}</p>
+                              {s.isPopular && (
+                                <span className="text-[10px] bg-gold/10 text-gold px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
+                                  <Star className="h-2.5 w-2.5 fill-gold" />Popular
+                                </span>
+                              )}
+                            </div>
+                            <code className="text-[10px] text-muted-foreground">/{s.slug}</code>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 hidden md:table-cell">
+                        <span className="text-[10px] bg-cream px-2.5 py-1 rounded-full text-muted-foreground font-medium">{s.category.name}</span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-sm font-semibold text-charcoal">₦{s.price.toLocaleString()}</span>
+                        {s.depositAmount ? (
+                          <p className="text-[10px] text-muted-foreground">₦{s.depositAmount.toLocaleString()} deposit</p>
+                        ) : null}
+                      </td>
+                      <td className="px-6 py-4 hidden sm:table-cell">
+                        <span className="text-sm text-muted-foreground">{formatDuration(s.duration)}</span>
+                      </td>
+                      <td className="px-6 py-4 hidden lg:table-cell">
+                        <span className="text-sm text-muted-foreground">{s.appointmentCount}</span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3 min-h-[44px]">
+                          <button onClick={() => toggleActive(s)} className={cn(
+                            "relative inline-flex h-5 w-9 items-center rounded-full transition-colors shrink-0",
+                            s.isActive ? "bg-gold" : "bg-border"
+                          )}>
+                            <span className={cn(
+                              "inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform",
+                              s.isActive ? "translate-x-[18px]" : "translate-x-[3px]"
+                            )} />
+                          </button>
+                          <button onClick={() => togglePopular(s)} className={cn(
+                            "p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center rounded transition-colors shrink-0",
+                            s.isPopular ? "text-gold" : "text-border hover:text-gold/50"
+                          )} title={s.isPopular ? "Remove from popular" : "Mark as popular"}>
+                            <Star className={cn("h-4 w-4", s.isPopular && "fill-gold")} />
+                          </button>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <button onClick={() => openEdit(s)} className="p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg text-muted-foreground hover:text-gold hover:bg-gold/10 transition-colors">
+                            <Pencil className="h-4 w-4" />
+                          </button>
+                          <button onClick={() => handleDelete(s)} className="p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg text-muted-foreground hover:text-red-500 hover:bg-red-50 transition-colors">
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="px-6 py-3 border-t border-border bg-cream/30">
+              <p className="text-xs text-muted-foreground">{services.length} services</p>
+            </div>
           </div>
-          <div className="px-6 py-3 border-t border-border bg-cream/30">
-            <p className="text-xs text-muted-foreground">{services.length} services</p>
-          </div>
-        </div>
+        </>
       )}
 
-      {/* Modal */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-black/50" onClick={() => setShowModal(false)} />
@@ -408,13 +468,12 @@ export default function AdminServicesPage() {
               <h2 className="font-heading text-lg font-semibold text-charcoal">
                 {editingService ? "Edit Service" : "Add Service"}
               </h2>
-              <button onClick={() => setShowModal(false)} className="p-1 rounded-lg text-muted-foreground hover:text-charcoal hover:bg-cream">
+              <button onClick={() => setShowModal(false)} className="p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg text-muted-foreground hover:text-charcoal hover:bg-cream">
                 <X className="h-5 w-5" />
               </button>
             </div>
 
             <div className="px-6 py-5 space-y-4">
-              {/* Name */}
               <div>
                 <label className="text-xs font-semibold text-charcoal uppercase tracking-wider">Name *</label>
                 <input
@@ -429,7 +488,6 @@ export default function AdminServicesPage() {
                 />
               </div>
 
-              {/* Slug */}
               <div>
                 <label className="text-xs font-semibold text-charcoal uppercase tracking-wider">Slug</label>
                 <div className="flex items-center mt-1.5">
@@ -444,7 +502,6 @@ export default function AdminServicesPage() {
                 </div>
               </div>
 
-              {/* Category */}
               <div>
                 <label className="text-xs font-semibold text-charcoal uppercase tracking-wider">Category *</label>
                 <select
@@ -459,7 +516,6 @@ export default function AdminServicesPage() {
                 </select>
               </div>
 
-              {/* Description */}
               <div>
                 <label className="text-xs font-semibold text-charcoal uppercase tracking-wider">Description</label>
                 <textarea
@@ -471,7 +527,6 @@ export default function AdminServicesPage() {
                 />
               </div>
 
-              {/* Price + Duration */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs font-semibold text-charcoal uppercase tracking-wider">Price (₦) *</label>
@@ -496,7 +551,6 @@ export default function AdminServicesPage() {
                 </div>
               </div>
 
-              {/* Deposit */}
               <div>
                 <label className="text-xs font-semibold text-charcoal uppercase tracking-wider">Deposit Amount (₦)</label>
                 <input
@@ -510,19 +564,22 @@ export default function AdminServicesPage() {
                 <p className="text-[10px] text-muted-foreground mt-1">Leave 0 for no deposit requirement</p>
               </div>
 
-              {/* Toggles */}
               <div className="flex flex-col gap-3 pt-2">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between min-h-[44px]">
                   <span className="text-sm text-charcoal">Active</span>
-                  <button type="button" onClick={() => setFormData((prev) => ({ ...prev, isActive: !prev.isActive }))} className={cn("relative inline-flex h-5 w-9 items-center rounded-full transition-colors", formData.isActive ? "bg-gold" : "bg-border")}>
-                    <span className={cn("inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform", formData.isActive ? "translate-x-[18px]" : "translate-x-[3px]")} />
-                  </button>
+                  <div className="min-h-[44px] min-w-[44px] flex items-center justify-center">
+                    <button type="button" onClick={() => setFormData((prev) => ({ ...prev, isActive: !prev.isActive }))} className={cn("relative inline-flex h-5 w-9 items-center rounded-full transition-colors", formData.isActive ? "bg-gold" : "bg-border")}>
+                      <span className={cn("inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform", formData.isActive ? "translate-x-[18px]" : "translate-x-[3px]")} />
+                    </button>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between min-h-[44px]">
                   <span className="text-sm text-charcoal">Popular</span>
-                  <button type="button" onClick={() => setFormData((prev) => ({ ...prev, isPopular: !prev.isPopular }))} className={cn("relative inline-flex h-5 w-9 items-center rounded-full transition-colors", formData.isPopular ? "bg-gold" : "bg-border")}>
-                    <span className={cn("inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform", formData.isPopular ? "translate-x-[18px]" : "translate-x-[3px]")} />
-                  </button>
+                  <div className="min-h-[44px] min-w-[44px] flex items-center justify-center">
+                    <button type="button" onClick={() => setFormData((prev) => ({ ...prev, isPopular: !prev.isPopular }))} className={cn("relative inline-flex h-5 w-9 items-center rounded-full transition-colors", formData.isPopular ? "bg-gold" : "bg-border")}>
+                      <span className={cn("inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform", formData.isPopular ? "translate-x-[18px]" : "translate-x-[3px]")} />
+                    </button>
+                  </div>
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-charcoal uppercase tracking-wider">Sort Order</label>
@@ -540,10 +597,10 @@ export default function AdminServicesPage() {
             </div>
 
             <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-border sticky bottom-0 bg-white">
-              <Button variant="outline" onClick={() => setShowModal(false)} className="rounded-full text-xs font-semibold tracking-wider uppercase">
+              <Button variant="outline" onClick={() => setShowModal(false)} className="rounded-full text-xs font-semibold tracking-wider uppercase min-h-[44px]">
                 Cancel
               </Button>
-              <Button onClick={handleSave} disabled={saving} className="bg-gold text-white hover:bg-gold-dark rounded-full text-xs font-semibold tracking-wider uppercase px-6">
+              <Button onClick={handleSave} disabled={saving} className="bg-gold text-white hover:bg-gold-dark rounded-full text-xs font-semibold tracking-wider uppercase px-6 min-h-[44px]">
                 {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                 {editingService ? "Update" : "Create"}
               </Button>

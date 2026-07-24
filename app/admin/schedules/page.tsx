@@ -184,7 +184,7 @@ export default function AdminSchedulesPage() {
         <select
           value={selectedStylist}
           onChange={(e) => setSelectedStylist(e.target.value)}
-          className="w-full max-w-xs bg-white border border-border rounded-lg px-4 py-2.5 text-sm text-charcoal focus:outline-none focus:border-gold"
+          className="w-full max-w-xs bg-white border border-border rounded-lg px-4 py-2.5 min-h-[44px] text-sm text-charcoal focus:outline-none focus:border-gold"
         >
           <option value="">Choose a stylist...</option>
           {stylists.map((s) => (
@@ -204,13 +204,12 @@ export default function AdminSchedulesPage() {
             </div>
           ) : (
             <div className="grid lg:grid-cols-3 gap-6">
-              {/* Weekly Schedule */}
               <div className="lg:col-span-2 space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="font-heading font-semibold text-charcoal flex items-center gap-2">
                     <Clock className="h-4 w-4 text-gold" /> Weekly Schedule
                   </h3>
-                  <Button onClick={saveAvailability} disabled={saving} className="bg-charcoal text-white hover:bg-charcoal-light rounded-full text-xs font-semibold tracking-wider uppercase px-6">
+                  <Button onClick={saveAvailability} disabled={saving} className="min-h-[44px] bg-charcoal text-white hover:bg-charcoal-light rounded-full text-xs font-semibold tracking-wider uppercase px-6">
                     {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : <Save className="h-3.5 w-3.5 mr-1.5" />}
                     Save
                   </Button>
@@ -223,25 +222,27 @@ export default function AdminSchedulesPage() {
                     <div key={day} className={cn("border border-border rounded-xl p-4 transition-colors", isWorking ? "bg-white" : "bg-cream/30")}>
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-3">
-                          <button
-                            onClick={() => toggleDay(day)}
-                            className={cn("w-10 h-6 rounded-full transition-colors relative", isWorking ? "bg-gold" : "bg-gray-200")}
-                          >
-                            <span className={cn("absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform", isWorking ? "left-[18px]" : "left-0.5")} />
-                          </button>
+                          <div className="min-h-[44px] flex items-center">
+                            <button
+                              onClick={() => toggleDay(day)}
+                              className={cn("w-12 h-7 rounded-full transition-colors relative", isWorking ? "bg-gold" : "bg-gray-200")}
+                            >
+                              <span className={cn("absolute top-0.5 w-6 h-6 bg-white rounded-full shadow transition-transform", isWorking ? "left-[18px]" : "left-0.5")} />
+                            </button>
+                          </div>
                           <span className={cn("text-sm font-semibold", isWorking ? "text-charcoal" : "text-muted-foreground")}>{DAYS[day]}</span>
                         </div>
                         {isWorking && (
-                          <button onClick={() => addSlot(day)} className="text-xs text-gold hover:text-gold-dark flex items-center gap-1">
+                          <button onClick={() => addSlot(day)} className="min-h-[44px] min-w-[44px] p-2 text-xs text-gold hover:text-gold-dark flex items-center gap-1">
                             <Plus className="h-3 w-3" /> Add Slot
                           </button>
                         )}
                       </div>
 
                       {isWorking && (
-                        <div className="space-y-2 ml-[52px]">
+                        <div className="space-y-2 ml-0 sm:ml-[52px]">
                           {slots.map((slot, i) => (
-                            <div key={i} className="flex items-center gap-2">
+                            <div key={i} className="flex flex-wrap items-center gap-2">
                               {slot.isBreak ? (
                                 <Ban className="h-3.5 w-3.5 text-amber-500 shrink-0" />
                               ) : (
@@ -251,22 +252,22 @@ export default function AdminSchedulesPage() {
                                 type="time"
                                 value={slot.startTime}
                                 onChange={(e) => updateSlot(day, i, "startTime", e.target.value)}
-                                className="bg-cream border border-border rounded px-2 py-1 text-xs text-charcoal focus:outline-none focus:border-gold"
+                                className="bg-cream border border-border rounded px-3 py-2.5 min-h-[44px] text-sm text-charcoal focus:outline-none focus:border-gold"
                               />
                               <span className="text-xs text-muted-foreground">to</span>
                               <input
                                 type="time"
                                 value={slot.endTime}
                                 onChange={(e) => updateSlot(day, i, "endTime", e.target.value)}
-                                className="bg-cream border border-border rounded px-2 py-1 text-xs text-charcoal focus:outline-none focus:border-gold"
+                                className="bg-cream border border-border rounded px-3 py-2.5 min-h-[44px] text-sm text-charcoal focus:outline-none focus:border-gold"
                               />
                               <button
                                 onClick={() => updateSlot(day, i, "isBreak", !slot.isBreak)}
-                                className={cn("text-[10px] px-2 py-0.5 rounded-full font-semibold transition-colors", slot.isBreak ? "bg-amber-100 text-amber-700" : "bg-cream text-muted-foreground hover:bg-gray-200")}
+                                className={cn("min-h-[44px] min-w-[44px] text-xs px-3 py-2 rounded-full font-semibold transition-colors", slot.isBreak ? "bg-amber-100 text-amber-700" : "bg-cream text-muted-foreground hover:bg-gray-200")}
                               >
                                 {slot.isBreak ? "Break" : "Work"}
                               </button>
-                              <button onClick={() => removeSlot(day, i)} className="text-muted-foreground hover:text-red-500 transition-colors">
+                              <button onClick={() => removeSlot(day, i)} className="p-2.5 min-h-[44px] min-w-[44px] text-muted-foreground hover:text-red-500 transition-colors flex items-center justify-center">
                                 <Trash2 className="h-3.5 w-3.5" />
                               </button>
                             </div>
@@ -278,7 +279,6 @@ export default function AdminSchedulesPage() {
                 })}
               </div>
 
-              {/* Blocked Dates */}
               <div className="space-y-4">
                 <h3 className="font-heading font-semibold text-charcoal flex items-center gap-2">
                   <CalendarDays className="h-4 w-4 text-gold" /> Blocked Dates
@@ -287,23 +287,23 @@ export default function AdminSchedulesPage() {
                 <div className="bg-white border border-border rounded-xl p-4 space-y-3">
                   <div>
                     <label className="block text-[10px] font-semibold text-charcoal uppercase tracking-wider mb-1">Date *</label>
-                    <input type="date" value={newBlockDate} onChange={(e) => setNewBlockDate(e.target.value)} className="w-full bg-cream border border-border rounded-lg px-3 py-2 text-sm text-charcoal focus:outline-none focus:border-gold" />
+                    <input type="date" value={newBlockDate} onChange={(e) => setNewBlockDate(e.target.value)} className="w-full bg-cream border border-border rounded-lg px-3 py-2.5 min-h-[44px] text-sm text-charcoal focus:outline-none focus:border-gold" />
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <div>
                       <label className="block text-[10px] font-semibold text-charcoal uppercase tracking-wider mb-1">Start (optional)</label>
-                      <input type="time" value={newBlockStart} onChange={(e) => setNewBlockStart(e.target.value)} className="w-full bg-cream border border-border rounded-lg px-3 py-2 text-sm text-charcoal focus:outline-none focus:border-gold" />
+                      <input type="time" value={newBlockStart} onChange={(e) => setNewBlockStart(e.target.value)} className="w-full bg-cream border border-border rounded-lg px-3 py-2.5 min-h-[44px] text-sm text-charcoal focus:outline-none focus:border-gold" />
                     </div>
                     <div>
                       <label className="block text-[10px] font-semibold text-charcoal uppercase tracking-wider mb-1">End (optional)</label>
-                      <input type="time" value={newBlockEnd} onChange={(e) => setNewBlockEnd(e.target.value)} className="w-full bg-cream border border-border rounded-lg px-3 py-2 text-sm text-charcoal focus:outline-none focus:border-gold" />
+                      <input type="time" value={newBlockEnd} onChange={(e) => setNewBlockEnd(e.target.value)} className="w-full bg-cream border border-border rounded-lg px-3 py-2.5 min-h-[44px] text-sm text-charcoal focus:outline-none focus:border-gold" />
                     </div>
                   </div>
                   <div>
                     <label className="block text-[10px] font-semibold text-charcoal uppercase tracking-wider mb-1">Reason</label>
-                    <input type="text" value={newBlockReason} onChange={(e) => setNewBlockReason(e.target.value)} placeholder="e.g. Travel, Vacation" className="w-full bg-cream border border-border rounded-lg px-3 py-2 text-sm text-charcoal placeholder:text-muted-foreground focus:outline-none focus:border-gold" />
+                    <input type="text" value={newBlockReason} onChange={(e) => setNewBlockReason(e.target.value)} placeholder="e.g. Travel, Vacation" className="w-full bg-cream border border-border rounded-lg px-3 py-2.5 min-h-[44px] text-sm text-charcoal placeholder:text-muted-foreground focus:outline-none focus:border-gold" />
                   </div>
-                  <Button onClick={addBlockedTime} disabled={!newBlockDate || addingBlock} className="w-full bg-charcoal text-white hover:bg-charcoal-light rounded-full text-xs font-semibold tracking-wider uppercase">
+                  <Button onClick={addBlockedTime} disabled={!newBlockDate || addingBlock} className="min-h-[44px] w-full bg-charcoal text-white hover:bg-charcoal-light rounded-full text-xs font-semibold tracking-wider uppercase">
                     {addingBlock ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : <Plus className="h-3.5 w-3.5 mr-1.5" />}
                     Block Date
                   </Button>
@@ -327,7 +327,7 @@ export default function AdminSchedulesPage() {
                           )}
                           {b.reason && <p className="text-xs text-muted-foreground mt-0.5">{b.reason}</p>}
                         </div>
-                        <button onClick={() => removeBlockedTime(b.id)} className="text-muted-foreground hover:text-red-500 transition-colors shrink-0">
+                        <button onClick={() => removeBlockedTime(b.id)} className="p-2.5 min-h-[44px] min-w-[44px] text-muted-foreground hover:text-red-500 transition-colors shrink-0 flex items-center justify-center">
                           <Trash2 className="h-4 w-4" />
                         </button>
                       </div>

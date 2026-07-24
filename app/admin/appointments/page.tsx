@@ -130,24 +130,24 @@ export default function AdminAppointmentsPage() {
         <p className="text-sm text-muted-foreground mt-1">Manage all customer bookings</p>
       </div>
 
-      {successMsg && <div className="bg-green-50 border border-green-200 text-green-700 text-sm rounded-lg px-4 py-3 flex items-center justify-between"><span>{successMsg}</span><button onClick={() => setSuccessMsg("")}><X className="h-4 w-4" /></button></div>}
-      {errorMsg && <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3 flex items-center justify-between"><span>{errorMsg}</span><button onClick={() => setErrorMsg("")}><X className="h-4 w-4" /></button></div>}
+      {successMsg && <div className="bg-green-50 border border-green-200 text-green-700 text-sm rounded-lg px-4 py-3 flex items-center justify-between"><span>{successMsg}</span><button onClick={() => setSuccessMsg("")} className="p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center"><X className="h-4 w-4" /></button></div>}
+      {errorMsg && <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3 flex items-center justify-between"><span>{errorMsg}</span><button onClick={() => setErrorMsg("")} className="p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center"><X className="h-4 w-4" /></button></div>}
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
+      <div className="flex flex-col sm:flex-row gap-3 overflow-x-auto">
+        <div className="relative flex-1 min-w-0">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by ref, customer, or service..." className="w-full bg-white border border-border rounded-lg pl-10 pr-4 py-2.5 text-sm text-charcoal placeholder:text-muted-foreground focus:outline-none focus:border-gold" />
         </div>
-        <input type="date" value={filterDate} onChange={(e) => setFilterDate(e.target.value)} className="bg-white border border-border rounded-lg px-4 py-2.5 text-sm text-charcoal focus:outline-none focus:border-gold" />
-        <div className="flex gap-1 bg-white border border-border rounded-lg p-1 flex-wrap">
+        <input type="date" value={filterDate} onChange={(e) => setFilterDate(e.target.value)} className="bg-white border border-border rounded-lg px-4 py-2.5 text-sm text-charcoal focus:outline-none focus:border-gold shrink-0" />
+        <div className="flex gap-1 bg-white border border-border rounded-lg p-1 overflow-x-auto">
           {["all", "pending", "confirmed", "in_progress", "completed", "cancelled"].map((s) => (
-            <button key={s} onClick={() => setFilterStatus(s)} className={cn("px-3 py-1.5 rounded-md text-xs font-medium transition-all capitalize", filterStatus === s ? "bg-charcoal text-white" : "text-muted-foreground hover:text-charcoal")}>{s === "all" ? "All" : statusLabels[s] || s}</button>
+            <button key={s} onClick={() => setFilterStatus(s)} className={cn("px-3 py-2.5 min-h-[44px] rounded-md text-xs font-medium transition-all capitalize whitespace-nowrap shrink-0", filterStatus === s ? "bg-charcoal text-white" : "text-muted-foreground hover:text-charcoal")}>{s === "all" ? "All" : statusLabels[s] || s}</button>
           ))}
         </div>
       </div>
 
-      {/* Table */}
+      {/* Loading / Empty */}
       {loading ? (
         <div className="bg-white border border-border rounded-2xl p-12 text-center">
           <Loader2 className="h-6 w-6 text-gold animate-spin mx-auto" />
@@ -159,60 +159,103 @@ export default function AdminAppointmentsPage() {
           <p className="text-muted-foreground">No appointments found</p>
         </div>
       ) : (
-        <div className="bg-white border border-border rounded-xl overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border bg-cream/50">
-                  {["Ref", "Customer", "Service", "Stylist", "Date & Time", "Status", "Amount", "Actions"].map((h) => (
-                    <th key={h} className="text-left px-5 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {appointments.map((a) => (
-                  <tr key={a.id} className="border-b border-border/50 last:border-0 hover:bg-cream/30">
-                    <td className="px-5 py-4 font-mono text-xs font-medium text-charcoal">{a.reference}</td>
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-2">
-                        <div className="h-7 w-7 rounded-full bg-cream flex items-center justify-center text-[10px] font-bold text-charcoal shrink-0">
-                          {a.customerProfile.user.image ? <img src={a.customerProfile.user.image} alt="" className="h-full w-full rounded-full object-cover" /> : (a.customerProfile.user.name || "?").charAt(0)}
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium text-charcoal truncate">{a.customerProfile.user.name}</p>
-                          <p className="text-[10px] text-muted-foreground truncate">{a.customerProfile.user.email}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-5 py-4 text-charcoal">{a.service.name}</td>
-                    <td className="px-5 py-4 text-muted-foreground">{a.stylist?.user.name || "—"}</td>
-                    <td className="px-5 py-4">
-                      <p className="text-charcoal">{formatDate(a.date)}</p>
-                      <p className="text-[10px] text-muted-foreground">{a.startTime} — {a.endTime}</p>
-                    </td>
-                    <td className="px-5 py-4">
-                      <span className={cn("inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider", statusColors[a.status])}>
-                        {statusLabels[a.status] || a.status}
-                      </span>
-                    </td>
-                    <td className="px-5 py-4 font-medium text-charcoal">₦{a.totalAmount.toLocaleString()}</td>
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-1">
-                        <button onClick={() => { setSelected(a); setShowDetail(true); }} className="p-1.5 rounded-lg text-muted-foreground hover:text-charcoal hover:bg-cream transition-colors" title="View details"><Eye className="h-4 w-4" /></button>
-                        {a.status === "PENDING" && (
-                          <button onClick={() => updateStatus(a.id, "CONFIRMED")} disabled={updatingId === a.id} className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50 transition-colors" title="Confirm"><CheckCircle className="h-4 w-4" /></button>
-                        )}
-                        {["PENDING", "CONFIRMED"].includes(a.status) && (
-                          <button onClick={() => updateStatus(a.id, "CANCELLED")} disabled={updatingId === a.id} className="p-1.5 rounded-lg text-red-500 hover:bg-red-50 transition-colors" title="Cancel"><XCircle className="h-4 w-4" /></button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        <>
+          {/* Mobile Card View */}
+          <div className="sm:hidden space-y-3">
+            {appointments.map((a) => (
+              <div key={a.id} className="bg-white border border-border rounded-xl p-4 space-y-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="font-mono text-xs font-medium text-charcoal">{a.reference}</p>
+                    <p className="text-sm font-medium text-charcoal truncate">{a.customerProfile.user.name}</p>
+                  </div>
+                  <span className={cn("inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider shrink-0", statusColors[a.status])}>
+                    {statusLabels[a.status] || a.status}
+                  </span>
+                </div>
+                <div className="space-y-1 text-sm">
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <User className="h-3 w-3 shrink-0" />
+                    <span className="truncate">{a.service.name}</span>
+                  </div>
+                  <p className="text-muted-foreground text-xs pl-5">{a.stylist?.user.name || "No stylist"}</p>
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Clock className="h-3 w-3 shrink-0" />
+                    <span className="text-xs">{formatDate(a.date)} &middot; {a.startTime} — {a.endTime}</span>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between pt-1 border-t border-border/50">
+                  <p className="text-sm font-medium text-charcoal">₦{a.totalAmount.toLocaleString()}</p>
+                  <div className="flex items-center gap-1">
+                    <button onClick={() => { setSelected(a); setShowDetail(true); }} className="p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg text-muted-foreground hover:text-charcoal hover:bg-cream transition-colors" title="View details"><Eye className="h-4 w-4" /></button>
+                    {a.status === "PENDING" && (
+                      <button onClick={() => updateStatus(a.id, "CONFIRMED")} disabled={updatingId === a.id} className="p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg text-emerald-600 hover:bg-emerald-50 transition-colors" title="Confirm"><CheckCircle className="h-4 w-4" /></button>
+                    )}
+                    {["PENDING", "CONFIRMED"].includes(a.status) && (
+                      <button onClick={() => updateStatus(a.id, "CANCELLED")} disabled={updatingId === a.id} className="p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg text-red-500 hover:bg-red-50 transition-colors" title="Cancel"><XCircle className="h-4 w-4" /></button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
-        </div>
+
+          {/* Desktop Table View */}
+          <div className="hidden sm:block bg-white border border-border rounded-xl overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border bg-cream/50">
+                    {["Ref", "Customer", "Service", "Stylist", "Date & Time", "Status", "Amount", "Actions"].map((h) => (
+                      <th key={h} className="text-left px-5 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {appointments.map((a) => (
+                    <tr key={a.id} className="border-b border-border/50 last:border-0 hover:bg-cream/30">
+                      <td className="px-5 py-4 font-mono text-xs font-medium text-charcoal">{a.reference}</td>
+                      <td className="px-5 py-4">
+                        <div className="flex items-center gap-2">
+                          <div className="h-7 w-7 rounded-full bg-cream flex items-center justify-center text-[10px] font-bold text-charcoal shrink-0">
+                            {a.customerProfile.user.image ? <img src={a.customerProfile.user.image} alt="" className="h-full w-full rounded-full object-cover" /> : (a.customerProfile.user.name || "?").charAt(0)}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-charcoal truncate">{a.customerProfile.user.name}</p>
+                            <p className="text-[10px] text-muted-foreground truncate">{a.customerProfile.user.email}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-5 py-4 text-charcoal">{a.service.name}</td>
+                      <td className="px-5 py-4 text-muted-foreground">{a.stylist?.user.name || "—"}</td>
+                      <td className="px-5 py-4">
+                        <p className="text-charcoal">{formatDate(a.date)}</p>
+                        <p className="text-[10px] text-muted-foreground">{a.startTime} — {a.endTime}</p>
+                      </td>
+                      <td className="px-5 py-4">
+                        <span className={cn("inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider", statusColors[a.status])}>
+                          {statusLabels[a.status] || a.status}
+                        </span>
+                      </td>
+                      <td className="px-5 py-4 font-medium text-charcoal">₦{a.totalAmount.toLocaleString()}</td>
+                      <td className="px-5 py-4">
+                        <div className="flex items-center gap-1">
+                          <button onClick={() => { setSelected(a); setShowDetail(true); }} className="p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg text-muted-foreground hover:text-charcoal hover:bg-cream transition-colors" title="View details"><Eye className="h-4 w-4" /></button>
+                          {a.status === "PENDING" && (
+                            <button onClick={() => updateStatus(a.id, "CONFIRMED")} disabled={updatingId === a.id} className="p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg text-emerald-600 hover:bg-emerald-50 transition-colors" title="Confirm"><CheckCircle className="h-4 w-4" /></button>
+                          )}
+                          {["PENDING", "CONFIRMED"].includes(a.status) && (
+                            <button onClick={() => updateStatus(a.id, "CANCELLED")} disabled={updatingId === a.id} className="p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg text-red-500 hover:bg-red-50 transition-colors" title="Cancel"><XCircle className="h-4 w-4" /></button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
       )}
 
       {/* Detail Modal */}
@@ -225,7 +268,7 @@ export default function AdminAppointmentsPage() {
                 <h2 className="font-heading text-lg font-semibold text-charcoal">Appointment Details</h2>
                 <p className="text-xs text-muted-foreground font-mono">{selected.reference}</p>
               </div>
-              <button onClick={() => setShowDetail(false)} className="p-1 rounded-lg text-muted-foreground hover:text-charcoal hover:bg-cream"><X className="h-5 w-5" /></button>
+              <button onClick={() => setShowDetail(false)} className="p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg text-muted-foreground hover:text-charcoal hover:bg-cream"><X className="h-5 w-5" /></button>
             </div>
 
             <div className="px-6 py-5 space-y-5">
@@ -236,7 +279,7 @@ export default function AdminAppointmentsPage() {
               </div>
 
               {/* Info Grid */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="bg-cream rounded-lg p-3">
                   <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Service</p>
                   <p className="text-sm font-medium text-charcoal mt-0.5">{selected.service.name}</p>

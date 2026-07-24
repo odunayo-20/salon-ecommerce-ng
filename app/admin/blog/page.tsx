@@ -165,22 +165,22 @@ export default function AdminBlogPage() {
           <h1 className="font-heading text-2xl font-bold text-charcoal tracking-tight">Blog Posts</h1>
           <p className="text-sm text-muted-foreground mt-1">{posts.length} total posts</p>
         </div>
-        <Button onClick={openAdd} className="bg-gold text-white hover:bg-gold-dark rounded-full text-xs font-semibold tracking-wider uppercase px-6">
+        <Button onClick={openAdd} className="bg-gold text-white hover:bg-gold-dark rounded-full text-xs font-semibold tracking-wider uppercase px-6 min-h-[44px] min-w-[44px]">
           <Plus className="h-4 w-4 mr-2" />New Post
         </Button>
       </div>
 
-      {successMsg && <div className="bg-green-50 border border-green-200 text-green-700 text-sm rounded-lg px-4 py-3 flex items-center justify-between"><span>{successMsg}</span><button onClick={() => setSuccessMsg("")}><X className="h-4 w-4" /></button></div>}
-      {errorMsg && <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3 flex items-center justify-between"><span>{errorMsg}</span><button onClick={() => setErrorMsg("")}><X className="h-4 w-4" /></button></div>}
+      {successMsg && <div className="bg-green-50 border border-green-200 text-green-700 text-sm rounded-lg px-4 py-3 flex items-center justify-between"><span>{successMsg}</span><button onClick={() => setSuccessMsg("")} className="min-h-[44px] min-w-[44px] flex items-center justify-center"><X className="h-4 w-4" /></button></div>}
+      {errorMsg && <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3 flex items-center justify-between"><span>{errorMsg}</span><button onClick={() => setErrorMsg("")} className="min-h-[44px] min-w-[44px] flex items-center justify-center"><X className="h-4 w-4" /></button></div>}
 
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search posts..." className="w-full bg-white border border-border rounded-lg pl-10 pr-4 py-2.5 text-sm text-charcoal placeholder:text-muted-foreground focus:outline-none focus:border-gold" />
+          <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search posts..." className="w-full bg-white border border-border rounded-lg pl-10 pr-4 py-2.5 text-sm text-charcoal placeholder:text-muted-foreground focus:outline-none focus:border-gold min-h-[44px]" />
         </div>
         <div className="flex gap-1 bg-white border border-border rounded-lg p-1">
           {(["all", "published", "draft"] as const).map((s) => (
-            <button key={s} onClick={() => setFilterStatus(s)} className={cn("px-3 py-1.5 rounded-md text-xs font-medium transition-all capitalize", filterStatus === s ? "bg-charcoal text-white" : "text-muted-foreground hover:text-charcoal")}>{s}</button>
+            <button key={s} onClick={() => setFilterStatus(s)} className={cn("px-3 py-1.5 rounded-md text-xs font-medium transition-all capitalize min-h-[44px]", filterStatus === s ? "bg-charcoal text-white" : "text-muted-foreground hover:text-charcoal")}>{s}</button>
           ))}
         </div>
       </div>
@@ -191,11 +191,44 @@ export default function AdminBlogPage() {
         <div className="bg-white border border-border rounded-2xl p-12 text-center">
           <PenTool className="h-10 w-10 text-border mx-auto mb-3" />
           <p className="text-muted-foreground">{posts.length === 0 ? "No blog posts yet" : "No posts match this filter"}</p>
-          {posts.length === 0 && <Button onClick={openAdd} variant="outline" className="mt-4 rounded-full text-xs font-semibold tracking-wider uppercase"><Plus className="h-4 w-4 mr-2" />Write your first post</Button>}
+          {posts.length === 0 && <Button onClick={openAdd} variant="outline" className="mt-4 rounded-full text-xs font-semibold tracking-wider uppercase min-h-[44px] min-w-[44px]"><Plus className="h-4 w-4 mr-2" />Write your first post</Button>}
         </div>
       ) : (
         <div className="bg-white border border-border rounded-2xl overflow-hidden">
-          <div className="overflow-x-auto">
+          <div className="sm:hidden divide-y divide-border">
+            {filtered.map((p) => (
+              <div key={p.id} className="p-4 space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-medium text-charcoal truncate">{p.title}</p>
+                      {p.isFeatured && <Star className="h-3 w-3 text-gold fill-gold shrink-0" />}
+                    </div>
+                    <code className="text-[10px] text-muted-foreground">/blog/{p.slug}</code>
+                  </div>
+                  <span className={cn("inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider shrink-0", p.isPublished ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700")}>{p.isPublished ? "Live" : "Draft"}</span>
+                </div>
+                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                  <span className="bg-cream px-2.5 py-1 rounded-full font-medium">{p.category}</span>
+                  <span>{p.author?.name || "\u2014"}</span>
+                  <span>{formatDate(p.createdAt)}</span>
+                </div>
+                <div className="flex items-center gap-2 pt-1">
+                  <button onClick={() => togglePublished(p)} className={cn("relative inline-flex h-5 w-9 items-center rounded-full transition-colors shrink-0", p.isPublished ? "bg-gold" : "bg-border")}>
+                    <span className={cn("inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform", p.isPublished ? "translate-x-[18px]" : "translate-x-[3px]")} />
+                  </button>
+                  <span className="flex-1" />
+                  {p.isPublished && <a href={`/blog/${p.slug}`} target="_blank" rel="noopener noreferrer" className="p-2.5 min-h-[44px] min-w-[44px] rounded-lg text-muted-foreground hover:text-blue-500 hover:bg-blue-50 transition-colors flex items-center justify-center"><ExternalLink className="h-4 w-4" /></a>}
+                  <button onClick={() => toggleFeatured(p)} className={cn("p-2.5 min-h-[44px] min-w-[44px] rounded-lg transition-colors flex items-center justify-center", p.isFeatured ? "text-gold hover:bg-gold/10" : "text-muted-foreground hover:text-gold hover:bg-gold/10")} title={p.isFeatured ? "Unfeature" : "Feature"}>
+                    <Star className={cn("h-4 w-4", p.isFeatured && "fill-gold")} />
+                  </button>
+                  <button onClick={() => openEdit(p)} className="p-2.5 min-h-[44px] min-w-[44px] rounded-lg text-muted-foreground hover:text-gold hover:bg-gold/10 transition-colors flex items-center justify-center"><Pencil className="h-4 w-4" /></button>
+                  <button onClick={() => handleDelete(p)} className="p-2.5 min-h-[44px] min-w-[44px] rounded-lg text-muted-foreground hover:text-red-500 hover:bg-red-50 transition-colors flex items-center justify-center"><Trash2 className="h-4 w-4" /></button>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="overflow-x-auto hidden sm:block">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-border bg-cream/50">
@@ -225,14 +258,14 @@ export default function AdminBlogPage() {
                       <span className="text-[10px] bg-cream px-2.5 py-1 rounded-full text-muted-foreground font-medium">{p.category}</span>
                     </td>
                     <td className="px-6 py-4 hidden md:table-cell">
-                      <span className="text-sm text-muted-foreground">{p.author?.name || "—"}</span>
+                      <span className="text-sm text-muted-foreground">{p.author?.name || "\u2014"}</span>
                     </td>
                     <td className="px-6 py-4 hidden lg:table-cell">
                       <span className="text-sm text-muted-foreground">{formatDate(p.createdAt)}</span>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <button onClick={() => togglePublished(p)} className={cn("relative inline-flex h-5 w-9 items-center rounded-full transition-colors shrink-0", p.isPublished ? "bg-gold" : "bg-border")}>
+                        <button onClick={() => togglePublished(p)} className={cn("relative inline-flex h-5 w-9 items-center rounded-full transition-colors shrink-0 min-h-[44px] min-w-[44px] justify-center", p.isPublished ? "bg-gold" : "bg-border")}>
                           <span className={cn("inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform", p.isPublished ? "translate-x-[18px]" : "translate-x-[3px]")} />
                         </button>
                         <span className={cn("inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider", p.isPublished ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700")}>{p.isPublished ? "Live" : "Draft"}</span>
@@ -243,12 +276,12 @@ export default function AdminBlogPage() {
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-1">
-                        {p.isPublished && <a href={`/blog/${p.slug}`} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded-lg text-muted-foreground hover:text-blue-500 hover:bg-blue-50 transition-colors"><ExternalLink className="h-4 w-4" /></a>}
-                        <button onClick={() => toggleFeatured(p)} className={cn("p-1.5 rounded-lg transition-colors", p.isFeatured ? "text-gold hover:bg-gold/10" : "text-muted-foreground hover:text-gold hover:bg-gold/10")} title={p.isFeatured ? "Unfeature" : "Feature"}>
+                        {p.isPublished && <a href={`/blog/${p.slug}`} target="_blank" rel="noopener noreferrer" className="p-2.5 min-h-[44px] min-w-[44px] rounded-lg text-muted-foreground hover:text-blue-500 hover:bg-blue-50 transition-colors flex items-center justify-center"><ExternalLink className="h-4 w-4" /></a>}
+                        <button onClick={() => toggleFeatured(p)} className={cn("p-2.5 min-h-[44px] min-w-[44px] rounded-lg transition-colors flex items-center justify-center", p.isFeatured ? "text-gold hover:bg-gold/10" : "text-muted-foreground hover:text-gold hover:bg-gold/10")} title={p.isFeatured ? "Unfeature" : "Feature"}>
                           <Star className={cn("h-4 w-4", p.isFeatured && "fill-gold")} />
                         </button>
-                        <button onClick={() => openEdit(p)} className="p-1.5 rounded-lg text-muted-foreground hover:text-gold hover:bg-gold/10 transition-colors"><Pencil className="h-4 w-4" /></button>
-                        <button onClick={() => handleDelete(p)} className="p-1.5 rounded-lg text-muted-foreground hover:text-red-500 hover:bg-red-50 transition-colors"><Trash2 className="h-4 w-4" /></button>
+                        <button onClick={() => openEdit(p)} className="p-2.5 min-h-[44px] min-w-[44px] rounded-lg text-muted-foreground hover:text-gold hover:bg-gold/10 transition-colors flex items-center justify-center"><Pencil className="h-4 w-4" /></button>
+                        <button onClick={() => handleDelete(p)} className="p-2.5 min-h-[44px] min-w-[44px] rounded-lg text-muted-foreground hover:text-red-500 hover:bg-red-50 transition-colors flex items-center justify-center"><Trash2 className="h-4 w-4" /></button>
                       </div>
                     </td>
                   </tr>
@@ -263,35 +296,35 @@ export default function AdminBlogPage() {
       )}
 
       {showModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center pt-[5vh] px-4 overflow-y-auto pb-8">
-          <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl">
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center px-4 pb-8 pt-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl my-auto">
             <div className="flex items-center justify-between px-6 py-4 border-b border-border">
               <h2 className="font-heading text-lg font-bold text-charcoal">{editing ? "Edit Post" : "New Post"}</h2>
-              <button onClick={() => setShowModal(false)} className="p-1.5 rounded-lg text-muted-foreground hover:text-charcoal hover:bg-cream transition-colors"><X className="h-5 w-5" /></button>
+              <button onClick={() => setShowModal(false)} className="p-2.5 min-h-[44px] min-w-[44px] rounded-lg text-muted-foreground hover:text-charcoal hover:bg-cream transition-colors flex items-center justify-center"><X className="h-5 w-5" /></button>
             </div>
             <div className="p-6 space-y-5 max-h-[70vh] overflow-y-auto">
               {errorMsg && <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3">{errorMsg}</div>}
 
               <div>
                 <label className="block text-xs font-semibold text-charcoal uppercase tracking-wider mb-1.5">Title *</label>
-                <input type="text" value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value, slug: f.slug || slugify(e.target.value) }))} className="w-full bg-white border border-border rounded-lg px-4 py-2.5 text-sm text-charcoal focus:outline-none focus:border-gold" placeholder="Your amazing blog post title" />
+                <input type="text" value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value, slug: f.slug || slugify(e.target.value) }))} className="w-full bg-white border border-border rounded-lg px-4 py-2.5 text-sm text-charcoal focus:outline-none focus:border-gold min-h-[44px]" placeholder="Your amazing blog post title" />
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-charcoal uppercase tracking-wider mb-1.5">Slug</label>
-                <input type="text" value={form.slug} onChange={(e) => setForm((f) => ({ ...f, slug: e.target.value }))} className="w-full bg-white border border-border rounded-lg px-4 py-2.5 text-sm text-charcoal font-mono focus:outline-none focus:border-gold" placeholder="auto-generated-from-title" />
+                <input type="text" value={form.slug} onChange={(e) => setForm((f) => ({ ...f, slug: e.target.value }))} className="w-full bg-white border border-border rounded-lg px-4 py-2.5 text-sm text-charcoal font-mono focus:outline-none focus:border-gold min-h-[44px]" placeholder="auto-generated-from-title" />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-charcoal uppercase tracking-wider mb-1.5">Category</label>
-                  <select value={form.category} onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))} className="w-full bg-white border border-border rounded-lg px-4 py-2.5 text-sm text-charcoal focus:outline-none focus:border-gold">
+                  <select value={form.category} onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))} className="w-full bg-white border border-border rounded-lg px-4 py-2.5 text-sm text-charcoal focus:outline-none focus:border-gold min-h-[44px]">
                     {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-charcoal uppercase tracking-wider mb-1.5">Tags</label>
-                  <input type="text" value={form.tags} onChange={(e) => setForm((f) => ({ ...f, tags: e.target.value }))} className="w-full bg-white border border-border rounded-lg px-4 py-2.5 text-sm text-charcoal focus:outline-none focus:border-gold" placeholder="hair, tips, tutorial" />
+                  <input type="text" value={form.tags} onChange={(e) => setForm((f) => ({ ...f, tags: e.target.value }))} className="w-full bg-white border border-border rounded-lg px-4 py-2.5 text-sm text-charcoal focus:outline-none focus:border-gold min-h-[44px]" placeholder="hair, tips, tutorial" />
                   <p className="text-[10px] text-muted-foreground mt-1">Comma-separated</p>
                 </div>
               </div>
@@ -310,8 +343,8 @@ export default function AdminBlogPage() {
               <div>
                 <label className="block text-xs font-semibold text-charcoal uppercase tracking-wider mb-1.5">Cover Image</label>
                 <div className="flex items-center gap-3">
-                  <input type="text" value={form.coverImage} onChange={(e) => setForm((f) => ({ ...f, coverImage: e.target.value }))} className="flex-1 bg-white border border-border rounded-lg px-4 py-2.5 text-sm text-charcoal focus:outline-none focus:border-gold" placeholder="Image URL or upload below" />
-                  <label className={cn("shrink-0 flex items-center gap-2 bg-white border border-border rounded-lg px-4 py-2.5 text-sm text-charcoal cursor-pointer hover:bg-cream transition-colors", uploading && "opacity-50 pointer-events-none")}>
+                  <input type="text" value={form.coverImage} onChange={(e) => setForm((f) => ({ ...f, coverImage: e.target.value }))} className="flex-1 bg-white border border-border rounded-lg px-4 py-2.5 text-sm text-charcoal focus:outline-none focus:border-gold min-h-[44px]" placeholder="Image URL or upload below" />
+                  <label className={cn("shrink-0 flex items-center gap-2 bg-white border border-border rounded-lg px-4 py-2.5 text-sm text-charcoal cursor-pointer hover:bg-cream transition-colors min-h-[44px] min-w-[44px] justify-center", uploading && "opacity-50 pointer-events-none")}>
                     {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
                     Upload
                     <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
@@ -320,20 +353,20 @@ export default function AdminBlogPage() {
                 {form.coverImage && <div className="mt-3 h-32 rounded-lg overflow-hidden bg-cream"><img src={form.coverImage} alt="" className="w-full h-full object-cover" /></div>}
               </div>
 
-              <div className="flex items-center gap-6 pt-2">
-                <label className="flex items-center gap-2 cursor-pointer">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6 pt-2">
+                <label className="flex items-center gap-2 cursor-pointer min-h-[44px]">
                   <input type="checkbox" checked={form.isPublished} onChange={(e) => setForm((f) => ({ ...f, isPublished: e.target.checked }))} className="rounded border-border text-gold focus:ring-gold" />
                   <span className="text-sm text-charcoal">Publish immediately</span>
                 </label>
-                <label className="flex items-center gap-2 cursor-pointer">
+                <label className="flex items-center gap-2 cursor-pointer min-h-[44px]">
                   <input type="checkbox" checked={form.isFeatured} onChange={(e) => setForm((f) => ({ ...f, isFeatured: e.target.checked }))} className="rounded border-border text-gold focus:ring-gold" />
                   <span className="text-sm text-charcoal">Featured post</span>
                 </label>
               </div>
             </div>
             <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-border">
-              <Button variant="outline" onClick={() => setShowModal(false)} className="rounded-full text-xs font-semibold tracking-wider uppercase">Cancel</Button>
-              <Button onClick={handleSave} disabled={saving} className="bg-gold text-white hover:bg-gold-dark rounded-full text-xs font-semibold tracking-wider uppercase px-8">
+              <Button variant="outline" onClick={() => setShowModal(false)} className="rounded-full text-xs font-semibold tracking-wider uppercase min-h-[44px] min-w-[44px]">Cancel</Button>
+              <Button onClick={handleSave} disabled={saving} className="bg-gold text-white hover:bg-gold-dark rounded-full text-xs font-semibold tracking-wider uppercase px-8 min-h-[44px] min-w-[44px]">
                 {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                 {editing ? "Update" : "Create"}
               </Button>

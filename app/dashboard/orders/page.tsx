@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { Package, Loader2, Star } from "lucide-react";
+import { Package, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -21,6 +21,38 @@ const statusLabels: Record<string, string> = {
   PENDING: "Pending", PROCESSING: "Processing", SHIPPED: "Shipped",
   DELIVERED: "Delivered", CANCELLED: "Cancelled", RETURNED: "Returned",
 };
+
+function OrdersSkeleton() {
+  return (
+    <div className="space-y-4">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="bg-white border border-border rounded-xl p-5">
+          <div className="flex items-center justify-between mb-3">
+            <div className="space-y-2">
+              <div className="h-3.5 w-32 bg-cream rounded animate-pulse" />
+              <div className="h-3 w-24 bg-cream rounded animate-pulse" />
+            </div>
+            <div className="h-5 w-16 bg-cream rounded-full animate-pulse" />
+          </div>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="h-3.5 w-40 bg-cream rounded animate-pulse" />
+              <div className="h-3.5 w-16 bg-cream rounded animate-pulse" />
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="h-3.5 w-32 bg-cream rounded animate-pulse" />
+              <div className="h-3.5 w-14 bg-cream rounded animate-pulse" />
+            </div>
+          </div>
+          <div className="border-t border-border mt-3 pt-3 flex justify-between">
+            <div className="h-3.5 w-12 bg-cream rounded animate-pulse" />
+            <div className="h-3.5 w-20 bg-cream rounded animate-pulse" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export default function DashboardOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -42,36 +74,36 @@ export default function DashboardOrdersPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="font-heading font-semibold text-charcoal">My Orders</h2>
-        <Link href="/shop"><Button variant="outline" className="rounded-full text-xs font-semibold tracking-wider uppercase">Shop More</Button></Link>
+        <h2 className="font-heading font-semibold text-charcoal text-lg sm:text-xl">My Orders</h2>
+        <Link href="/shop"><Button variant="outline" className="rounded-full text-xs font-semibold tracking-wider uppercase min-h-[44px] px-4">Shop More</Button></Link>
       </div>
 
       {loading ? (
-        <div className="bg-white border border-border rounded-xl p-12 text-center"><Loader2 className="h-6 w-6 text-gold animate-spin mx-auto" /></div>
+        <OrdersSkeleton />
       ) : orders.length === 0 ? (
-        <div className="bg-white border border-border rounded-xl p-12 text-center">
+        <div className="bg-white border border-border rounded-xl p-10 sm:p-12 text-center">
           <Package className="h-10 w-10 text-border mx-auto mb-3" />
           <p className="text-muted-foreground mb-4">No orders yet</p>
-          <Link href="/shop"><Button className="bg-charcoal text-white hover:bg-charcoal-light rounded-full text-xs font-semibold tracking-wider uppercase px-6">Start Shopping</Button></Link>
+          <Link href="/shop"><Button className="bg-charcoal text-white hover:bg-charcoal/90 rounded-full text-xs font-semibold tracking-wider uppercase px-6 min-h-[44px]">Start Shopping</Button></Link>
         </div>
       ) : (
         <div className="space-y-4">
           {orders.map((order) => (
-            <div key={order.id} className="bg-white border border-border rounded-xl p-5">
-              <div className="flex items-center justify-between mb-3">
-                <div>
+            <div key={order.id} className="bg-white border border-border rounded-xl p-4 sm:p-5">
+              <div className="flex items-start sm:items-center justify-between mb-3 gap-2">
+                <div className="min-w-0">
                   <p className="font-mono text-xs font-medium text-charcoal">{order.orderNumber}</p>
                   <p className="text-xs text-muted-foreground">{formatDate(order.createdAt)}</p>
                 </div>
-                <span className={cn("inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider", statusColors[order.status])}>{statusLabels[order.status]}</span>
+                <span className={cn("inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider shrink-0", statusColors[order.status])}>{statusLabels[order.status]}</span>
               </div>
               <div className="space-y-2">
                 {order.items.map((item) => (
-                  <div key={item.id} className="flex items-center justify-between text-sm">
-                    <div className="flex items-center gap-2 min-w-0">
+                  <div key={item.id} className="flex items-center justify-between text-sm gap-2">
+                    <div className="flex items-center gap-1.5 min-w-0">
                       <span className="text-charcoal truncate">{item.name} × {item.quantity}</span>
                       {order.status === "DELIVERED" && (
-                        <Link href={`/shop/${item.slug}#reviews`} className="shrink-0 text-gold hover:text-gold-dark transition-colors" title="Write a review">
+                        <Link href={`/shop/${item.slug}#reviews`} className="shrink-0 min-h-[44px] min-w-[44px] p-2 flex items-center justify-center text-gold hover:text-gold/80 transition-colors" title="Write a review">
                           <Star className="h-3.5 w-3.5" />
                         </Link>
                       )}
