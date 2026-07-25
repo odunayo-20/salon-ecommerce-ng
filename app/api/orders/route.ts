@@ -12,10 +12,10 @@ const RESERVATION_TTL_MS = 30 * 60 * 1000; // 30 minutes
 const orderItemSchema = z.object({
   productId: z.string(),
   name: z.string(),
-  price: z.number().positive(),
-  quantity: z.number().int().positive(),
-  image: z.string().optional(),
-  variantId: z.string().optional(),
+  price: z.coerce.number().positive(),
+  quantity: z.coerce.number().int().positive(),
+  image: z.string().nullish().transform((v) => v || undefined),
+  variantId: z.string().nullish().transform((v) => v || undefined),
 });
 
 const orderSchema = z.object({
@@ -25,7 +25,7 @@ const orderSchema = z.object({
   notes: z.string().optional(),
   paymentMethod: z.enum(["card", "bank_transfer", "pay_on_delivery"]),
   couponCode: z.string().optional(),
-  pointsRedeemed: z.number().int().min(0).optional().default(0),
+  pointsRedeemed: z.coerce.number().int().min(0).optional().default(0),
 });
 
 function buildItemKey(items: { productId: string; variantId?: string; quantity: number }[]): string {

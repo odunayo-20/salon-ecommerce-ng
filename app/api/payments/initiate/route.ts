@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { initializeTransaction } from "@/lib/paystack";
+import { createPaymentIntent } from "@/lib/stripe";
 import { paymentLimiter } from "@/lib/rate-limit";
 
 function generateRef() {
@@ -84,6 +85,32 @@ export async function POST(request: NextRequest) {
     const name = payment!.order?.customerProfile?.user?.name || payment!.appointment?.customerProfile?.user?.name || session.user.name;
     const phone = payment!.order?.customerProfile?.user?.phone || payment!.appointment?.customerProfile?.user?.phone || undefined;
 
+    const isStripe = payment!.method === "STRIPE";
+
+    if (isStripe) {
+      // Stripe: create a PaymentIntent and return clientSecret for Elements
+      const stripeAmount = Math.round(amount * 100); // Stripe uses kobo (smallest unit)
+      const intent = await createPaymentIntent(stripeAmount, "ngn", {
+        paymentId: payment!.id,
+        orderId: orderId || "",
+        appointmentId: payment!.appointmentId || "",
+        type: orderId ? "order" : "appointment",
+      });
+
+      // Update payment record with Stripe PaymentIntent ID as providerRef
+      await prisma.payment.update({
+        where: { id: payment!.id },
+        data: { reference: intent.id, providerRef: intent.id },
+      });
+
+      return NextResponse.json({
+        clientSecret: intent.client_secret,
+        paymentId: payment!.id,
+        provider: "stripe",
+      });
+    }
+
+    // Paystack: existing flow
     const redirectUrl = orderId
       ? `${process.env.NEXT_PUBLIC_APP_URL}/shop/payment/callback?orderId=${orderId}&paymentId=${payment!.id}`
       : payment!.appointmentId
@@ -118,6 +145,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         checkoutUrl: response.data?.authorization_url,
         reference: payment!.reference,
+        provider: "paystack",
       });
     }
 

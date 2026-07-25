@@ -617,6 +617,7 @@ export interface DashboardOrderItem {
 export interface DashboardOrder {
   id: string; orderNumber: string; status: string; total: number;
   createdAt: string; items: DashboardOrderItem[];
+  payments: { id: string; status: string; method: string; reference: string }[];
 }
 
 export function useDashboardOrders(pollInterval = 60_000) {

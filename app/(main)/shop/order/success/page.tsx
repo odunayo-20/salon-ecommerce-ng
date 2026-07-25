@@ -5,7 +5,14 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, Package, Loader2 } from "lucide-react";
+import { CheckCircle, Package, Loader2, CreditCard, Banknote, Truck } from "lucide-react";
+
+interface OrderItem {
+  name: string;
+  quantity: number;
+  price: number;
+  image?: string;
+}
 
 interface Order {
   id: string;
@@ -13,8 +20,16 @@ interface Order {
   total: number;
   status: string;
   shippingAddress: string | null;
-  items: { name: string; quantity: number; price: number; image?: string }[];
+  pointsRedeemed: number;
+  items: OrderItem[];
+  payments: { method: string; status: string; amount: number }[];
 }
+
+const methodLabels: Record<string, { label: string; icon: typeof CreditCard; color: string }> = {
+  STRIPE: { label: "Card (Stripe)", icon: CreditCard, color: "text-purple-600 bg-purple-50" },
+  PAYSTACK: { label: "Bank Transfer (Paystack)", icon: Banknote, color: "text-blue-600 bg-blue-50" },
+  CASH: { label: "Pay on Delivery", icon: Truck, color: "text-amber-600 bg-amber-50" },
+};
 
 export default function OrderSuccessPage() {
   return (
@@ -46,6 +61,10 @@ function OrderSuccessContent() {
     fetchOrder();
   }, [orderId]);
 
+  const paymentMethod = order?.payments?.[0]?.method;
+  const methodInfo = paymentMethod ? methodLabels[paymentMethod] : null;
+  const MethodIcon = methodInfo?.icon || CreditCard;
+
   return (
     <div className="min-h-screen bg-cream">
       <div className="bg-charcoal py-12">
@@ -65,6 +84,15 @@ function OrderSuccessContent() {
           ) : order ? (
             <>
               <p className="text-sm text-muted-foreground">Order <span className="font-mono font-semibold text-charcoal">{order.orderNumber}</span></p>
+
+              {/* Payment Method Badge */}
+              {methodInfo && (
+                <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium ${methodInfo.color}`}>
+                  <MethodIcon className="h-4 w-4" />
+                  Paid via {methodInfo.label}
+                </div>
+              )}
+
               <div className="max-w-sm mx-auto space-y-3 text-left">
                 {order.items.map((item, i) => (
                   <div key={i} className="flex items-center gap-3 py-2 border-b border-border/50">
@@ -75,6 +103,12 @@ function OrderSuccessContent() {
                     <span className="text-sm font-medium text-charcoal">₦{(item.price * item.quantity).toLocaleString()}</span>
                   </div>
                 ))}
+                {order.pointsRedeemed > 0 && (
+                  <div className="flex justify-between py-1 text-sm">
+                    <span className="text-muted-foreground">Points Discount</span>
+                    <span className="text-green-600 font-medium">-{order.pointsRedeemed.toLocaleString()} pts</span>
+                  </div>
+                )}
                 <div className="flex justify-between py-2 border-t border-border pt-2">
                   <span className="text-sm font-semibold text-charcoal">Total</span>
                   <span className="text-lg font-heading font-bold text-charcoal">₦{order.total.toLocaleString()}</span>

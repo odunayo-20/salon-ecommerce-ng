@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Package, Star, Loader2 } from "lucide-react";
+import { Package, Star, Loader2, CreditCard, Banknote, Truck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useDashboardOrders, useCancelOrder } from "@/hooks/queries";
@@ -15,6 +15,12 @@ const statusColors: Record<string, string> = {
 const statusLabels: Record<string, string> = {
   PENDING: "Pending", PROCESSING: "Processing", SHIPPED: "Shipped",
   DELIVERED: "Delivered", CANCELLED: "Cancelled", RETURNED: "Returned",
+};
+
+const methodMeta: Record<string, { label: string; icon: typeof CreditCard; cls: string }> = {
+  STRIPE: { label: "Stripe", icon: CreditCard, cls: "text-purple-600 bg-purple-50" },
+  PAYSTACK: { label: "Paystack", icon: Banknote, cls: "text-blue-600 bg-blue-50" },
+  CASH: { label: "Cash", icon: Truck, cls: "text-amber-600 bg-amber-50" },
 };
 
 function OrdersSkeleton() {
@@ -90,7 +96,22 @@ export default function DashboardOrdersPage() {
                   <p className="font-mono text-xs font-medium text-charcoal">{order.orderNumber}</p>
                   <p className="text-xs text-muted-foreground">{formatDate(order.createdAt)}</p>
                 </div>
-                <span className={cn("inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider shrink-0", statusColors[order.status])}>{statusLabels[order.status]}</span>
+                <div className="flex items-center gap-2 shrink-0">
+                  {(() => {
+                    const pm = order.payments?.[0];
+                    if (pm && methodMeta[pm.method]) {
+                      const m = methodMeta[pm.method];
+                      const Icon = m.icon;
+                      return (
+                        <span className={cn("inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold", m.cls)}>
+                          <Icon className="h-2.5 w-2.5" />{m.label}
+                        </span>
+                      );
+                    }
+                    return null;
+                  })()}
+                  <span className={cn("inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider", statusColors[order.status])}>{statusLabels[order.status]}</span>
+                </div>
               </div>
               <div className="space-y-2">
                 {order.items.map((item) => (
