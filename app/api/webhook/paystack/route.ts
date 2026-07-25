@@ -41,19 +41,49 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: true, message: "Already processed" });
       }
 
-      await prisma.payment.update({
-        where: { id: payment.id },
-        data: {
-          status: "PAID",
-          providerRef,
-          paidAt: new Date(),
-        },
+      // ── Atomically confirm payment + convert reservation → sale ──
+      await prisma.$transaction(async (tx) => {
+        // Lock the payment row
+        const lockedPayment = await tx.$queryRaw<{ id: string; status: string }[]>`
+          SELECT id, status FROM "Payment"
+          WHERE id = ${payment.id}
+          FOR UPDATE
+        `;
+        if (lockedPayment[0]?.status === "PAID") return;
+
+        await tx.payment.update({
+          where: { id: payment.id },
+          data: { status: "PAID", providerRef, paidAt: new Date() },
+        });
+
+        if (payment.appointmentId) {
+          await tx.appointment.update({
+            where: { id: payment.appointmentId },
+            data: { status: "CONFIRMED" },
+          });
+        } else if (payment.orderId) {
+          await tx.order.update({
+            where: { id: payment.orderId },
+            data: { status: "PROCESSING" },
+          });
+
+          const order = await tx.order.findUnique({
+            where: { id: payment.orderId },
+            select: { orderNumber: true },
+          });
+          if (order) {
+            await tx.stockMovement.updateMany({
+              where: { reference: order.orderNumber, type: "RESERVATION" },
+              data: { type: "SALE", note: `Sold via order ${order.orderNumber}` },
+            });
+          }
+        }
       });
 
+      // ── Post-transaction: notifications, loyalty, coupons ────────
       if (payment.appointmentId) {
-        const appointment = await prisma.appointment.update({
+        const appointment = await prisma.appointment.findUnique({
           where: { id: payment.appointmentId },
-          data: { status: "CONFIRMED" },
           include: {
             service: true,
             stylist: { include: { user: { select: { name: true } } } },
@@ -63,7 +93,7 @@ export async function POST(request: NextRequest) {
           },
         });
 
-        if (appointment.customerProfile?.user?.id) {
+        if (appointment?.customerProfile?.user?.id) {
           try {
             await notify({
               userId: appointment.customerProfile.user.id,
@@ -73,9 +103,7 @@ export async function POST(request: NextRequest) {
                 serviceName: appointment.service.name,
                 stylistName: appointment.stylist?.user.name || undefined,
                 date: appointment.date.toLocaleDateString("en-NG", {
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
+                  year: "numeric", month: "long", day: "numeric",
                 }),
                 time: appointment.startTime,
                 reference: appointment.reference,
@@ -85,22 +113,13 @@ export async function POST(request: NextRequest) {
               customerName: appointment.customerProfile.user.name || "Valued Client",
               serviceName: appointment.service.name,
               date: appointment.date.toLocaleDateString("en-NG", {
-                year: "numeric",
-                month: "long",
-                day: "numeric",
+                year: "numeric", month: "long", day: "numeric",
               }),
               time: appointment.startTime,
             });
-          } catch {
-            // Notification failure — non-critical
-          }
+          } catch { /* non-critical */ }
         }
       } else if (payment.orderId) {
-        await prisma.order.update({
-          where: { id: payment.orderId },
-          data: { status: "PROCESSING" },
-        });
-
         const order = await prisma.order.findUnique({
           where: { id: payment.orderId },
           include: {
@@ -112,6 +131,69 @@ export async function POST(request: NextRequest) {
         });
 
         if (order?.customerProfile?.user?.id) {
+          // Consume deferred coupon
+          if (order.couponId) {
+            try {
+              await prisma.coupon.update({
+                where: { id: order.couponId },
+                data: { usedCount: { increment: 1 } },
+              });
+            } catch { /* non-critical */ }
+          }
+
+          // Redeem deferred loyalty points
+          if (order.pointsRedeemed > 0) {
+            try {
+              const [totalEarned, totalRedeemed] = await Promise.all([
+                prisma.loyaltyPoint.aggregate({
+                  where: { userId: order.customerProfile.user.id, type: "earned" },
+                  _sum: { points: true },
+                }),
+                prisma.loyaltyPoint.aggregate({
+                  where: { userId: order.customerProfile.user.id, type: "redeemed" },
+                  _sum: { points: true },
+                }),
+              ]);
+              const balance = (totalEarned._sum.points || 0) - (totalRedeemed._sum.points || 0);
+              const effectiveRedeemed = Math.min(order.pointsRedeemed, balance);
+              if (effectiveRedeemed > 0) {
+                await prisma.loyaltyPoint.create({
+                  data: {
+                    userId: order.customerProfile.user.id,
+                    points: effectiveRedeemed,
+                    type: "redeemed",
+                    reference: order.orderNumber,
+                    note: `Redeemed for order ${order.orderNumber}`,
+                  },
+                });
+              }
+            } catch { /* non-critical */ }
+          }
+
+          // Award earned loyalty points
+          try {
+            const POINTS_PER_Naira = 100;
+            const earned = Math.floor(
+              (Number(order.total) - order.pointsRedeemed) / POINTS_PER_Naira
+            );
+            if (earned > 0) {
+              await prisma.loyaltyPoint.create({
+                data: {
+                  userId: order.customerProfile.user.id,
+                  points: earned,
+                  type: "earned",
+                  reference: order.orderNumber,
+                  note: `Order: ${order.orderNumber}`,
+                  expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+                },
+              });
+              await prisma.order.update({
+                where: { id: order.id },
+                data: { loyaltyPointsEarned: earned },
+              });
+            }
+          } catch { /* non-critical */ }
+
           try {
             await notify({
               userId: order.customerProfile.user.id,
@@ -133,9 +215,7 @@ export async function POST(request: NextRequest) {
               orderNumber: order.orderNumber,
               total: Number(order.total),
             });
-          } catch {
-            // Notification failure — non-critical
-          }
+          } catch { /* non-critical */ }
         }
       }
 

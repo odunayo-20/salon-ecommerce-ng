@@ -60,6 +60,11 @@ export async function PATCH(
 
     // Restore stock + mark payments REFUNDED
     if (shouldRestoreStock) {
+      // Check if this order still has RESERVATION movements (PENDING order)
+      const hasReservations = await prisma.stockMovement.findFirst({
+        where: { reference: order.orderNumber, type: "RESERVATION" },
+      });
+
       for (const item of existing.items) {
         const product = await prisma.product.findUnique({
           where: { id: item.productId },
@@ -76,12 +81,14 @@ export async function PATCH(
           prisma.stockMovement.create({
             data: {
               productId: item.productId,
-              type: "RETURN",
+              type: hasReservations ? "RELEASE" : "RETURN",
               quantity: item.quantity,
               previousQty: product.stock,
               newQty,
               reference: order.orderNumber,
-              note: `Cancelled order ${order.orderNumber}`,
+              note: hasReservations
+                ? `Released reservation for cancelled order ${order.orderNumber}`
+                : `Cancelled order ${order.orderNumber}`,
               createdBy: session.user.id,
             },
           }),

@@ -418,6 +418,7 @@ model Order {
   trackingNumber     String?
   shippedAt          DateTime?
   deliveredAt        DateTime?
+  expiresAt          DateTime?
   couponId           String?
   couponCode         String?
   loyaltyPointsEarned Int      @default(0)

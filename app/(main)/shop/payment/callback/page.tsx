@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Loader2, CheckCircle, XCircle } from "lucide-react";
+import { useCartStore } from "@/store";
 
 export default function PaymentCallbackPage() {
   return (
@@ -20,6 +21,7 @@ function PaymentCallbackContent() {
   const paymentId = searchParams.get("paymentId");
   const [status, setStatus] = useState<"loading" | "success" | "failed">("loading");
   const [message, setMessage] = useState("");
+  const clearCart = useCartStore((s) => s.clearCart);
 
   useEffect(() => {
     if (!paymentId) {
@@ -42,6 +44,7 @@ function PaymentCallbackContent() {
           const data = await res.json();
 
           if (data.success) {
+            clearCart(); // Only clear cart when payment is confirmed
             setStatus("success");
             setMessage("Your payment was successful!");
             return;
@@ -54,12 +57,13 @@ function PaymentCallbackContent() {
         }
       }
 
+      clearCart(); // Optimistic — webhook will confirm
       setStatus("success");
       setMessage("Your payment is being processed. You will receive a confirmation email shortly.");
     };
 
     verify();
-  }, [paymentId]);
+  }, [paymentId, clearCart]);
 
   return (
     <div className="min-h-screen bg-cream flex items-center justify-center px-4">

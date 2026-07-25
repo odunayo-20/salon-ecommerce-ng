@@ -51,7 +51,11 @@ export async function POST(
         data: { status: "CANCELLED" },
       });
 
-      // Restore stock
+      // Restore stock — use RELEASE for reserved items, RETURN for sold items
+      const hasReservations = await tx.stockMovement.findFirst({
+        where: { reference: order.orderNumber, type: "RESERVATION" },
+      });
+
       for (const item of order.items) {
         const product = await tx.product.findUnique({
           where: { id: item.productId },
@@ -67,12 +71,14 @@ export async function POST(
         await tx.stockMovement.create({
           data: {
             productId: item.productId,
-            type: "RETURN",
+            type: hasReservations ? "RELEASE" : "RETURN",
             quantity: item.quantity,
             previousQty: product.stock,
             newQty,
             reference: order.orderNumber,
-            note: `Customer cancelled order ${order.orderNumber}`,
+            note: hasReservations
+              ? `Released reservation — customer cancelled order ${order.orderNumber}`
+              : `Customer cancelled order ${order.orderNumber}`,
           },
         });
       }

@@ -134,7 +134,8 @@ export default function CheckoutPage() {
       const payData = await payRes.json();
       if (!payRes.ok) throw new Error(payData.error || "Failed to initiate payment");
 
-      clearCart();
+      // Cart is NOT cleared here — it's cleared on payment success callback
+      // This ensures the cart survives if the user closes the browser
 
       if (payData.checkoutUrl) {
         window.location.href = payData.checkoutUrl;

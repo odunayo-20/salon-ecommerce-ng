@@ -6,6 +6,8 @@ import { notify, notifyAdmins } from "@/lib/notifications";
 import { checkAndNotifyLowStock } from "@/lib/inventory";
 import { z } from "zod";
 
+const RESERVATION_TTL_MS = 30 * 60 * 1000; // 30 minutes
+
 const orderItemSchema = z.object({
   productId: z.string(),
   name: z.string(),
@@ -25,6 +27,13 @@ const orderSchema = z.object({
   pointsRedeemed: z.number().int().min(0).optional().default(0),
 });
 
+function buildItemKey(items: { productId: string; variantId?: string; quantity: number }[]): string {
+  return items
+    .map((i) => `${i.productId}:${i.variantId || ""}:${i.quantity}`)
+    .sort()
+    .join("|");
+}
+
 export async function POST(request: NextRequest) {
   try {
     const session = await auth();
@@ -43,43 +52,68 @@ export async function POST(request: NextRequest) {
     }
 
     const data = validation.data;
+    const incomingKey = buildItemKey(data.items);
 
-    // Verify stock for all items
-    for (const item of data.items) {
-      const product = await prisma.product.findUnique({
-        where: { id: item.productId },
-        select: { id: true, name: true, stock: true, isActive: true },
-      });
-
-      if (!product || !product.isActive) {
-        return NextResponse.json(
-          { error: `Product "${item.name}" is no longer available` },
-          { status: 400 }
-        );
-      }
-
-      if (product.stock < item.quantity) {
-        return NextResponse.json(
-          { error: `Insufficient stock for "${product.name}". Only ${product.stock} available.` },
-          { status: 400 }
-        );
-      }
-    }
-
-    // Get or create customer profile
-    let customerProfile = await prisma.customerProfile.findUnique({
+    // ── Idempotency: check for existing PENDING order ──────────────
+    const customerProfile = await prisma.customerProfile.findUnique({
       where: { userId: session.user.id },
     });
-    if (!customerProfile) {
-      customerProfile = await prisma.customerProfile.create({
-        data: { userId: session.user.id },
+
+    if (customerProfile) {
+      const existingPending = await prisma.order.findFirst({
+        where: {
+          customerProfileId: customerProfile.id,
+          status: "PENDING",
+          createdAt: { gte: new Date(Date.now() - RESERVATION_TTL_MS) },
+        },
+        include: {
+          items: true,
+          payments: { where: { status: "PENDING" }, take: 1 },
+        },
+        orderBy: { createdAt: "desc" },
       });
+
+      if (existingPending) {
+        const existingKey = buildItemKey(
+          existingPending.items.map((i) => ({
+            productId: i.productId,
+            quantity: i.quantity,
+          }))
+        );
+
+        if (existingKey === incomingKey) {
+          const existingPayment = existingPending.payments[0];
+          return NextResponse.json({
+            order: {
+              ...existingPending,
+              subtotal: Number(existingPending.subtotal),
+              shippingCost: Number(existingPending.shippingCost),
+              discount: Number(existingPending.discount),
+              total: Number(existingPending.total),
+            },
+            payment: existingPayment
+              ? {
+                  id: existingPayment.id,
+                  reference: existingPayment.reference,
+                  amount: Number(existingPayment.amount),
+                  method: existingPayment.method,
+                  status: existingPayment.status,
+                }
+              : null,
+            resumed: true,
+          });
+        }
+
+        // Different items — release the old reservation
+        await releaseReservation(existingPending.id);
+      }
     }
 
+    // ── Verify stock (with row-level check inside TX) ──────────────
     const subtotal = data.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
     const shippingCost = subtotal >= 30000 ? 0 : 2000;
 
-    // Validate and apply coupon
+    // ── Validate coupon (defer consumption to payment success) ─────
     let discount = 0;
     let couponId: string | null = null;
     let couponCode: string | null = null;
@@ -105,7 +139,9 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "This coupon is not valid for product orders" }, { status: 400 });
       }
       if (coupon.perUserLimit) {
-        const userUses = await prisma.order.count({ where: { couponId: coupon.id, customerProfile: { userId: session.user.id } } });
+        const userUses = await prisma.order.count({
+          where: { couponId: coupon.id, customerProfile: { userId: session.user.id }, status: { not: "CANCELLED" } },
+        });
         if (userUses >= coupon.perUserLimit) {
           return NextResponse.json({ error: "You have already used this coupon the maximum number of times" }, { status: 400 });
         }
@@ -122,7 +158,7 @@ export async function POST(request: NextRequest) {
       couponCode = coupon.code;
     }
 
-    // Validate and apply loyalty points redemption
+    // ── Validate loyalty points (defer redemption to payment success)
     let pointsRedeemed = data.pointsRedeemed;
     if (pointsRedeemed > 0) {
       const [totalEarned, totalRedeemed] = await Promise.all([
@@ -150,8 +186,29 @@ export async function POST(request: NextRequest) {
     const loyaltyDiscount = pointsRedeemed;
     const total = Math.max(subtotal + shippingCost - discount - loyaltyDiscount, 0);
 
-    // Create order with items and decrement stock in a transaction
+    // ── Create order with RESERVATION in a serializable transaction ──
     const order = await prisma.$transaction(async (tx) => {
+      // Lock and verify stock for all items
+      const lockedProducts: { id: string; stock: number; name: string }[] = [];
+      for (const item of data.items) {
+        const rows = await tx.$queryRaw<{ id: string; stock: number; name: string }[]>`
+          SELECT id, stock, name FROM "Product"
+          WHERE id = ${item.productId} AND "isActive" = true
+          FOR UPDATE
+        `;
+        const product = rows[0];
+
+        if (!product) {
+          throw new Error(`Product "${item.name}" is no longer available`);
+        }
+        if (product.stock < item.quantity) {
+          throw new Error(`Insufficient stock for "${product.name}". Only ${product.stock} available.`);
+        }
+        lockedProducts.push(product);
+      }
+
+      const expiresAt = new Date(Date.now() + RESERVATION_TTL_MS);
+
       const newOrder = await tx.order.create({
         data: {
           orderNumber: generateOrderNumber(),
@@ -163,7 +220,8 @@ export async function POST(request: NextRequest) {
           shippingAddress: data.shippingAddress,
           billingAddress: data.billingAddress || data.shippingAddress,
           notes: data.notes,
-          status: data.paymentMethod === "pay_on_delivery" ? "PROCESSING" : "PENDING",
+          status: "PENDING",
+          expiresAt,
           pointsRedeemed,
           ...(couponId && { couponId, couponCode: couponCode! }),
           items: {
@@ -179,45 +237,25 @@ export async function POST(request: NextRequest) {
         include: { items: true },
       });
 
-      // Decrement stock and log movement
-      for (const item of data.items) {
-        const product = await tx.product.findUnique({ where: { id: item.productId }, select: { stock: true, name: true } });
-        if (product) {
-          await tx.product.update({
-            where: { id: item.productId },
-            data: { stock: { decrement: item.quantity } },
-          });
-          await tx.stockMovement.create({
-            data: {
-              productId: item.productId,
-              type: "SALE",
-              quantity: -item.quantity,
-              previousQty: product.stock,
-              newQty: product.stock - item.quantity,
-              reference: newOrder.orderNumber,
-              note: `Order ${newOrder.orderNumber}`,
-            },
-          });
-        }
-      }
+      // Reserve stock — type RESERVATION (not SALE)
+      for (let i = 0; i < data.items.length; i++) {
+        const item = data.items[i];
+        const product = lockedProducts[i];
 
-      // Increment coupon usage
-      if (couponId) {
-        await tx.coupon.update({
-          where: { id: couponId },
-          data: { usedCount: { increment: 1 } },
+        const newQty = product.stock - item.quantity;
+        await tx.product.update({
+          where: { id: item.productId },
+          data: { stock: newQty },
         });
-      }
-
-      // Deduct loyalty points
-      if (pointsRedeemed > 0) {
-        await tx.loyaltyPoint.create({
+        await tx.stockMovement.create({
           data: {
-            userId: session.user.id,
-            points: pointsRedeemed,
-            type: "redeemed",
+            productId: item.productId,
+            type: "RESERVATION",
+            quantity: -item.quantity,
+            previousQty: product.stock,
+            newQty,
             reference: newOrder.orderNumber,
-            note: `Redeemed for order ${newOrder.orderNumber}`,
+            note: `Reserved for order ${newOrder.orderNumber}`,
           },
         });
       }
@@ -225,7 +263,7 @@ export async function POST(request: NextRequest) {
       return newOrder;
     });
 
-    // Check low stock after transaction commits
+    // Check low stock after reservation
     for (const item of data.items) {
       const afterProduct = await prisma.product.findUnique({
         where: { id: item.productId },
@@ -243,12 +281,12 @@ export async function POST(request: NextRequest) {
         orderId: order.id,
         amount: total,
         method: data.paymentMethod === "card" ? "STRIPE" : data.paymentMethod === "bank_transfer" ? "PAYSTACK" : "CASH",
-        status: data.paymentMethod === "pay_on_delivery" ? "PENDING" : "PENDING",
+        status: "PENDING",
         reference: paymentRef,
       },
     });
 
-    // Send order placed notification
+    // Send notification
     try {
       await notify({
         userId: session.user.id,
@@ -293,10 +331,60 @@ export async function POST(request: NextRequest) {
     }, { status: 201 });
   } catch (error) {
     console.error("Order creation error:", error);
-    return NextResponse.json(
-      { error: "Failed to create order" },
-      { status: 500 }
-    );
+    const message = error instanceof Error ? error.message : "Failed to create order";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
+
+/** Release a reservation: restore stock + cancel order */
+async function releaseReservation(orderId: string) {
+  try {
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+      include: { items: true, payments: true },
+    });
+    if (!order || order.status !== "PENDING") return;
+
+    await prisma.$transaction(async (tx) => {
+      // Restore stock for each reserved item
+      for (const item of order.items) {
+        const product = await tx.product.findUnique({
+          where: { id: item.productId },
+          select: { stock: true },
+        });
+        if (!product) continue;
+
+        const newQty = product.stock + item.quantity;
+        await tx.product.update({
+          where: { id: item.productId },
+          data: { stock: newQty },
+        });
+        await tx.stockMovement.create({
+          data: {
+            productId: item.productId,
+            type: "RELEASE",
+            quantity: item.quantity,
+            previousQty: product.stock,
+            newQty,
+            reference: order.orderNumber,
+            note: `Released reservation for expired order ${order.orderNumber}`,
+          },
+        });
+      }
+
+      await tx.order.update({
+        where: { id: orderId },
+        data: { status: "CANCELLED" },
+      });
+
+      // Void pending payments
+      await tx.payment.updateMany({
+        where: { orderId, status: "PENDING" },
+        data: { status: "FAILED" },
+      });
+    });
+  } catch (err) {
+    console.error("[Reservation] Release failed:", err);
   }
 }
 
