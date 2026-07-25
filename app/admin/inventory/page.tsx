@@ -51,6 +51,7 @@ export default function AdminInventoryPage() {
     ADJUSTMENT: "bg-blue-50 text-blue-700", RESTOCK: "bg-emerald-50 text-emerald-700",
     SALE: "bg-purple-50 text-purple-700", RETURN: "bg-amber-50 text-amber-700",
     DAMAGE: "bg-red-50 text-red-600", TRANSFER: "bg-gray-50 text-gray-600",
+    RESERVATION: "bg-orange-50 text-orange-700", RELEASE: "bg-cyan-50 text-cyan-700",
   };
 
   return (

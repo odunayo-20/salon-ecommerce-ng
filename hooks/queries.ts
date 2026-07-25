@@ -51,6 +51,7 @@ export interface AdminAnalyticsV2 {
     totalRevenue: number; appointmentRevenue: number; orderRevenue: number;
     totalOrders: number; totalAppointments: number;
     totalCustomers: number; newCustomers: number;
+    pendingOrders: number; expiringOrders: number; lowStockCount: number;
   };
   timeSeries: { date: string; revenue: number; orders: number; appointments: number }[];
   orderStatuses: { status: string; count: number }[];

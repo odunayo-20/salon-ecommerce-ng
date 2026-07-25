@@ -120,6 +120,17 @@ export async function GET(request: NextRequest) {
     const totalCustomers = await prisma.user.count({ where: { role: "CUSTOMER" } });
     const newCustomers = await prisma.user.count({ where: { role: "CUSTOMER", createdAt: { gte: dateFrom, lte: dateTo } } });
 
+    // ─── Operational alerts ───
+    const pendingOrders = await prisma.order.count({ where: { status: "PENDING" } });
+    const expiringOrders = await prisma.order.count({
+      where: { status: "PENDING", expiresAt: { lt: new Date(Date.now() + 10 * 60 * 1000) } },
+    });
+    const lowStockProducts = await prisma.product.findMany({
+      where: { isActive: true },
+      select: { stock: true, lowStock: true },
+    });
+    const lowStockCount = lowStockProducts.filter((p) => p.stock <= p.lowStock).length;
+
     return NextResponse.json({
       summary: {
         totalRevenue,
@@ -129,6 +140,9 @@ export async function GET(request: NextRequest) {
         totalAppointments,
         totalCustomers,
         newCustomers,
+        pendingOrders,
+        expiringOrders,
+        lowStockCount,
       },
       timeSeries,
       orderStatuses: orderStatuses.map((s) => ({ status: s.status, count: s._count })),
