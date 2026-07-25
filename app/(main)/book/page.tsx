@@ -347,7 +347,12 @@ function BookPageContent() {
               {stylists.map((stylist) => {
                 const canDoService = activeService ? stylist.services.some((ss) => ss.service.id === activeService.id) : true;
                 return (
-                  <button key={stylist.id} onClick={() => setSelectedStylistId(stylist.id)} className={cn("bg-white border rounded-xl p-5 text-left transition-all hover:shadow-md", selectedStylistId === stylist.id ? "border-gold shadow-md ring-1 ring-gold/20" : "border-border hover:border-gold/30", !canDoService && "opacity-50")}>
+                  <button
+                    key={stylist.id}
+                    onClick={() => canDoService && setSelectedStylistId(stylist.id)}
+                    disabled={!canDoService}
+                    className={cn("bg-white border rounded-xl p-5 text-left transition-all hover:shadow-md", selectedStylistId === stylist.id ? "border-gold shadow-md ring-1 ring-gold/20" : "border-border hover:border-gold/30", !canDoService && "opacity-40 cursor-not-allowed")}
+                  >
                     <div className="flex items-start gap-4">
                       <div className="h-16 w-16 rounded-full bg-cream flex items-center justify-center shrink-0 overflow-hidden">
                         {stylist.user.image ? <img src={stylist.user.image} alt="" className="h-full w-full object-cover" /> : <span className="font-heading text-xl font-semibold text-gold">{(stylist.user.name || "?").charAt(0)}</span>}
@@ -370,6 +375,9 @@ function BookPageContent() {
                 <p className="text-sm text-muted-foreground mt-1">We&apos;ll match you with the best available stylist</p>
               </button>
             </div>
+            {activeService && stylists.some((s) => !s.services.some((ss) => ss.service.id === activeService.id)) && (
+              <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">Some stylists are unavailable for {activeService.name} and cannot be selected.</p>
+            )}
             <div className="flex justify-between">
               <Button onClick={() => setStep(1)} variant="outline" className="rounded-full px-8 text-xs font-semibold tracking-wider uppercase">Back</Button>
               <Button onClick={() => setStep(3)} className="bg-charcoal text-white hover:bg-charcoal-light rounded-full px-8 text-xs font-semibold tracking-wider uppercase">Continue</Button>

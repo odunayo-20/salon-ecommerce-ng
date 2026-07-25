@@ -193,6 +193,13 @@ export async function POST(request: NextRequest) {
         });
 
         if (appointment?.customerProfile?.user?.id) {
+          // Consume deferred coupon
+          if (appointment.couponId) {
+            try {
+              await consumeCoupon(appointment.couponId, appointment.customerProfileId);
+            } catch { /* non-critical */ }
+          }
+
           try {
             const earned = await awardLoyaltyPoints(
               appointment.customerProfile.user.id,

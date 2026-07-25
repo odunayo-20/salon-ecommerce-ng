@@ -175,13 +175,7 @@ export async function POST(request: NextRequest) {
       paymentId = payment.id;
     }
 
-    // Increment coupon usage
-    if (couponId) {
-      await prisma.coupon.update({
-        where: { id: couponId },
-        data: { usedCount: { increment: 1 } },
-      });
-    }
+    // Coupon usage is deferred to payment success (see payments/verify)
 
     // Send booking placed notification
     try {

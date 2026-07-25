@@ -10,6 +10,10 @@ const rescheduleSchema = z.object({
   reason: z.string().optional(),
 });
 
+const cancelSchema = z.object({
+  reason: z.string().optional(),
+});
+
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -152,6 +156,103 @@ export async function PATCH(
   } catch (error) {
     console.error("Reschedule error:", error);
     const message = error instanceof Error ? error.message : "Failed to reschedule";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
+
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { id } = await params;
+    const body = await request.json();
+    const validation = cancelSchema.safeParse(body);
+
+    if (!validation.success) {
+      return NextResponse.json(
+        { error: "Invalid data", details: validation.error.flatten() },
+        { status: 400 }
+      );
+    }
+
+    const customerProfile = await prisma.customerProfile.findUnique({
+      where: { userId: session.user.id },
+    });
+
+    if (!customerProfile) {
+      return NextResponse.json({ error: "Profile not found" }, { status: 404 });
+    }
+
+    const appointment = await prisma.appointment.findUnique({
+      where: { id },
+      include: { service: true },
+    });
+
+    if (!appointment) {
+      return NextResponse.json({ error: "Appointment not found" }, { status: 404 });
+    }
+
+    if (appointment.customerProfileId !== customerProfile.id) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    if (!["PENDING", "CONFIRMED"].includes(appointment.status)) {
+      return NextResponse.json(
+        { error: "Only pending or confirmed appointments can be cancelled" },
+        { status: 400 }
+      );
+    }
+
+    const updated = await prisma.appointment.update({
+      where: { id },
+      data: {
+        status: "CANCELLED",
+        cancelledAt: new Date(),
+        cancelReason: validation.data.reason || "Cancelled by customer",
+      },
+      include: { service: true },
+    });
+
+    try {
+      await notify({
+        userId: session.user.id,
+        event: "appointment.cancelled",
+        data: {
+          customerName: session.user.name || "Valued Client",
+          serviceName: updated.service.name,
+          date: updated.date.toLocaleDateString("en-NG", {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+          }),
+          time: updated.startTime,
+          reference: updated.reference,
+        },
+      });
+      await notifyAdmins("appointment.cancelled", {
+        customerName: session.user.name || "Valued Client",
+        serviceName: updated.service.name,
+        date: updated.date.toLocaleDateString("en-NG", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        }),
+        time: updated.startTime,
+      });
+    } catch {
+      // Notification failure shouldn't block cancellation
+    }
+
+    return NextResponse.json({ appointment: updated });
+  } catch (error) {
+    console.error("Cancel appointment error:", error);
+    const message = error instanceof Error ? error.message : "Failed to cancel appointment";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

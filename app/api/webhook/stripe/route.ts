@@ -188,6 +188,16 @@ export async function POST(request: NextRequest) {
           });
 
           if (appointment?.customerProfile?.user?.id) {
+            // Consume deferred coupon
+            if (appointment.couponId) {
+              try {
+                await prisma.coupon.update({
+                  where: { id: appointment.couponId },
+                  data: { usedCount: { increment: 1 } },
+                });
+              } catch { /* non-critical */ }
+            }
+
             try {
               const earned = await awardLoyaltyPoints(
                 appointment.customerProfile.user.id,

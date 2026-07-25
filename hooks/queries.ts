@@ -174,9 +174,27 @@ export function useAdminOrders(params?: { status?: string; search?: string }, po
 export function useUpdateAdminOrder() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, ...body }: { id: string; status: string }) =>
+    mutationFn: ({ id, ...body }: { id: string; status?: string; trackingNumber?: string; notes?: string }) =>
       m(`/api/admin/orders/${id}`, "PATCH", body),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-orders"] }),
+  });
+}
+
+export function useBulkUpdateOrders() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ orderIds, status }: { orderIds: string[]; status: string }) =>
+      m("/api/admin/orders/bulk", "POST", { orderIds, status }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-orders"] }),
+  });
+}
+
+export function useCancelBooking() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason?: string }) =>
+      m(`/api/bookings/${id}`, "POST", { reason }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["dashboard-bookings"] }),
   });
 }
 
