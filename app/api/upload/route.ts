@@ -1,9 +1,13 @@
 import { NextResponse } from "next/server";
 import cloudinary from "@/lib/cloudinary";
 import { auth } from "@/lib/auth";
+import { uploadLimiter } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
   try {
+    const rl = await uploadLimiter(request as never);
+    if (!rl.success) return rl.response;
+
     const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { verifyTransaction } from "@/lib/paystack";
 import { notify, notifyAdmins } from "@/lib/notifications";
+import { paymentLimiter } from "@/lib/rate-limit";
 
 const POINTS_PER_Naira = 100;
 const TIER_THRESHOLDS = [
@@ -110,6 +111,9 @@ async function redeemLoyaltyPoints(
 
 export async function POST(request: NextRequest) {
   try {
+    const rl = await paymentLimiter(request);
+    if (!rl.success) return rl.response;
+
     const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

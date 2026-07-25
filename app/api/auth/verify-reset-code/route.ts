@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { verifyCodeLimiter } from "@/lib/rate-limit";
 
 export async function POST(request: NextRequest) {
   try {
+    const rl = await verifyCodeLimiter(request);
+    if (!rl.success) return rl.response;
+
     const { email, code } = await request.json();
 
     if (!email || !code) {

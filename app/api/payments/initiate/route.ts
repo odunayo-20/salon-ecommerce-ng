@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { initializeTransaction } from "@/lib/paystack";
+import { paymentLimiter } from "@/lib/rate-limit";
 
 function generateRef() {
   return `PAY-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 8)}`;
@@ -9,6 +10,9 @@ function generateRef() {
 
 export async function POST(request: NextRequest) {
   try {
+    const rl = await paymentLimiter(request);
+    if (!rl.success) return rl.response;
+
     const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

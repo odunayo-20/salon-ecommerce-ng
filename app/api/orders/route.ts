@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { generateOrderNumber } from "@/utils/helpers";
 import { notify, notifyAdmins } from "@/lib/notifications";
 import { checkAndNotifyLowStock } from "@/lib/inventory";
+import { orderLimiter } from "@/lib/rate-limit";
 import { z } from "zod";
 
 const RESERVATION_TTL_MS = 30 * 60 * 1000; // 30 minutes
@@ -36,6 +37,9 @@ function buildItemKey(items: { productId: string; variantId?: string; quantity: 
 
 export async function POST(request: NextRequest) {
   try {
+    const rl = await orderLimiter(request);
+    if (!rl.success) return rl.response;
+
     const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
