@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Package, Star, Loader2, CreditCard, Banknote, Truck } from "lucide-react";
+import { Package, Star, Loader2, CreditCard, Banknote, Truck, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useDashboardOrders, useCancelOrder } from "@/hooks/queries";
@@ -90,62 +90,65 @@ export default function DashboardOrdersPage() {
       ) : (
         <div className="space-y-4">
           {orders.map((order) => (
-            <div key={order.id} className="bg-white border border-border rounded-xl p-4 sm:p-5">
-              <div className="flex items-start sm:items-center justify-between mb-3 gap-2">
-                <div className="min-w-0">
-                  <p className="font-mono text-xs font-medium text-charcoal">{order.orderNumber}</p>
-                  <p className="text-xs text-muted-foreground">{formatDate(order.createdAt)}</p>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  {(() => {
-                    const pm = order.payments?.[0];
-                    if (pm && methodMeta[pm.method]) {
-                      const m = methodMeta[pm.method];
-                      const Icon = m.icon;
-                      return (
-                        <span className={cn("inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold", m.cls)}>
-                          <Icon className="h-2.5 w-2.5" />{m.label}
-                        </span>
-                      );
-                    }
-                    return null;
-                  })()}
-                  <span className={cn("inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider", statusColors[order.status])}>{statusLabels[order.status]}</span>
-                </div>
-              </div>
-              <div className="space-y-2">
-                {order.items.map((item) => (
-                  <div key={item.id} className="flex items-center justify-between text-sm gap-2">
-                    <div className="flex items-center gap-1.5 min-w-0">
-                      <span className="text-charcoal truncate">{item.name} × {item.quantity}</span>
-                      {order.status === "DELIVERED" && (
-                        <Link href={`/shop/${item.slug}#reviews`} className="shrink-0 min-h-[44px] min-w-[44px] p-2 flex items-center justify-center text-gold hover:text-gold/80 transition-colors" title="Write a review">
-                          <Star className="h-3.5 w-3.5" />
-                        </Link>
-                      )}
-                    </div>
-                    <span className="font-medium text-charcoal shrink-0">₦{(item.price * item.quantity).toLocaleString()}</span>
+            <Link key={order.id} href={`/dashboard/orders/${order.id}`} className="block group">
+              <div className="bg-white border border-border rounded-xl p-4 sm:p-5 transition-all group-hover:border-gold/40 group-hover:shadow-sm">
+                <div className="flex items-start sm:items-center justify-between mb-3 gap-2">
+                  <div className="min-w-0">
+                    <p className="font-mono text-xs font-medium text-charcoal">{order.orderNumber}</p>
+                    <p className="text-xs text-muted-foreground">{formatDate(order.createdAt)}</p>
                   </div>
-                ))}
-              </div>
-              <div className="border-t border-border mt-3 pt-3 flex justify-between items-center">
-                <span className="text-sm font-semibold text-charcoal">Total</span>
-                <div className="flex items-center gap-3">
-                  <span className="font-heading font-bold text-charcoal">₦{order.total.toLocaleString()}</span>
-                  {(order.status === "PENDING" || order.status === "PROCESSING") && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={cancellingId === order.id}
-                      onClick={() => handleCancel(order.id)}
-                      className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 rounded-full text-[10px] font-semibold uppercase tracking-wider min-h-[32px] px-3"
-                    >
-                      {cancellingId === order.id ? <Loader2 className="h-3 w-3 animate-spin" /> : "Cancel"}
-                    </Button>
-                  )}
+                  <div className="flex items-center gap-2 shrink-0">
+                    {(() => {
+                      const pm = order.payments?.[0];
+                      if (pm && methodMeta[pm.method]) {
+                        const m = methodMeta[pm.method];
+                        const Icon = m.icon;
+                        return (
+                          <span className={cn("inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold", m.cls)}>
+                            <Icon className="h-2.5 w-2.5" />{m.label}
+                          </span>
+                        );
+                      }
+                      return null;
+                    })()}
+                    <span className={cn("inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider", statusColors[order.status])}>{statusLabels[order.status]}</span>
+                    <ChevronRight className="h-4 w-4 text-border group-hover:text-gold transition-colors hidden sm:block" />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  {order.items.map((item) => (
+                    <div key={item.id} className="flex items-center justify-between text-sm gap-2">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="text-charcoal truncate">{item.name} × {item.quantity}</span>
+                        {order.status === "DELIVERED" && (
+                          <span onClick={(e) => e.preventDefault()} className="shrink-0 min-h-[44px] min-w-[44px] p-2 flex items-center justify-center text-gold hover:text-gold/80 transition-colors" title="Write a review">
+                            <Star className="h-3.5 w-3.5" />
+                          </span>
+                        )}
+                      </div>
+                      <span className="font-medium text-charcoal shrink-0">₦{(item.price * item.quantity).toLocaleString()}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="border-t border-border mt-3 pt-3 flex justify-between items-center">
+                  <span className="text-sm font-semibold text-charcoal">Total</span>
+                  <div className="flex items-center gap-3">
+                    <span className="font-heading font-bold text-charcoal">₦{order.total.toLocaleString()}</span>
+                    {(order.status === "PENDING" || order.status === "PROCESSING") && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={cancellingId === order.id}
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleCancel(order.id); }}
+                        className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 rounded-full text-[10px] font-semibold uppercase tracking-wider min-h-[32px] px-3"
+                      >
+                        {cancellingId === order.id ? <Loader2 className="h-3 w-3 animate-spin" /> : "Cancel"}
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       )}

@@ -659,6 +659,33 @@ export function useCancelOrder() {
   });
 }
 
+// ─── Dashboard Order Detail ──────────────────────────────────────
+export interface OrderDetailItem {
+  id: string; name: string; price: number; quantity: number; image: string | null; slug: string;
+}
+export interface OrderDetailPayment {
+  id: string; amount: number; status: string; method: string; reference: string;
+  paidAt: string | null; createdAt: string;
+}
+export interface OrderDetail {
+  id: string; orderNumber: string; status: string; subtotal: number;
+  shippingCost: number; discount: number; total: number; currency: string;
+  shippingAddress: string | null; billingAddress: string | null; notes: string | null;
+  trackingNumber: string | null; shippedAt: string | null; deliveredAt: string | null;
+  couponCode: string | null; pointsRedeemed: number; loyaltyPointsEarned: number;
+  createdAt: string; updatedAt: string;
+  items: OrderDetailItem[];
+  payments: OrderDetailPayment[];
+}
+
+export function useOrderDetail(id: string | null) {
+  return useQuery<{ order: OrderDetail }>({
+    queryKey: ["order-detail", id],
+    queryFn: () => q(`/api/orders/${id}`),
+    enabled: !!id,
+  });
+}
+
 // ─── Dashboard Hair Profile ───────────────────────────────────────
 export interface HairProfile {
   hairType: string; hairLength: string; hairDensity: string;
