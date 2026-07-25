@@ -104,6 +104,10 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const body = await request.json();
     const {
       name, slug, description, shortDesc, price, comparePrice, sku, barcode,
@@ -168,15 +172,13 @@ export async function POST(request: Request) {
       },
     });
 
-    if (session?.user?.id) {
-      await logAudit({
-        userId: session.user.id,
-        action: "CREATE",
-        entityType: "PRODUCT",
-        entityId: product.id,
-        entityName: product.name,
-      });
-    }
+    await logAudit({
+      userId: session.user.id,
+      action: "CREATE",
+      entityType: "PRODUCT",
+      entityId: product.id,
+      entityName: product.name,
+    });
 
     return NextResponse.json({
       product: { ...product, price: Number(product.price), comparePrice: product.comparePrice ? Number(product.comparePrice) : null },

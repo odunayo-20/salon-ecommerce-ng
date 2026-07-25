@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
+import { registerLimiter } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
   try {
+    const rl = await registerLimiter(request);
+    if (!rl.success) return rl.response;
     const body = await request.json();
     const { name, email, password } = body;
 

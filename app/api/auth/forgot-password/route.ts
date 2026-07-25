@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendEmail, passwordResetCodeEmail } from "@/lib/resend";
+import { passwordResetLimiter } from "@/lib/rate-limit";
 
 function generateCode(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
@@ -8,6 +9,9 @@ function generateCode(): string {
 
 export async function POST(request: NextRequest) {
   try {
+    const rl = await passwordResetLimiter(request);
+    if (!rl.success) return rl.response;
+
     const { email } = await request.json();
 
     if (!email || typeof email !== "string") {
