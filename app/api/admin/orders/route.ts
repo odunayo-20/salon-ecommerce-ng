@@ -33,8 +33,8 @@ export async function GET(request: NextRequest) {
         where,
         include: {
           items: true,
-          customerProfile: { include: { user: { select: { id: true, name: true, email: true, image: true } } } },
-          payments: { select: { id: true, amount: true, status: true, method: true, reference: true } },
+          customerProfile: { include: { user: { select: { id: true, name: true, email: true, image: true, phone: true } } } },
+          payments: { select: { id: true, amount: true, status: true, method: true, reference: true, paidAt: true } },
         },
         orderBy: { createdAt: "desc" },
         skip,
@@ -45,13 +45,36 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       orders: orders.map((o) => ({
-        ...o,
+        id: o.id,
+        orderNumber: o.orderNumber,
+        status: o.status,
         subtotal: Number(o.subtotal),
         shippingCost: Number(o.shippingCost),
         discount: Number(o.discount),
         total: Number(o.total),
+        currency: o.currency,
+        shippingAddress: o.shippingAddress,
+        notes: o.notes,
+        trackingNumber: o.trackingNumber,
+        shippedAt: o.shippedAt?.toISOString() || null,
+        deliveredAt: o.deliveredAt?.toISOString() || null,
+        couponCode: o.couponCode,
+        pointsRedeemed: o.pointsRedeemed,
+        loyaltyPointsEarned: o.loyaltyPointsEarned,
+        createdAt: o.createdAt.toISOString(),
+        updatedAt: o.updatedAt.toISOString(),
         items: o.items.map((i) => ({ ...i, price: Number(i.price) })),
-        payments: o.payments.map((p) => ({ ...p, amount: Number(p.amount) })),
+        customerProfile: o.customerProfile
+          ? {
+              id: o.customerProfile.id,
+              user: o.customerProfile.user,
+            }
+          : null,
+        payments: o.payments.map((p) => ({
+          ...p,
+          amount: Number(p.amount),
+          paidAt: p.paidAt?.toISOString() || null,
+        })),
       })),
       pagination: { page, limit, total, pages: Math.ceil(total / limit) },
     });

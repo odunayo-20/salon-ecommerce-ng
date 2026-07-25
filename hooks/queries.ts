@@ -145,14 +145,17 @@ export interface AdminOrderItem {
   id: string; name: string; price: number; quantity: number; image: string | null;
 }
 export interface AdminOrderPayment {
-  id: string; amount: number; status: string; method: string; reference: string;
+  id: string; amount: number; status: string; method: string; reference: string; paidAt: string | null;
 }
 export interface AdminOrder {
   id: string; orderNumber: string; status: string; subtotal: number;
-  shippingCost: number; discount: number; total: number;
+  shippingCost: number; discount: number; total: number; currency: string;
   shippingAddress: string | null; notes: string | null; trackingNumber: string | null;
-  createdAt: string; items: AdminOrderItem[];
-  customerProfile: { user: { id: string; name: string | null; email: string | null; image: string | null } };
+  shippedAt: string | null; deliveredAt: string | null;
+  couponCode: string | null; pointsRedeemed: number; loyaltyPointsEarned: number;
+  createdAt: string; updatedAt: string;
+  items: AdminOrderItem[];
+  customerProfile: { id: string; user: { id: string; name: string | null; email: string | null; image: string | null; phone: string | null } } | null;
   payments: AdminOrderPayment[];
 }
 
