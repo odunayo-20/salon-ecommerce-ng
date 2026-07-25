@@ -626,6 +626,16 @@ export function useDashboardOrders(pollInterval = 60_000) {
   });
 }
 
+export function useCancelOrder() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (orderId: string) => m(`/api/orders/${orderId}/cancel`, "POST"),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["dashboard-orders"] });
+    },
+  });
+}
+
 // ─── Dashboard Hair Profile ───────────────────────────────────────
 export interface HairProfile {
   hairType: string; hairLength: string; hairDensity: string;

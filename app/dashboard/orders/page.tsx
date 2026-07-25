@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { Package, Star } from "lucide-react";
+import { useState } from "react";
+import { Package, Star, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { useDashboardOrders } from "@/hooks/queries";
+import { useDashboardOrders, useCancelOrder } from "@/hooks/queries";
 
 const statusColors: Record<string, string> = {
   PENDING: "bg-amber-50 text-amber-700", PROCESSING: "bg-blue-50 text-blue-700",
@@ -51,6 +52,17 @@ function OrdersSkeleton() {
 export default function DashboardOrdersPage() {
   const { data, isLoading: loading } = useDashboardOrders(60_000);
   const orders = data?.orders ?? [];
+  const cancelOrder = useCancelOrder();
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
+
+  const handleCancel = async (orderId: string) => {
+    setCancellingId(orderId);
+    try {
+      await cancelOrder.mutateAsync(orderId);
+    } finally {
+      setCancellingId(null);
+    }
+  };
 
   const formatDate = (d: string) => new Date(d).toLocaleDateString("en-NG", { month: "short", day: "numeric", year: "numeric" });
 
@@ -95,9 +107,22 @@ export default function DashboardOrdersPage() {
                   </div>
                 ))}
               </div>
-              <div className="border-t border-border mt-3 pt-3 flex justify-between">
+              <div className="border-t border-border mt-3 pt-3 flex justify-between items-center">
                 <span className="text-sm font-semibold text-charcoal">Total</span>
-                <span className="font-heading font-bold text-charcoal">₦{order.total.toLocaleString()}</span>
+                <div className="flex items-center gap-3">
+                  <span className="font-heading font-bold text-charcoal">₦{order.total.toLocaleString()}</span>
+                  {(order.status === "PENDING" || order.status === "PROCESSING") && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={cancellingId === order.id}
+                      onClick={() => handleCancel(order.id)}
+                      className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 rounded-full text-[10px] font-semibold uppercase tracking-wider min-h-[32px] px-3"
+                    >
+                      {cancellingId === order.id ? <Loader2 className="h-3 w-3 animate-spin" /> : "Cancel"}
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
           ))}

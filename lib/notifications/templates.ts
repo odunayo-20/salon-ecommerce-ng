@@ -9,6 +9,7 @@ import {
   orderProcessingEmail,
   orderShippedEmail,
   orderDeliveredEmail,
+  orderCancelledEmail,
   lowStockAlertEmail,
 } from "@/lib/resend";
 
@@ -136,6 +137,27 @@ export const eventConfigs: Record<NotificationEventType, EventConfig> = {
         title: "Appointment Rescheduled",
         body: `${d.serviceName as string} moved to ${d.date as string} at ${d.time as string}`,
         url: `${APP_URL}/dashboard`,
+      }),
+    },
+  },
+
+  "appointment.no_show": {
+    channels: ["IN_APP", "EMAIL"],
+    template: {
+      inApp: (d) => ({
+        title: "Missed Appointment",
+        message: `Your ${d.serviceName as string} appointment on ${d.date as string} was marked as a no-show.`,
+        actionUrl: "/book",
+      }),
+      email: (d) => ({
+        subject: `Missed Appointment — ${d.reference as string}`,
+        html: appointmentCancelledEmail({
+          customerName: d.customerName as string,
+          serviceName: d.serviceName as string,
+          date: d.date as string,
+          reference: d.reference as string,
+          reason: "You did not attend your scheduled appointment.",
+        }),
       }),
     },
   },
@@ -272,6 +294,27 @@ export const eventConfigs: Record<NotificationEventType, EventConfig> = {
         html: orderDeliveredEmail({
           customerName: d.customerName as string,
           orderNumber: d.orderNumber as string,
+        }),
+      }),
+    },
+  },
+
+  "order.cancelled": {
+    channels: ["IN_APP", "EMAIL"],
+    template: {
+      inApp: (d) => ({
+        title: "Order Cancelled",
+        message: `Your order ${d.orderNumber as string} has been cancelled.${d.reason ? ` Reason: ${d.reason as string}` : ""}`,
+        actionUrl: "/dashboard/orders",
+      }),
+      email: (d) => ({
+        subject: `Order Cancelled — ${d.orderNumber as string}`,
+        html: orderCancelledEmail({
+          customerName: d.customerName as string,
+          orderNumber: d.orderNumber as string,
+          items: d.items as { name: string; quantity: number; price: number }[],
+          total: d.total as number,
+          reason: d.reason as string | undefined,
         }),
       }),
     },

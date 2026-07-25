@@ -155,6 +155,12 @@ export async function PATCH(
             event: "order.delivered",
             data: { customerName, orderNumber: orderNum, items, total },
           });
+        } else if (status.toUpperCase() === "CANCELLED") {
+          await notify({
+            userId: order.customerProfile.user.id,
+            event: "order.cancelled",
+            data: { customerName, orderNumber: orderNum, items, total },
+          });
         }
       } catch {
         // Notification failure shouldn't block order update

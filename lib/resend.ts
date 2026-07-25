@@ -467,6 +467,54 @@ export function orderDeliveredEmail(params: {
   `;
 }
 
+export function orderCancelledEmail(params: {
+  customerName: string;
+  orderNumber: string;
+  items: Array<{ name: string; quantity: number; price: number }>;
+  total: number;
+  reason?: string;
+}) {
+  const itemsHtml = params.items
+    .map(
+      (item) =>
+        `<tr><td style="padding: 8px 0; color: #1a1a1a; font-size: 13px; border-bottom: 1px solid #f0f0f0;">${item.name} × ${item.quantity}</td><td style="padding: 8px 0; color: #1a1a1a; font-size: 13px; text-align: right; border-bottom: 1px solid #f0f0f0;">₦${(item.price * item.quantity).toLocaleString()}</td></tr>`
+    )
+    .join("");
+
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head><meta charset="utf-8"></head>
+    <body style="font-family: 'Helvetica Neue', Arial, sans-serif; background: #faf9f7; margin: 0; padding: 40px 20px;">
+      <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 8px; overflow: hidden;">
+        <div style="background: #dc2626; padding: 40px; text-align: center;">
+          <h1 style="color: #ffffff; font-size: 22px; margin: 0; letter-spacing: 2px; text-transform: uppercase;">Order Cancelled</h1>
+        </div>
+        <div style="padding: 40px;">
+          <p style="color: #666; font-size: 16px; line-height: 1.6;">Dear ${params.customerName},</p>
+          <p style="color: #666; font-size: 15px; line-height: 1.6;">Your order <strong>${params.orderNumber}</strong> has been cancelled.</p>
+          ${params.reason ? `<p style="color: #999; font-size: 13px; line-height: 1.6;">Reason: ${params.reason}</p>` : ""}
+
+          <table style="width: 100%; border-collapse: collapse; margin: 24px 0;">
+            ${itemsHtml}
+            <tr><td style="padding: 12px 0; color: #1a1a1a; font-size: 15px; font-weight: 600; border-top: 2px solid #1a1a1a;">Total</td><td style="padding: 12px 0; color: #1a1a1a; font-size: 15px; font-weight: 600; text-align: right; border-top: 2px solid #1a1a1a;">₦${params.total.toLocaleString()}</td></tr>
+          </table>
+
+          <p style="color: #666; font-size: 14px; line-height: 1.6;">If a payment was made, a refund will be processed within 3–5 business days.</p>
+
+          <div style="text-align: center; margin: 24px 0;">
+            <a href="${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/shop" style="display: inline-block; background: #1a1a1a; color: #ffffff; padding: 12px 32px; border-radius: 50px; text-decoration: none; font-size: 13px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase;">Continue Shopping</a>
+          </div>
+        </div>
+        <div style="background: #faf9f7; padding: 24px; text-align: center;">
+          <p style="color: #999; font-size: 12px; margin: 0;">${process.env.NEXT_PUBLIC_APP_NAME || "MecBill Tech Salon"} | Luxury Hair Experiences</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+}
+
 export function appointmentPlacedEmail(params: {
   customerName: string;
   serviceName: string;

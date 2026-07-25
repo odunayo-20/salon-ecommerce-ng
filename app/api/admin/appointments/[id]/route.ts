@@ -69,6 +69,10 @@ export async function PATCH(
         updateData.cancelledAt = new Date();
         if (cancelReason) updateData.cancelReason = cancelReason;
       }
+      if (status.toUpperCase() === "NO_SHOW") {
+        updateData.cancelledAt = new Date();
+        updateData.cancelReason = cancelReason || "No-show";
+      }
     }
     if (notes !== undefined) updateData.notes = notes;
 
@@ -128,6 +132,13 @@ export async function PATCH(
             ...base,
             reason: cancelReason || undefined,
           });
+        } else if (status.toUpperCase() === "NO_SHOW") {
+          await notify({
+            userId: appointment.customerProfile.user.id,
+            event: "appointment.no_show",
+            data: base,
+          });
+          await notifyAdmins("appointment.no_show", base);
         }
       } catch {
         // Notification failure — non-critical
