@@ -175,7 +175,7 @@ export default function AdminCouponsPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by code..."
-            className="w-full bg-white border border-border rounded-full pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-gold min-h-[44px]"
+            className="w-full bg-white border border-border rounded-full pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-gold/30 focus:border-gold transition-all duration-200 hover:border-gold/50 min-h-[44px]"
           />
         </div>
       </div>
@@ -339,52 +339,62 @@ export default function AdminCouponsPage() {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-charcoal mb-1">Code</label>
-                <input value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })} placeholder="e.g. SAVE20" className="w-full bg-cream border border-border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-gold font-mono min-h-[44px]" />
+                <input value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })} placeholder="e.g. SAVE20" className="w-full bg-cream border border-border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-gold/30 focus:border-gold transition-all duration-200 hover:border-gold/50 font-mono min-h-[44px]" />
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-charcoal mb-1">Type</label>
-                  <select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value as "PERCENTAGE" | "FIXED" })} className="w-full bg-cream border border-border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-gold min-h-[44px]">
-                    <option value="PERCENTAGE">Percentage (%)</option>
-                    <option value="FIXED">Fixed Amount (₦)</option>
-                  </select>
+                  <div className="relative">
+                    <select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value as "PERCENTAGE" | "FIXED" })} className="w-full bg-cream border border-border rounded-lg px-4 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-gold/30 focus:border-gold transition-all duration-200 hover:border-gold/50 appearance-none min-h-[44px]">
+                      <option value="PERCENTAGE">Percentage (%)</option>
+                      <option value="FIXED">Fixed Amount (₦)</option>
+                    </select>
+                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-charcoal/60">
+                      <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                    </div>
+                  </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-charcoal mb-1">Value</label>
-                  <input type="number" value={form.value} onChange={(e) => setForm({ ...form, value: e.target.value })} placeholder={form.type === "PERCENTAGE" ? "e.g. 20" : "e.g. 5000"} className="w-full bg-cream border border-border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-gold min-h-[44px]" />
+                  <input type="number" value={form.value} onChange={(e) => setForm({ ...form, value: e.target.value })} placeholder={form.type === "PERCENTAGE" ? "e.g. 20" : "e.g. 5000"} className="w-full bg-cream border border-border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-gold/30 focus:border-gold transition-all duration-200 hover:border-gold/50 min-h-[44px]" />
                 </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-charcoal mb-1">Applies To</label>
-                <select value={form.appliesTo} onChange={(e) => setForm({ ...form, appliesTo: e.target.value as "ALL" | "PRODUCTS" | "SERVICES" })} className="w-full bg-cream border border-border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-gold min-h-[44px]">
-                  <option value="ALL">All</option>
-                  <option value="PRODUCTS">Products Only</option>
-                  <option value="SERVICES">Services Only</option>
-                </select>
+                <div className="relative">
+                  <select value={form.appliesTo} onChange={(e) => setForm({ ...form, appliesTo: e.target.value as "ALL" | "PRODUCTS" | "SERVICES" })} className="w-full bg-cream border border-border rounded-lg px-4 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-gold/30 focus:border-gold transition-all duration-200 hover:border-gold/50 appearance-none min-h-[44px]">
+                    <option value="ALL">All</option>
+                    <option value="PRODUCTS">Products Only</option>
+                    <option value="SERVICES">Services Only</option>
+                  </select>
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-charcoal/60">
+                    <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                  </div>
+                </div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-charcoal mb-1">Min Order Amount (₦)</label>
-                  <input type="number" value={form.minOrderAmount} onChange={(e) => setForm({ ...form, minOrderAmount: e.target.value })} placeholder="Optional" className="w-full bg-cream border border-border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-gold min-h-[44px]" />
+                  <input type="number" value={form.minOrderAmount} onChange={(e) => setForm({ ...form, minOrderAmount: e.target.value })} placeholder="Optional" className="w-full bg-cream border border-border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-gold/30 focus:border-gold transition-all duration-200 hover:border-gold/50 min-h-[44px]" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-charcoal mb-1">Max Discount (₦)</label>
-                  <input type="number" value={form.maxDiscountAmount} onChange={(e) => setForm({ ...form, maxDiscountAmount: e.target.value })} placeholder="Optional" className="w-full bg-cream border border-border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-gold min-h-[44px]" />
+                  <input type="number" value={form.maxDiscountAmount} onChange={(e) => setForm({ ...form, maxDiscountAmount: e.target.value })} placeholder="Optional" className="w-full bg-cream border border-border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-gold/30 focus:border-gold transition-all duration-200 hover:border-gold/50 min-h-[44px]" />
                 </div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-charcoal mb-1">Total Usage Limit</label>
-                  <input type="number" value={form.usageLimit} onChange={(e) => setForm({ ...form, usageLimit: e.target.value })} placeholder="Unlimited" className="w-full bg-cream border border-border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-gold min-h-[44px]" />
+                  <input type="number" value={form.usageLimit} onChange={(e) => setForm({ ...form, usageLimit: e.target.value })} placeholder="Unlimited" className="w-full bg-cream border border-border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-gold/30 focus:border-gold transition-all duration-200 hover:border-gold/50 min-h-[44px]" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-charcoal mb-1">Per-User Limit</label>
-                  <input type="number" value={form.perUserLimit} onChange={(e) => setForm({ ...form, perUserLimit: e.target.value })} placeholder="Unlimited" className="w-full bg-cream border border-border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-gold min-h-[44px]" />
+                  <input type="number" value={form.perUserLimit} onChange={(e) => setForm({ ...form, perUserLimit: e.target.value })} placeholder="Unlimited" className="w-full bg-cream border border-border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-gold/30 focus:border-gold transition-all duration-200 hover:border-gold/50 min-h-[44px]" />
                 </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-charcoal mb-1">Expiry Date</label>
-                <input type="date" value={form.expiresAt} onChange={(e) => setForm({ ...form, expiresAt: e.target.value })} className="w-full bg-cream border border-border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-gold min-h-[44px]" />
+                <input type="date" value={form.expiresAt} onChange={(e) => setForm({ ...form, expiresAt: e.target.value })} className="w-full bg-cream border border-border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-gold/30 focus:border-gold transition-all duration-200 hover:border-gold/50 min-h-[44px]" />
               </div>
             </div>
             <div className="flex gap-3 justify-end mt-6">

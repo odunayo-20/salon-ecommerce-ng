@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { Sparkles, Lightbulb, Users, Heart, Award, Star, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -61,11 +62,14 @@ export default function AboutPage() {
               </p>
             </div>
           </div>
-          <div className="aspect-square bg-cream rounded-2xl flex items-center justify-center">
-            <div className="text-center text-muted-foreground">
-              <Sparkles className="h-12 w-12 mx-auto mb-3" />
-              <p className="text-sm">Brand Story Image</p>
-            </div>
+          <div className="aspect-square relative bg-cream rounded-2xl overflow-hidden border border-border">
+            <Image
+              src="https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?q=80&w=1000"
+              alt="MecBill Tech Salon Experience"
+              fill
+              className="object-cover"
+              sizes="(max-width: 768px) 100vw, 50vw"
+            />
           </div>
         </div>
 
@@ -126,11 +130,14 @@ export default function AboutPage() {
 
         <div className="grid md:grid-cols-2 gap-12 items-center">
           <div className="order-2 md:order-1">
-            <div className="aspect-square bg-cream rounded-2xl flex items-center justify-center">
-              <div className="text-center text-muted-foreground">
-                <Heart className="h-12 w-12 mx-auto mb-3" />
-                <p className="text-sm">Founder Photo</p>
-              </div>
+            <div className="aspect-square relative bg-cream rounded-2xl overflow-hidden border border-border">
+              <Image
+                src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=1000"
+                alt="Mrs. MecBill - Founder of MecBill Tech Salon"
+                fill
+                className="object-cover"
+                sizes="(max-width: 768px) 100vw, 50vw"
+              />
             </div>
           </div>
           <div className="order-1 md:order-2">

@@ -79,32 +79,32 @@ export default function ConsultationPage() {
           <div className="grid sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-medium text-charcoal mb-1.5"><User className="h-3 w-3 inline mr-1" />Name</label>
-              <input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="Your name" className="w-full bg-cream border border-border rounded-lg px-4 py-2.5 text-sm text-charcoal placeholder:text-muted-foreground/60 focus:outline-none focus:border-gold" />
+              <input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="Your name" className="w-full bg-cream border border-border rounded-lg px-4 py-2.5 text-sm text-charcoal placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-gold/30 focus:border-gold transition-all duration-200 hover:border-gold/50" />
             </div>
             <div>
               <label className="block text-xs font-medium text-charcoal mb-1.5"><Mail className="h-3 w-3 inline mr-1" />Email</label>
-              <input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} placeholder="your@email.com" className="w-full bg-cream border border-border rounded-lg px-4 py-2.5 text-sm text-charcoal placeholder:text-muted-foreground/60 focus:outline-none focus:border-gold" />
+              <input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} placeholder="your@email.com" className="w-full bg-cream border border-border rounded-lg px-4 py-2.5 text-sm text-charcoal placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-gold/30 focus:border-gold transition-all duration-200 hover:border-gold/50" />
             </div>
           </div>
           <div className="mt-4">
             <label className="block text-xs font-medium text-charcoal mb-1.5"><Phone className="h-3 w-3 inline mr-1" />Phone</label>
-            <input type="tel" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} placeholder="+234 ..." className="w-full bg-cream border border-border rounded-lg px-4 py-2.5 text-sm text-charcoal placeholder:text-muted-foreground/60 focus:outline-none focus:border-gold" />
+            <input type="tel" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} placeholder="+234 ..." className="w-full bg-cream border border-border rounded-lg px-4 py-2.5 text-sm text-charcoal placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-gold/30 focus:border-gold transition-all duration-200 hover:border-gold/50" />
           </div>
         </div>
 
         <div className="bg-white border border-border rounded-xl p-6">
           <label className="block font-heading font-semibold text-charcoal mb-2">What are your main hair concerns? *</label>
-          <textarea value={formData.hairConcerns} onChange={(e) => setFormData({ ...formData, hairConcerns: e.target.value })} placeholder="e.g., My hair has been experiencing breakage at the edges..." className="w-full bg-cream border border-border rounded-lg px-4 py-3 text-sm text-charcoal placeholder:text-muted-foreground/60 focus:outline-none focus:border-gold resize-none h-32" required />
+          <textarea value={formData.hairConcerns} onChange={(e) => setFormData({ ...formData, hairConcerns: e.target.value })} placeholder="e.g., My hair has been experiencing breakage at the edges..." className="w-full bg-cream border border-border rounded-lg px-4 py-3 text-sm text-charcoal placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-gold/30 focus:border-gold transition-all duration-200 hover:border-gold/50 resize-none h-32" required />
         </div>
         <div className="bg-white border border-border rounded-xl p-6">
           <label className="block font-heading font-semibold text-charcoal mb-2">What hairstyle are you looking for?</label>
-          <textarea value={formData.desiredHairstyle} onChange={(e) => setFormData({ ...formData, desiredHairstyle: e.target.value })} placeholder="e.g., I&apos;d love to try knotless box braids..." className="w-full bg-cream border border-border rounded-lg px-4 py-3 text-sm text-charcoal placeholder:text-muted-foreground/60 focus:outline-none focus:border-gold resize-none h-24" />
+          <textarea value={formData.desiredHairstyle} onChange={(e) => setFormData({ ...formData, desiredHairstyle: e.target.value })} placeholder="e.g., I&apos;d love to try knotless box braids..." className="w-full bg-cream border border-border rounded-lg px-4 py-3 text-sm text-charcoal placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-gold/30 focus:border-gold transition-all duration-200 hover:border-gold/50 resize-none h-24" />
         </div>
         <div className="bg-white border border-border rounded-xl p-6">
           <label className="block font-heading font-semibold text-charcoal mb-4">What&apos;s your hair type?</label>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             {["STRAIGHT", "WAVY", "CURLY", "COILY", "KINKY", "KINKY_COILY"].map((type) => (
-              <button key={type} type="button" onClick={() => setFormData({ ...formData, hairType: type })} className={`py-3 rounded-lg text-sm font-medium border transition-all ${formData.hairType === type ? "bg-charcoal text-white border-charcoal" : "bg-cream text-charcoal border-border hover:border-charcoal"}`}>
+              <button key={type} type="button" onClick={() => setFormData({ ...formData, hairType: type })} className={`py-3 rounded-lg text-sm font-medium border transition-all duration-200 ${formData.hairType === type ? "bg-gold text-white border-gold shadow-md" : "bg-cream text-charcoal border-border hover:border-gold/50 hover:bg-cream/80"}`}>
                 {type.replace("_", " ").toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase())}
               </button>
             ))}
@@ -112,14 +112,14 @@ export default function ConsultationPage() {
         </div>
         <div className="bg-white border border-border rounded-xl p-6">
           <label className="block font-heading font-semibold text-charcoal mb-2">Reference Images</label>
-          <div className="border-2 border-dashed border-border rounded-xl p-8 text-center hover:border-gold/50 transition-colors">
+          <div className="border-2 border-dashed border-border rounded-xl p-8 text-center hover:border-gold/50 transition-colors duration-200">
             <Upload className="h-8 w-8 text-muted-foreground/40 mx-auto mb-3" />
             <p className="text-sm text-muted-foreground">Drag and drop images here, or <button type="button" className="text-gold hover:underline">browse</button></p>
           </div>
         </div>
         <div className="bg-white border border-border rounded-xl p-6">
           <label className="block font-heading font-semibold text-charcoal mb-2">Anything else?</label>
-          <textarea value={formData.additionalNotes} onChange={(e) => setFormData({ ...formData, additionalNotes: e.target.value })} placeholder="Allergies, budget, previous treatments..." className="w-full bg-cream border border-border rounded-lg px-4 py-3 text-sm text-charcoal placeholder:text-muted-foreground/60 focus:outline-none focus:border-gold resize-none h-24" />
+          <textarea value={formData.additionalNotes} onChange={(e) => setFormData({ ...formData, additionalNotes: e.target.value })} placeholder="Allergies, budget, previous treatments..." className="w-full bg-cream border border-border rounded-lg px-4 py-3 text-sm text-charcoal placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-gold/30 focus:border-gold transition-all duration-200 hover:border-gold/50 resize-none h-24" />
         </div>
         {error && <p className="text-red-500 text-sm text-center">{error}</p>}
         <Button type="submit" disabled={isSubmitting} className="w-full bg-gold text-white hover:bg-gold-dark rounded-full py-6 text-xs font-semibold tracking-wider uppercase">

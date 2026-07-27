@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { Star, Scissors, Clock, Award, ArrowRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { usePublicStylists } from "@/hooks/queries";
@@ -45,11 +46,15 @@ export default function StylistsPage() {
               <div className="bg-cream rounded-2xl p-6 md:p-10">
                 <div className="grid md:grid-cols-5 gap-8 items-center">
                   <div className="md:col-span-2">
-                    <div className="aspect-square bg-white border border-border rounded-2xl flex items-center justify-center">
-                      <div className="text-center text-muted-foreground">
-                        <Scissors className="h-10 w-10 mx-auto mb-2" />
-                        <p className="text-sm">{featured.user.name}</p>
-                      </div>
+                    <div className="aspect-square relative bg-white border border-border rounded-2xl overflow-hidden">
+                      <Image
+                        src={featured.user.image || "https://images.unsplash.com/photo-1595959183077-51a5c378eec7?q=80&w=1000"}
+                        alt={featured.user.name || "Stylist"}
+                        fill
+                        className="object-cover"
+                        sizes="(max-width: 768px) 100vw, 33vw"
+                        priority
+                      />
                     </div>
                   </div>
                   <div className="md:col-span-3">
@@ -84,13 +89,22 @@ export default function StylistsPage() {
                   <p className="text-sm text-muted-foreground mt-2">Every stylist at MecBill Tech is handpicked for their skill, passion, and dedication</p>
                 </div>
                 <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {rest.map((stylist) => (
+                  {rest.map((stylist, index) => (
                     <div key={stylist.id} className="bg-white border border-border rounded-2xl overflow-hidden hover:shadow-md transition-shadow group">
-                      <div className="aspect-[4/3] bg-cream flex items-center justify-center relative">
-                        <div className="text-center text-muted-foreground">
-                          <Scissors className="h-8 w-8 mx-auto mb-2" />
-                          <p className="text-sm">{stylist.user.name?.split(" ")[0]}&apos;s Photo</p>
-                        </div>
+                      <div className="aspect-[4/3] bg-cream relative overflow-hidden">
+                        <Image
+                          src={stylist.user.image || `https://images.unsplash.com/photo-${
+                            index === 0
+                              ? "1534528741775-53994a69daeb"
+                              : index === 1
+                              ? "1507003211169-0a1dd7228f2d"
+                              : "1544005313-94ddf0286df2"
+                          }?q=80&w=1000`}
+                          alt={stylist.user.name || "Stylist"}
+                          fill
+                          className="object-cover transition-transform duration-500 group-hover:scale-105"
+                          sizes="(max-width: 640px) 100vw, 33vw"
+                        />
                         <div className="absolute top-3 right-3 text-[10px] bg-white px-2.5 py-1 rounded-full text-muted-foreground font-medium shadow-sm">{stylist.experience} yrs</div>
                       </div>
                       <div className="p-6">

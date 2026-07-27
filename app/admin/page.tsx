@@ -51,18 +51,24 @@ export default function AdminDashboard() {
       {summary && (
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           {[
-            { label: "Total Revenue", value: `₦${(summary.totalRevenue / 1000).toFixed(0)}K`, icon: Package },
-            { label: "Orders", value: summary.totalOrders.toLocaleString(), icon: Package },
-            { label: "Appointments", value: summary.totalAppointments.toLocaleString(), icon: Calendar },
-            { label: "Customers", value: summary.totalCustomers.toLocaleString(), sub: `+${summary.newCustomers} new`, icon: Users },
+            { label: "Total Revenue", value: `₦${(summary.totalRevenue / 1000).toFixed(0)}K`, icon: BarChart3, color: "text-gold bg-gold/10" },
+            { label: "Orders", value: summary.totalOrders.toLocaleString(), icon: Package, color: "text-blue-600 bg-blue-50" },
+            { label: "Appointments", value: summary.totalAppointments.toLocaleString(), icon: Calendar, color: "text-purple-600 bg-purple-50" },
+            { label: "Customers", value: summary.totalCustomers.toLocaleString(), sub: `+${summary.newCustomers} new`, icon: Users, color: "text-emerald-600 bg-emerald-50" },
           ].map((stat) => (
-            <div key={stat.label} className="bg-white border border-border rounded-xl p-5">
+            <div key={stat.label} className="bg-white border border-border/80 rounded-xl p-5 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 group">
               <div className="flex items-center justify-between">
-                <p className="text-xs text-muted-foreground uppercase tracking-wider">{stat.label}</p>
-                <stat.icon className="h-4 w-4 text-muted-foreground" />
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">{stat.label}</p>
+                <div className={cn("p-2 rounded-lg transition-transform duration-300 group-hover:scale-110", stat.color)}>
+                  <stat.icon className="h-4 w-4" />
+                </div>
               </div>
-              <p className="text-2xl font-heading font-bold text-charcoal mt-1">{stat.value}</p>
-              {stat.sub && <p className="text-xs text-emerald-600 mt-1">{stat.sub}</p>}
+              <p className="text-2xl font-heading font-bold text-charcoal mt-2 tracking-tight">{stat.value}</p>
+              {stat.sub ? (
+                <p className="text-xs text-emerald-600 mt-1 flex items-center gap-1 font-medium">{stat.sub}</p>
+              ) : (
+                <p className="text-xs text-muted-foreground mt-1 font-medium">Overall progress</p>
+              )}
             </div>
           ))}
         </div>
@@ -167,16 +173,19 @@ export default function AdminDashboard() {
       </div>
 
       {/* Quick Links */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {[
-          { label: "Inventory", href: "/admin/inventory", icon: Warehouse, color: "text-amber-600" },
-          { label: "Audit Log", href: "/admin/audit-log", icon: ClipboardList, color: "text-purple-600" },
-          { label: "Analytics", href: "/admin/analytics", icon: BarChart3, color: "text-blue-600" },
-          { label: "Coupons", href: "/admin/coupons", icon: Tag, color: "text-emerald-600" },
+          { label: "Inventory", href: "/admin/inventory", icon: Warehouse, color: "text-amber-600 bg-amber-50" },
+          { label: "Audit Log", href: "/admin/audit-log", icon: ClipboardList, color: "text-purple-600 bg-purple-50" },
+          { label: "Analytics", href: "/admin/analytics", icon: BarChart3, color: "text-blue-600 bg-blue-50" },
+          { label: "Coupons", href: "/admin/coupons", icon: Tag, color: "text-emerald-600 bg-emerald-50" },
         ].map((link) => (
-          <Link key={link.href} href={link.href} className="bg-white border border-border rounded-xl p-4 hover:shadow-sm transition-shadow group">
-            <link.icon className={cn("h-5 w-5 mb-2", link.color)} />
-            <p className="text-sm font-medium text-charcoal group-hover:text-gold transition-colors">{link.label}</p>
+          <Link key={link.href} href={link.href} className="bg-white border border-border/80 rounded-xl p-5 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 group flex flex-col items-start">
+            <div className={cn("p-2.5 rounded-lg mb-3 transition-transform duration-300 group-hover:scale-110", link.color)}>
+              <link.icon className="h-5 w-5" />
+            </div>
+            <p className="text-sm font-semibold text-charcoal group-hover:text-gold transition-colors">{link.label}</p>
+            <p className="text-xs text-muted-foreground mt-1">Manage platform {link.label.toLowerCase()}</p>
           </Link>
         ))}
       </div>

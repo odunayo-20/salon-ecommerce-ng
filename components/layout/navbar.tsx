@@ -219,7 +219,7 @@ export function Navbar() {
             </Link>
 
             {/* Desktop Navigation */}
-            <nav className="hidden md:flex items-center gap-1">
+            <nav className="hidden md:flex items-center gap-1.5">
               {navLinks.map((link) => (
                 <div
                   key={link.href}
@@ -230,9 +230,9 @@ export function Navbar() {
                   <Link
                     href={link.href}
                     className={cn(
-                      "flex items-center gap-1 px-4 py-2 text-sm font-medium transition-colors rounded-full",
+                      "flex items-center gap-1 px-4 py-2 text-sm font-medium transition-all duration-200 rounded-full hover:bg-cream/60",
                       pathname === link.href || pathname.startsWith(link.href + "/")
-                        ? "text-gold"
+                        ? "text-gold bg-cream/70"
                         : "text-charcoal hover:text-gold"
                     )}
                   >
@@ -240,26 +240,26 @@ export function Navbar() {
                     {link.children && (
                       <ChevronDown
                         className={cn(
-                          "h-3.5 w-3.5 transition-transform",
+                          "h-3.5 w-3.5 transition-transform duration-200",
                           openDropdown === link.label && "rotate-180"
                         )}
                       />
                     )}
                   </Link>
-
+ 
                   {/* Dropdown */}
                   {link.children && openDropdown === link.label && (
-                    <div className="absolute top-full left-0 pt-2 z-50">
-                      <div className="bg-white rounded-xl shadow-lg border border-border p-2 min-w-[220px]">
+                    <div className="absolute top-full left-0 pt-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                      <div className="bg-white rounded-xl shadow-xl border border-border/80 p-2 min-w-[220px]">
                         {link.children.map((child) => (
                           <Link
                             key={child.href}
                             href={child.href}
                             className={cn(
-                              "block px-4 py-2.5 text-sm rounded-lg transition-colors",
+                              "block px-4 py-2.5 text-sm rounded-lg transition-all duration-150",
                               pathname === child.href
                                 ? "bg-gold/10 text-gold font-medium"
-                                : "text-charcoal hover:bg-cream hover:text-gold"
+                                : "text-charcoal hover:bg-cream/60 hover:text-gold"
                             )}
                           >
                             {child.label}

@@ -74,7 +74,7 @@ export function ProductCard({ product }: ProductCardProps) {
 
         {/* Hover Actions */}
         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300" />
-        <div className="absolute bottom-3 left-3 right-3 flex gap-2 opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300">
+        <div className="absolute bottom-3 left-3 right-3 flex gap-2 md:opacity-0 md:translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300">
           <Button
             size="sm"
             className="flex-1 bg-white text-charcoal hover:bg-gold hover:text-white rounded-full text-xs font-semibold h-9"
@@ -136,7 +136,7 @@ export function ProductCard({ product }: ProductCardProps) {
             </span>
           )}
         </div>
-        {product.rating && (
+        {!!product.rating && (
           <div className="flex items-center gap-1">
             {[...Array(5)].map((_, i) => (
               <Star
