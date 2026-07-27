@@ -50,9 +50,26 @@ export default function BlogPostPage({ params }: { params: Promise<{ slug: strin
   const formatDate = (d: string) => new Date(d).toLocaleDateString("en-NG", { month: "long", day: "numeric", year: "numeric" });
   const wordCount = post.content.split(/\s+/).length;
   const readTime = `${Math.max(1, Math.ceil(wordCount / 200))} min read`;
+  const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://mecbilltechsalon.com";
+
+  const blogJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    headline: post.title,
+    description: post.excerpt || post.content.slice(0, 160),
+    image: post.coverImage || undefined,
+    url: `${APP_URL}/blog/${post.slug}`,
+    author: { "@type": "Person", name: post.author?.name || "MecBill Team" },
+    datePublished: post.createdAt,
+    publisher: {
+      "@type": "Organization",
+      name: "MecBill Tech Salon",
+    },
+  };
 
   return (
     <div className="min-h-screen">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(blogJsonLd) }} />
       <div className="bg-charcoal py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 text-center">
           <nav className="flex items-center justify-center gap-2 text-sm text-white/40 mb-6">

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
+import { ProductJsonLd, BreadcrumbJsonLd } from "@/components/seo/structured-data";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
@@ -56,10 +57,45 @@ export async function generateMetadata({
   };
 }
 
-export default function ShopSlugLayout({
+export default async function ShopSlugLayout({
   children,
+  params,
 }: {
   children: React.ReactNode;
+  params: Promise<{ slug: string }>;
 }) {
-  return <>{children}</>;
+  const { slug } = await params;
+  const product = await prisma.product.findUnique({
+    where: { slug },
+    select: {
+      name: true, description: true, image: true, price: true,
+      stock: true, category: { select: { name: true } },
+    },
+  });
+
+  const availability = product && product.stock > 0 ? "InStock" as const : "OutOfStock" as const;
+
+  return (
+    <>
+      {product && (
+        <ProductJsonLd
+          name={product.name}
+          description={product.description}
+          image={product.image}
+          price={Number(product.price)}
+          availability={availability}
+          url={`${APP_URL}/shop/${slug}`}
+        />
+      )}
+      {product?.category && (
+        <BreadcrumbJsonLd items={[
+          { name: "Home", url: APP_URL },
+          { name: "Shop", url: `${APP_URL}/shop` },
+          { name: product.category.name, url: `${APP_URL}/shop?category=${encodeURIComponent(product.category.name)}` },
+          { name: product.name, url: `${APP_URL}/shop/${slug}` },
+        ]} />
+      )}
+      {children}
+    </>
+  );
 }

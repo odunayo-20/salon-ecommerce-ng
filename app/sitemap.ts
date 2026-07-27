@@ -1,8 +1,10 @@
 import { MetadataRoute } from "next";
+import { prisma } from "@/lib/prisma";
 
-export default function sitemap(): MetadataRoute.Sitemap {
-  const base = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-  return [
+const base = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const staticPages: MetadataRoute.Sitemap = [
     { url: base, lastModified: new Date(), changeFrequency: "weekly", priority: 1 },
     { url: `${base}/about`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.8 },
     { url: `${base}/book`, lastModified: new Date(), changeFrequency: "weekly", priority: 0.9 },
@@ -20,4 +22,31 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${base}/terms`, lastModified: new Date(), changeFrequency: "yearly", priority: 0.3 },
     { url: `${base}/support`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.5 },
   ];
+
+  const [products, blogPosts] = await Promise.all([
+    prisma.product.findMany({
+      where: { isActive: true },
+      select: { slug: true, updatedAt: true },
+    }),
+    prisma.blogPost.findMany({
+      where: { status: "PUBLISHED" },
+      select: { slug: true, updatedAt: true },
+    }),
+  ]);
+
+  const productPages: MetadataRoute.Sitemap = products.map((p) => ({
+    url: `${base}/shop/${p.slug}`,
+    lastModified: p.updatedAt,
+    changeFrequency: "weekly" as const,
+    priority: 0.8,
+  }));
+
+  const blogPages: MetadataRoute.Sitemap = blogPosts.map((p) => ({
+    url: `${base}/blog/${p.slug}`,
+    lastModified: p.updatedAt,
+    changeFrequency: "monthly" as const,
+    priority: 0.6,
+  }));
+
+  return [...staticPages, ...productPages, ...blogPages];
 }
