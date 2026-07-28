@@ -56,6 +56,11 @@ export async function GET(request: Request) {
 
     const where: Record<string, unknown> = {};
     if (categoryId) where.categoryId = categoryId;
+    const categorySlug = searchParams.get("category");
+    if (categorySlug) {
+      const cat = await prisma.category.findUnique({ where: { slug: categorySlug }, select: { id: true } });
+      if (cat) where.categoryId = cat.id;
+    }
     if (isActive !== null && isActive !== undefined) where.isActive = isActive === "true";
     if (isFeatured !== null && isFeatured !== undefined) where.isFeatured = isFeatured === "true";
     if (search) {
