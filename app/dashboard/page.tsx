@@ -252,7 +252,7 @@ export default function DashboardPage() {
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center justify-between sm:justify-end sm:flex-col sm:items-end gap-2 shrink-0">
+                <div className="flex flex-wrap items-center gap-2 sm:justify-end sm:flex-col sm:items-end shrink-0 pt-2 sm:pt-0 border-t border-gold/10 sm:border-0">
                   <span className="text-sm font-semibold text-charcoal">₦{apt.totalAmount.toLocaleString()}</span>
                   {!apt.isFullyPaid && apt.status !== "CANCELLED" && (
                     <Button onClick={() => handlePayNow(apt)} disabled={payingId === apt.id} size="sm" className="bg-gold text-white hover:bg-gold-dark rounded-full text-xs font-semibold tracking-wider uppercase px-4 min-h-[44px]">
