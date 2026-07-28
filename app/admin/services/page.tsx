@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Plus, Pencil, Trash2, X, Loader2, Scissors, Star, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAdminServices, useUpsertService, useDeleteService, useAdminCategories } from "@/hooks/queries";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 const emptyForm = {
   name: "",
@@ -40,6 +41,7 @@ export default function AdminServicesPage() {
   const [search, setSearch] = useState("");
   const [filterCategory, setFilterCategory] = useState("all");
   const [filterStatus, setFilterStatus] = useState<"all" | "active" | "inactive">("all");
+  const [confirmState, setConfirmState] = useState<{ open: boolean; title: string; message: string; onConfirm: () => void }>({ open: false, title: "", message: "", onConfirm: () => {} });
 
   const { data, isLoading } = useAdminServices({
     ...(filterCategory !== "all" ? {} : {}),
@@ -122,14 +124,20 @@ export default function AdminServicesPage() {
       setErrorMsg(`Cannot delete "${s.name}" — it has ${s.appointmentCount} appointments. Deactivate instead.`);
       return;
     }
-    if (!confirm(`Delete "${s.name}"? This cannot be undone.`)) return;
-
-    try {
-      await deleteService.mutateAsync(s.id);
-      setSuccessMsg("Service deleted");
-    } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : "Failed to delete");
-    }
+    setConfirmState({
+      open: true,
+      title: "Delete service",
+      message: `Delete "${s.name}"? This cannot be undone.`,
+      onConfirm: async () => {
+        setConfirmState((s) => ({ ...s, open: false }));
+        try {
+          await deleteService.mutateAsync(s.id);
+          setSuccessMsg("Service deleted");
+        } catch (err) {
+          setErrorMsg(err instanceof Error ? err.message : "Failed to delete");
+        }
+      },
+    });
   };
 
   const toggleActive = async (s: typeof services[0]) => {
@@ -526,6 +534,13 @@ export default function AdminServicesPage() {
           </div>
         </div>
       )}
+      <ConfirmDialog
+        open={confirmState.open}
+        onOpenChange={(open) => setConfirmState((s) => ({ ...s, open }))}
+        title={confirmState.title}
+        description={confirmState.message}
+        onConfirm={confirmState.onConfirm}
+      />
     </div>
   );
 }

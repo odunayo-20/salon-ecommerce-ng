@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Plus, Pencil, Trash2, X, Loader2, Package, Star, Search, Upload, Image as ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAdminProducts, useUpsertProduct, useDeleteProduct, useAdminCategories, AdminProduct } from "@/hooks/queries";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 const emptyForm = {
   name: "", slug: "", description: "", shortDesc: "",
@@ -30,6 +31,7 @@ export default function AdminProductsPage() {
   const [filterCategory, setFilterCategory] = useState("all");
   const [filterStatus, setFilterStatus] = useState<"all" | "active" | "inactive">("all");
   const [viewMode, setViewMode] = useState<"table" | "grid">("grid");
+  const [confirmState, setConfirmState] = useState<{ open: boolean; title: string; message: string; onConfirm: () => void }>({ open: false, title: "", message: "", onConfirm: () => {} });
 
   const { data: productsData, isLoading } = useAdminProducts({
     ...(filterCategory !== "all" ? {} : {}),
@@ -96,11 +98,18 @@ export default function AdminProductsPage() {
 
   const handleDelete = async (p: AdminProduct) => {
     if (p.orderCount > 0) { setErrorMsg(`Cannot delete "${p.name}" — it has ${p.orderCount} order history entries. Deactivate instead.`); return; }
-    if (!confirm(`Delete "${p.name}"? This cannot be undone.`)) return;
-    try {
-      await deleteProduct.mutateAsync(p.id);
-      setSuccessMsg("Product deleted");
-    } catch (err) { setErrorMsg(err instanceof Error ? err.message : "Failed to delete"); }
+    setConfirmState({
+      open: true,
+      title: "Delete product",
+      message: `Delete "${p.name}"? This cannot be undone.`,
+      onConfirm: async () => {
+        setConfirmState((s) => ({ ...s, open: false }));
+        try {
+          await deleteProduct.mutateAsync(p.id);
+          setSuccessMsg("Product deleted");
+        } catch (err) { setErrorMsg(err instanceof Error ? err.message : "Failed to delete"); }
+      },
+    });
   };
 
   const toggleActive = async (p: AdminProduct) => {
@@ -513,6 +522,13 @@ export default function AdminProductsPage() {
           </div>
         </div>
       )}
+      <ConfirmDialog
+        open={confirmState.open}
+        onOpenChange={(open) => setConfirmState((s) => ({ ...s, open }))}
+        title={confirmState.title}
+        description={confirmState.message}
+        onConfirm={confirmState.onConfirm}
+      />
     </div>
   );
 }

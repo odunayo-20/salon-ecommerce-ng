@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Fragment } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Plus, Pencil, Trash2, X, Loader2, FolderTree, Package, ChevronDown, ChevronUp, Upload, ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAdminCategories, useCreateCategory, useUpdateCategory, useDeleteCategory } from "@/hooks/queries";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 const emptyForm = {
   name: "",
@@ -34,6 +35,7 @@ export default function AdminCategoriesPage() {
   const [filterType, setFilterType] = useState<string>("all");
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [confirmState, setConfirmState] = useState<{ open: boolean; title: string; message: string; onConfirm: () => void }>({ open: false, title: "", message: "", onConfirm: () => {} });
 
   const { data, isLoading } = useAdminCategories(filterType !== "all" ? filterType : undefined);
   const categories = data?.categories || [];
@@ -124,14 +126,20 @@ export default function AdminCategoriesPage() {
       return;
     }
 
-    if (!confirm(`Delete "${cat.name}"? This cannot be undone.`)) return;
-
-    try {
-      await deleteCategory.mutateAsync(cat.id);
-      setSuccessMsg("Category deleted");
-    } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : "Failed to delete");
-    }
+    setConfirmState({
+      open: true,
+      title: "Delete category",
+      message: `Delete "${cat.name}"? This cannot be undone.`,
+      onConfirm: async () => {
+        setConfirmState((s) => ({ ...s, open: false }));
+        try {
+          await deleteCategory.mutateAsync(cat.id);
+          setSuccessMsg("Category deleted");
+        } catch (err) {
+          setErrorMsg(err instanceof Error ? err.message : "Failed to delete");
+        }
+      },
+    });
   };
 
   const toggleActive = async (cat: typeof categories[0]) => {
@@ -300,8 +308,8 @@ export default function AdminCategoriesPage() {
                 </thead>
                 <tbody>
                   {filteredCategories.map((cat) => (
-                    <>
-                      <tr key={cat.id} className="border-b border-border/50 hover:bg-cream/30 transition-colors">
+                    <Fragment key={cat.id}>
+                      <tr className="border-b border-border/50 hover:bg-cream/30 transition-colors">
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
                             <div className="h-9 w-9 rounded-lg bg-cream flex items-center justify-center shrink-0 overflow-hidden">
@@ -412,7 +420,7 @@ export default function AdminCategoriesPage() {
                           </td>
                         </tr>
                       )}
-                    </>
+                    </Fragment>
                   ))}
                 </tbody>
               </table>
@@ -578,6 +586,13 @@ export default function AdminCategoriesPage() {
           </div>
         </div>
       )}
+      <ConfirmDialog
+        open={confirmState.open}
+        onOpenChange={(open) => setConfirmState((s) => ({ ...s, open }))}
+        title={confirmState.title}
+        description={confirmState.message}
+        onConfirm={confirmState.onConfirm}
+      />
     </div>
   );
 }

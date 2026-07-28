@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Plus, Pencil, Trash2, X, Loader2, UserCog, Search, Mail, Award } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAdminStylists, useUpsertStylist, useDeleteStylist, useAdminServices } from "@/hooks/queries";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 const allSpecialties = [
   "Braids", "Knotless Braids", "Box Braids", "Cornrows", "Feed-in Braids",
@@ -28,6 +29,7 @@ export default function AdminStylistsPage() {
   const [errorMsg, setErrorMsg] = useState("");
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<"all" | "active" | "inactive">("all");
+  const [confirmState, setConfirmState] = useState<{ open: boolean; title: string; message: string; onConfirm: () => void }>({ open: false, title: "", message: "", onConfirm: () => {} });
 
   const { data: stylistsData, isLoading } = useAdminStylists({
     ...(filterStatus === "active" ? { isActive: "true" } : filterStatus === "inactive" ? { isActive: "false" } : {}),
@@ -81,11 +83,18 @@ export default function AdminStylistsPage() {
 
   const handleDelete = async (s: typeof stylists[0]) => {
     if (s.appointmentCount > 0) { setErrorMsg(`Cannot delete "${s.user.name}" — has ${s.appointmentCount} appointments. Deactivate instead.`); return; }
-    if (!confirm(`Delete "${s.user.name}"? This will also remove their user account.`)) return;
-    try {
-      await deleteStylist.mutateAsync(s.id);
-      setSuccessMsg("Stylist deleted");
-    } catch (err) { setErrorMsg(err instanceof Error ? err.message : "Failed to delete"); }
+    setConfirmState({
+      open: true,
+      title: "Delete stylist",
+      message: `Delete "${s.user.name}"? This will also remove their user account and cannot be undone.`,
+      onConfirm: async () => {
+        setConfirmState((s) => ({ ...s, open: false }));
+        try {
+          await deleteStylist.mutateAsync(s.id);
+          setSuccessMsg("Stylist deleted");
+        } catch (err) { setErrorMsg(err instanceof Error ? err.message : "Failed to delete"); }
+      },
+    });
   };
 
   const toggleActive = async (s: typeof stylists[0]) => {
@@ -291,6 +300,13 @@ export default function AdminStylistsPage() {
           </div>
         </div>
       )}
+      <ConfirmDialog
+        open={confirmState.open}
+        onOpenChange={(open) => setConfirmState((s) => ({ ...s, open }))}
+        title={confirmState.title}
+        description={confirmState.message}
+        onConfirm={confirmState.onConfirm}
+      />
     </div>
   );
 }

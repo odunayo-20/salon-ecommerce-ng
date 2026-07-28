@@ -6,6 +6,7 @@ import { Loader2, PenTool, Plus, Pencil, Trash2, X, Search, Eye, EyeOff, Star, E
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAdminBlog, useUpsertBlogPost, useDeleteBlogPost } from "@/hooks/queries";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 const CATEGORIES = ["Hair Care", "Styling Tips", "Product Reviews", "Tutorials", "Industry News", "Salon Life", "General"];
 
@@ -26,6 +27,7 @@ export default function AdminBlogPage() {
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<"all" | "published" | "draft">("all");
   const [uploading, setUploading] = useState(false);
+  const [confirmState, setConfirmState] = useState<{ open: boolean; title: string; message: string; onConfirm: () => void }>({ open: false, title: "", message: "", onConfirm: () => {} });
 
   const { data, isLoading } = useAdminBlog({ search: search || undefined });
   const posts = data?.posts || [];
@@ -99,11 +101,18 @@ export default function AdminBlogPage() {
   };
 
   const handleDelete = async (p: typeof posts[0]) => {
-    if (!confirm(`Delete "${p.title}"? This cannot be undone.`)) return;
-    try {
-      await deletePost.mutateAsync(p.id);
-      setSuccessMsg("Post deleted");
-    } catch (err) { setErrorMsg(err instanceof Error ? err.message : "Failed to delete"); }
+    setConfirmState({
+      open: true,
+      title: "Delete blog post",
+      message: `Delete "${p.title}"? This cannot be undone.`,
+      onConfirm: async () => {
+        setConfirmState((s) => ({ ...s, open: false }));
+        try {
+          await deletePost.mutateAsync(p.id);
+          setSuccessMsg("Post deleted");
+        } catch (err) { setErrorMsg(err instanceof Error ? err.message : "Failed to delete"); }
+      },
+    });
   };
 
   const togglePublished = async (p: typeof posts[0]) => {
@@ -343,6 +352,13 @@ export default function AdminBlogPage() {
           </div>
         </div>
       )}
+      <ConfirmDialog
+        open={confirmState.open}
+        onOpenChange={(open) => setConfirmState((s) => ({ ...s, open }))}
+        title={confirmState.title}
+        description={confirmState.message}
+        onConfirm={confirmState.onConfirm}
+      />
     </div>
   );
 }

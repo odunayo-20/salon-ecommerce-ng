@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Search, X, Loader2, Calendar, Clock, User, Eye, XCircle, CheckCircle, RefreshCw, Trash2, Mail } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAdminAppointments, useUpdateAdminAppointment, type AdminAppointment } from "@/hooks/queries";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 const statusColors: Record<string, string> = {
   PENDING: "bg-amber-50 text-amber-700",
@@ -34,6 +35,7 @@ export default function AdminAppointmentsPage() {
   const [sendingReceiptId, setSendingReceiptId] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
+  const [confirmState, setConfirmState] = useState<{ open: boolean; title: string; message: string; onConfirm: () => void }>({ open: false, title: "", message: "", onConfirm: () => {} });
 
   const { data, isLoading } = useAdminAppointments({ status: filterStatus, search, date: filterDate }, 60_000);
   const appointments = data?.appointments ?? [];
@@ -57,15 +59,22 @@ export default function AdminAppointmentsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Delete this appointment? This cannot be undone.")) return;
-    try {
-      const res = await fetch(`/api/admin/appointments/${id}`, { method: "DELETE" });
-      if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
-      setSuccessMsg("Appointment deleted");
-      if (selected?.id === id) { setShowDetail(false); setSelected(null); }
-    } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : "Failed to delete");
-    }
+    setConfirmState({
+      open: true,
+      title: "Delete appointment",
+      message: "This appointment will be permanently deleted. This cannot be undone.",
+      onConfirm: async () => {
+        setConfirmState((s) => ({ ...s, open: false }));
+        try {
+          const res = await fetch(`/api/admin/appointments/${id}`, { method: "DELETE" });
+          if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
+          setSuccessMsg("Appointment deleted");
+          if (selected?.id === id) { setShowDetail(false); setSelected(null); }
+        } catch (err) {
+          setErrorMsg(err instanceof Error ? err.message : "Failed to delete");
+        }
+      },
+    });
   };
 
   const handleSendReceipt = async (appointmentId: string, paymentId: string) => {
@@ -358,6 +367,13 @@ export default function AdminAppointmentsPage() {
           </div>
         </div>
       )}
+      <ConfirmDialog
+        open={confirmState.open}
+        onOpenChange={(open) => setConfirmState((s) => ({ ...s, open }))}
+        title={confirmState.title}
+        description={confirmState.message}
+        onConfirm={confirmState.onConfirm}
+      />
     </div>
   );
 }

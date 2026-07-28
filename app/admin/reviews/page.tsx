@@ -5,12 +5,14 @@ import { Star, Loader2, CheckCircle2, XCircle, Trash2, Search, X, StarOff } from
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAdminReviews, useUpdateAdminReview, useDeleteAdminReview } from "@/hooks/queries";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 export default function AdminReviewsPage() {
   const [filter, setFilter] = useState<"all" | "pending" | "approved">("all");
   const [search, setSearch] = useState("");
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState("");
+  const [confirmState, setConfirmState] = useState<{ open: boolean; title: string; message: string; onConfirm: () => void }>({ open: false, title: "", message: "", onConfirm: () => {} });
 
   const params = {
     ...(filter === "approved" ? { isApproved: "true" } : filter === "pending" ? { isApproved: "false" } : {}),
@@ -44,14 +46,21 @@ export default function AdminReviewsPage() {
 
   const handleDelete = async (r: typeof reviews[0]) => {
     const label = r.productName || r.serviceName || "this review";
-    if (!confirm(`Delete review by "${r.customer || "Anonymous"}" for ${label}? This cannot be undone.`)) return;
-    setUpdatingId(r.id);
-    try {
-      await deleteReview.mutateAsync(r.id);
-      setSuccessMsg("Review deleted");
-    } catch (err) {
-      setSuccessMsg(err instanceof Error ? err.message : "Failed to delete");
-    } finally { setUpdatingId(null); }
+    setConfirmState({
+      open: true,
+      title: "Delete review",
+      message: `Delete review by "${r.customer || "Anonymous"}" for ${label}? This cannot be undone.`,
+      onConfirm: async () => {
+        setConfirmState((s) => ({ ...s, open: false }));
+        setUpdatingId(r.id);
+        try {
+          await deleteReview.mutateAsync(r.id);
+          setSuccessMsg("Review deleted");
+        } catch (err) {
+          setSuccessMsg(err instanceof Error ? err.message : "Failed to delete");
+        } finally { setUpdatingId(null); }
+      },
+    });
   };
 
   const formatDate = (d: string) => new Date(d).toLocaleDateString("en-NG", { month: "short", day: "numeric", year: "numeric" });
@@ -216,6 +225,13 @@ export default function AdminReviewsPage() {
           </div>
         </>
       )}
+      <ConfirmDialog
+        open={confirmState.open}
+        onOpenChange={(open) => setConfirmState((s) => ({ ...s, open }))}
+        title={confirmState.title}
+        description={confirmState.message}
+        onConfirm={confirmState.onConfirm}
+      />
     </div>
   );
 }
