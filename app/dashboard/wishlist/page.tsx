@@ -61,37 +61,39 @@ export default function WishlistPage() {
               : 0;
 
             return (
-              <div key={item.id} className="flex items-center gap-4 p-4 border border-border rounded-lg">
-                <Link href={`/shop/${item.product.slug}`} className="h-16 w-16 bg-cream rounded-lg shrink-0 relative overflow-hidden">
-                  {item.product.image ? (
-                    <Image src={item.product.image} alt={item.product.name} fill className="object-cover" sizes="64px" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">Image</div>
-                  )}
-                </Link>
-                <div className="flex-1 min-w-0">
-                  <Link href={`/shop/${item.product.slug}`}>
-                    <h3 className="text-sm font-medium text-charcoal hover:text-gold transition-colors line-clamp-1">{item.product.name}</h3>
-                  </Link>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-sm font-semibold text-charcoal">₦{item.product.price.toLocaleString()}</span>
-                    {item.product.comparePrice && (
-                      <span className="text-xs text-muted-foreground line-through">₦{item.product.comparePrice.toLocaleString()}</span>
+              <div key={item.id} className="p-4 border border-border rounded-lg">
+                <div className="flex gap-4">
+                  <Link href={`/shop/${item.product.slug}`} className="h-16 w-16 bg-cream rounded-lg shrink-0 relative overflow-hidden">
+                    {item.product.image ? (
+                      <Image src={item.product.image} alt={item.product.name} fill className="object-cover" sizes="64px" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">Image</div>
                     )}
-                    {discount > 0 && <span className="text-[10px] bg-gold/10 text-gold font-bold px-1.5 py-0.5 rounded-full">-{discount}%</span>}
-                  </div>
-                  {avgRating > 0 && (
-                    <div className="flex items-center gap-1 mt-1">
-                      {[...Array(5)].map((_, i) => (
-                        <Star key={i} className={cn("h-3 w-3", i < Math.floor(avgRating) ? "fill-gold text-gold" : "text-gray-200")} />
-                      ))}
+                  </Link>
+                  <div className="flex-1 min-w-0">
+                    <Link href={`/shop/${item.product.slug}`}>
+                      <h3 className="text-sm font-medium text-charcoal hover:text-gold transition-colors line-clamp-1">{item.product.name}</h3>
+                    </Link>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="text-sm font-semibold text-charcoal">₦{item.product.price.toLocaleString()}</span>
+                      {item.product.comparePrice && (
+                        <span className="text-xs text-muted-foreground line-through">₦{item.product.comparePrice.toLocaleString()}</span>
+                      )}
+                      {discount > 0 && <span className="text-[10px] bg-gold/10 text-gold font-bold px-1.5 py-0.5 rounded-full">-{discount}%</span>}
                     </div>
-                  )}
+                    {avgRating > 0 && (
+                      <div className="flex items-center gap-1 mt-1">
+                        {[...Array(5)].map((_, i) => (
+                          <Star key={i} className={cn("h-3 w-3", i < Math.floor(avgRating) ? "fill-gold text-gold" : "text-gray-200")} />
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border/50">
                   <Button
                     size="sm"
-                    className="bg-charcoal text-white hover:bg-gold hover:text-white rounded-full min-h-[44px] px-4 text-xs"
+                    className="flex-1 bg-charcoal text-white hover:bg-gold hover:text-white rounded-full min-h-[44px] px-4 text-xs"
                     onClick={() =>
                       addItem({
                         productId: item.product.id,
@@ -110,7 +112,7 @@ export default function WishlistPage() {
                   <Button
                     size="icon"
                     variant="ghost"
-                    className="h-9 w-9 text-muted-foreground hover:text-red-500"
+                    className="h-10 w-10 text-muted-foreground hover:text-red-500 shrink-0"
                     onClick={() => handleRemove(item.product.id)}
                   >
                     <Heart className="h-4 w-4 fill-red-500 text-red-500" />

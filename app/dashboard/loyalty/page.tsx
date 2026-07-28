@@ -61,16 +61,16 @@ export default function LoyaltyPage() {
         </div>
 
         {/* Tier Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 mb-6">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
           {(["BRONZE", "SILVER", "GOLD", "PLATINUM"] as const).map((tier) => {
             const tc = tierConfig[tier];
             const isActive = data.tier === tier;
             return (
-              <div key={tier} className={cn("rounded-lg p-4 text-center border-2 transition-all", isActive ? tc.bg : "border-border bg-cream")}>
+              <div key={tier} className={cn("rounded-lg p-3 sm:p-4 text-center border-2 transition-all", isActive ? tc.bg : "border-border bg-cream")}>
                 <Award className={cn("h-5 w-5 mx-auto mb-1", isActive ? tc.color : "text-muted-foreground")} />
-                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{tier}</p>
-                <p className="text-sm font-medium text-charcoal mt-0.5">{tc.threshold.toLocaleString()} pts</p>
-                {isActive && <p className={cn("text-[10px] font-bold mt-1", tc.color)}>Current Tier</p>}
+                <p className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-muted-foreground">{tier}</p>
+                <p className="text-xs sm:text-sm font-medium text-charcoal mt-0.5">{tc.threshold.toLocaleString()} pts</p>
+                {isActive && <p className={cn("text-[10px] font-bold mt-1", tc.color)}>Current</p>}
               </div>
             );
           })}
@@ -99,10 +99,11 @@ export default function LoyaltyPage() {
             <h3 className="text-sm font-semibold text-charcoal">How to Earn</h3>
           </div>
           <ul className="text-xs text-muted-foreground space-y-1">
-            <li>Earn <span className="font-semibold text-charcoal">1 point</span> for every ₦100 spent on orders</li>
-            <li>Earn <span className="font-semibold text-charcoal">1 point</span> for every ₦100 spent on appointments</li>
+            <li>Earn <span className="font-semibold text-charcoal">1 point</span> for every ₦1,000 spent on orders</li>
+            <li>Earn <span className="font-semibold text-charcoal">1 point</span> for every ₦1,000 spent on appointments</li>
             <li>Redeem points at checkout — <span className="font-semibold text-charcoal">1 point = ₦1 off</span></li>
-            <li>Maximum redemption: 50% of order subtotal</li>
+            <li>Maximum redemption: 30% of order subtotal</li>
+            <li>Points expire after 12 months</li>
           </ul>
         </div>
       </div>
@@ -118,20 +119,20 @@ export default function LoyaltyPage() {
         ) : (
           <div className="space-y-3">
             {data.history.map((p) => (
-              <div key={p.id} className="flex items-center justify-between py-3 border-b border-border/50 last:border-0">
-                <div className="flex items-center gap-3">
-                  <div className={cn("h-8 w-8 rounded-full flex items-center justify-center", p.type === "earned" ? "bg-gold/10" : "bg-red-50")}>
+              <div key={p.id} className="flex items-center justify-between py-3 border-b border-border/50 last:border-0 gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className={cn("h-8 w-8 rounded-full flex items-center justify-center shrink-0", p.type === "earned" ? "bg-gold/10" : "bg-red-50")}>
                     {p.type === "earned" ? <Star className="h-4 w-4 text-gold" /> : <Gift className="h-4 w-4 text-red-500" />}
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-charcoal">{p.note || p.reference || "Points"}</p>
-                    <p className="text-xs text-muted-foreground">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-charcoal truncate">{p.note || p.reference || "Points"}</p>
+                    <p className="text-[10px] sm:text-xs text-muted-foreground">
                       {new Date(p.createdAt).toLocaleDateString("en-NG", { month: "short", day: "numeric", year: "numeric" })}
-                      {p.expiresAt && <span className="ml-2 text-amber-600">Expires {new Date(p.expiresAt).toLocaleDateString("en-NG", { month: "short", day: "numeric" })}</span>}
+                      {p.expiresAt && <span className="ml-2 text-amber-600">Exp {new Date(p.expiresAt).toLocaleDateString("en-NG", { month: "short", day: "numeric" })}</span>}
                     </p>
                   </div>
                 </div>
-                <span className={cn("text-sm font-semibold", p.points > 0 ? "text-gold" : "text-red-500")}>
+                <span className={cn("text-sm font-semibold shrink-0", p.points > 0 ? "text-gold" : "text-red-500")}>
                   {p.points > 0 ? "+" : ""}{p.points.toLocaleString()}
                 </span>
               </div>

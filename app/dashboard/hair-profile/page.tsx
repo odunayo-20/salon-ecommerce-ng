@@ -84,30 +84,30 @@ export default function HairProfilePage() {
         <div className="grid sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-charcoal mb-1.5">Hair Type</label>
-            <select value={profile.hairType} onChange={(e) => setProfile({ ...profile, hairType: e.target.value })} className="w-full bg-cream border border-border rounded-lg px-4 py-2.5 text-sm text-charcoal focus:outline-none focus:border-gold">
+            <select value={profile.hairType} onChange={(e) => setProfile({ ...profile, hairType: e.target.value })} className="w-full bg-cream border border-border rounded-lg px-4 py-3 text-sm text-charcoal focus:outline-none focus:border-gold min-h-[44px]">
               {["STRAIGHT", "WAVY", "CURLY", "COILY", "KINKY", "KINKY_COILY"].map((t) => <option key={t} value={t}>{t.replace("_", " ")}</option>)}
             </select>
           </div>
           <div>
             <label className="block text-sm font-medium text-charcoal mb-1.5">Hair Length</label>
-            <select value={profile.hairLength} onChange={(e) => setProfile({ ...profile, hairLength: e.target.value })} className="w-full bg-cream border border-border rounded-lg px-4 py-2.5 text-sm text-charcoal focus:outline-none focus:border-gold">
+            <select value={profile.hairLength} onChange={(e) => setProfile({ ...profile, hairLength: e.target.value })} className="w-full bg-cream border border-border rounded-lg px-4 py-3 text-sm text-charcoal focus:outline-none focus:border-gold min-h-[44px]">
               {["Short", "Chin Length", "Shoulder Length", "Mid Back", "Waist Length"].map((l) => <option key={l} value={l}>{l}</option>)}
             </select>
           </div>
           <div>
             <label className="block text-sm font-medium text-charcoal mb-1.5">Hair Density</label>
-            <select value={profile.hairDensity} onChange={(e) => setProfile({ ...profile, hairDensity: e.target.value })} className="w-full bg-cream border border-border rounded-lg px-4 py-2.5 text-sm text-charcoal focus:outline-none focus:border-gold">
+            <select value={profile.hairDensity} onChange={(e) => setProfile({ ...profile, hairDensity: e.target.value })} className="w-full bg-cream border border-border rounded-lg px-4 py-3 text-sm text-charcoal focus:outline-none focus:border-gold min-h-[44px]">
               {["Fine", "Medium", "Thick", "Very Thick"].map((d) => <option key={d} value={d}>{d}</option>)}
             </select>
           </div>
           <div>
             <label className="block text-sm font-medium text-charcoal mb-1.5">Scalp Condition</label>
-            <select value={profile.scalpCondition} onChange={(e) => setProfile({ ...profile, scalpCondition: e.target.value })} className="w-full bg-cream border border-border rounded-lg px-4 py-2.5 text-sm text-charcoal focus:outline-none focus:border-gold">
+            <select value={profile.scalpCondition} onChange={(e) => setProfile({ ...profile, scalpCondition: e.target.value })} className="w-full bg-cream border border-border rounded-lg px-4 py-3 text-sm text-charcoal focus:outline-none focus:border-gold min-h-[44px]">
               {["Dry", "Oily", "Normal", "Combination", "Sensitive"].map((s) => <option key={s} value={s}>{s}</option>)}
             </select>
           </div>
         </div>
-        <div><label className="block text-sm font-medium text-charcoal mb-1.5">Allergies</label><input type="text" value={profile.allergies} onChange={(e) => setProfile({ ...profile, allergies: e.target.value })} placeholder="Any known allergies..." className="w-full bg-cream border border-border rounded-lg px-4 py-2.5 text-sm text-charcoal placeholder:text-muted-foreground/60 focus:outline-none focus:border-gold" /></div>
+        <div><label className="block text-sm font-medium text-charcoal mb-1.5">Allergies</label><input type="text" value={profile.allergies} onChange={(e) => setProfile({ ...profile, allergies: e.target.value })} placeholder="Any known allergies..." className="w-full bg-cream border border-border rounded-lg px-4 py-3 text-sm text-charcoal placeholder:text-muted-foreground/60 focus:outline-none focus:border-gold min-h-[44px]" /></div>
         <div><label className="block text-sm font-medium text-charcoal mb-1.5">Notes</label><textarea value={profile.notes} onChange={(e) => setProfile({ ...profile, notes: e.target.value })} placeholder="Additional notes about your hair..." className="w-full bg-cream border border-border rounded-lg px-4 py-2.5 text-sm text-charcoal placeholder:text-muted-foreground/60 focus:outline-none focus:border-gold resize-none h-24" /></div>
         {error && <p className="text-red-500 text-sm">{error}</p>}
         {saveSuccess && (
@@ -116,7 +116,7 @@ export default function HairProfilePage() {
             <span>Hair profile saved successfully!</span>
           </div>
         )}
-        <Button onClick={handleSave} disabled={isSaving} className="bg-charcoal text-white hover:bg-charcoal-light rounded-full px-8 py-2.5 text-xs font-semibold tracking-wider uppercase">
+        <Button onClick={handleSave} disabled={isSaving} className="bg-charcoal text-white hover:bg-charcoal-light rounded-full px-8 py-2.5 text-xs font-semibold tracking-wider uppercase min-h-[44px]">
           {isSaving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
           {isSaving ? "Saving..." : "Save Profile"}
         </Button>

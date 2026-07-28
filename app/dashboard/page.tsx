@@ -356,12 +356,12 @@ export default function DashboardPage() {
 
       {/* Reschedule Dialog */}
       {rescheduleApt && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
           <div className="absolute inset-0 bg-black/50" onClick={() => setRescheduleApt(null)} />
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-5">
+          <div className="relative bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-md p-5 sm:p-6 space-y-5 max-h-[85vh] overflow-y-auto">
             <div className="flex items-center justify-between">
               <h3 className="font-heading text-lg font-semibold text-charcoal">Reschedule Appointment</h3>
-              <button onClick={() => setRescheduleApt(null)} className="text-muted-foreground hover:text-charcoal"><X className="h-5 w-5" /></button>
+              <button onClick={() => setRescheduleApt(null)} className="text-muted-foreground hover:text-charcoal min-h-[44px] min-w-[44px] flex items-center justify-center -mr-2"><X className="h-5 w-5" /></button>
             </div>
             <div className="bg-cream rounded-lg p-3 text-sm">
               <p className="font-medium text-charcoal">{rescheduleApt.service.name}</p>
@@ -421,11 +421,11 @@ export default function DashboardPage() {
               </div>
             </div>
             <div className="flex gap-3">
-              <Button variant="outline" onClick={() => setRescheduleApt(null)} className="flex-1 rounded-full text-xs">Cancel</Button>
+              <Button variant="outline" onClick={() => setRescheduleApt(null)} className="flex-1 rounded-full text-xs min-h-[44px]">Cancel</Button>
               <Button
                 onClick={handleReschedule}
                 disabled={!rescheduleDate || !rescheduleTime || rescheduleBooking.isPending}
-                className="flex-1 bg-gold text-white hover:bg-gold-dark rounded-full text-xs font-semibold"
+                className="flex-1 bg-gold text-white hover:bg-gold-dark rounded-full text-xs font-semibold min-h-[44px]"
               >
                 {rescheduleBooking.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <RotateCcw className="h-3.5 w-3.5 mr-1" />}
                 Confirm Reschedule
