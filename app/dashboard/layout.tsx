@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
-import { Calendar, Package, Heart, Star, LogOut, ChevronRight, Scissors, Menu, X, User } from "lucide-react";
+import { Calendar, Package, Heart, Star, LogOut, ChevronRight, Scissors, Menu, X, User, Home } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const sidebarLinks = [
@@ -42,11 +42,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* Header */}
       <div className="bg-charcoal py-6 sm:py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center justify-between">
-          <div>
-            <h1 className="font-heading text-xl sm:text-2xl font-bold text-white tracking-tight">My Dashboard</h1>
-            {session?.user?.name && (
-              <p className="text-white/60 mt-1 text-xs sm:text-sm">Welcome back, {session.user.name.split(" ")[0]}</p>
-            )}
+          <div className="flex items-center gap-4">
+            <Link href="/" className="text-white/50 hover:text-white transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center -ml-2 rounded-lg hover:bg-white/10" title="Back to Home">
+              <Home className="h-5 w-5" />
+            </Link>
+            <div>
+              <h1 className="font-heading text-xl sm:text-2xl font-bold text-white tracking-tight">My Dashboard</h1>
+              {session?.user?.name && (
+                <p className="text-white/60 mt-1 text-xs sm:text-sm">Welcome back, {session.user.name.split(" ")[0]}</p>
+              )}
+            </div>
           </div>
           <button
             onClick={() => setSidebarOpen(true)}
@@ -111,12 +116,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 );
               })}
             </nav>
-            <button
-              onClick={handleSignOut}
-              className="w-full flex items-center gap-3 px-5 py-3.5 text-sm font-medium text-muted-foreground hover:text-destructive transition-colors border-t border-border"
-            >
-              <LogOut className="h-4 w-4" />Sign Out
-            </button>
+            <div className="border-t border-border">
+              <Link
+                href="/"
+                className="w-full flex items-center gap-3 px-5 py-3.5 text-sm font-medium text-muted-foreground hover:text-gold transition-colors"
+              >
+                <Home className="h-4 w-4" />Back to Home
+              </Link>
+              <button
+                onClick={handleSignOut}
+                className="w-full flex items-center gap-3 px-5 py-3.5 text-sm font-medium text-muted-foreground hover:text-destructive transition-colors border-t border-border"
+              >
+                <LogOut className="h-4 w-4" />Sign Out
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -134,6 +147,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   </Link>
                 );
               })}
+              <Link href="/" className="flex items-center gap-3 px-5 py-3.5 text-sm font-medium text-muted-foreground hover:text-gold transition-colors border-t border-border">
+                <Home className="h-4 w-4" />Back to Home
+              </Link>
               <button onClick={handleSignOut} className="w-full flex items-center gap-3 px-5 py-3.5 text-sm font-medium text-muted-foreground hover:text-destructive transition-colors border-t border-border">
                 <LogOut className="h-4 w-4" />Sign Out
               </button>

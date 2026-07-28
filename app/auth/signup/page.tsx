@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
-import { Eye, EyeOff, Mail, Lock, User, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, User, Loader2, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DemoCredentialsModal } from "@/components/ui/demo-credentials-modal";
 import { toast } from "sonner";
@@ -70,6 +70,11 @@ export default function SignUpPage() {
       {/* Left - Form */}
       <div className="flex-1 flex items-center justify-center px-4 sm:px-6 py-12">
         <div className="w-full max-w-md">
+          <Link href="/" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-gold transition-colors mb-6 min-h-[44px]">
+            <ArrowLeft className="h-4 w-4" />
+            Back to Home
+          </Link>
+
           <Link href="/" className="inline-block mb-8">
             <span className="font-heading text-3xl font-semibold text-charcoal tracking-tight">MecBill</span>
             <span className="font-heading text-3xl font-light text-gold ml-0.5">Tech</span>
