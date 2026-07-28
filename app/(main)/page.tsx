@@ -104,7 +104,7 @@ export default function HomePage() {
               Luxury Hair Experiences<br className="hidden sm:block" /> Crafted For Your <span className="text-gold">Confidence</span>
             </h1>
             <p className="mt-6 text-white/65 text-lg md:text-xl leading-relaxed max-w-lg">
-              Professional natural hair care, protective styling, premium extensions and beauty services — in-salon or delivered worldwide.
+              Professional natural hair care, protective styling, premium extensions and beauty services, in-salon or delivered worldwide.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 mt-10">
               <Button asChild size="lg" className="bg-gold text-white hover:bg-gold-dark rounded-full px-10 py-6 text-xs font-semibold tracking-wider uppercase shadow-lg shadow-gold/20">
@@ -176,9 +176,9 @@ export default function HomePage() {
             {/* Connector line — desktop only */}
             <div className="hidden md:block absolute top-10 left-[calc(16.67%+1rem)] right-[calc(16.67%+1rem)] h-px bg-gradient-to-r from-transparent via-gold/30 to-transparent" />
             {[
-              { step: "01", icon: MessageCircle, title: "Book or Browse", desc: "Book an in-salon appointment online or browse our curated hair collection and place an order — we ship worldwide." },
+              { step: "01", icon: MessageCircle, title: "Book or Browse", desc: "Book an in-salon appointment online or browse our curated hair collection and place an order; we ship worldwide." },
               { step: "02", icon: ShieldCheck, title: "Secure & Confirm", desc: "Pay securely via card or bank transfer. You'll receive an instant confirmation and order tracking details." },
-              { step: "03", icon: Truck, title: "Experience & Receive", desc: "Visit us for your appointment or receive your order delivered to your door — anywhere in the world." },
+              { step: "03", icon: Truck, title: "Experience & Receive", desc: "Visit us for your appointment or receive your order delivered to your door, anywhere in the world." },
             ].map((item, i) => (
               <div key={i} className="flex flex-col items-center text-center group">
                 <div className="relative mb-6">
@@ -274,7 +274,7 @@ export default function HomePage() {
             <div>
               <span className="text-gold text-xs font-semibold tracking-[0.2em] uppercase">Why MecBill Tech</span>
               <h2 className="font-heading text-3xl md:text-4xl font-bold text-charcoal mt-2 tracking-tight">Premium Hair Experiences, <br className="hidden md:block" />Unmatched Results</h2>
-              <p className="text-muted-foreground mt-4 leading-relaxed">We don&apos;t just style hair — we transform confidence. Every service at MecBill Tech Salon is delivered with precision, care, and a commitment to excellence that sets us apart.</p>
+              <p className="text-muted-foreground mt-4 leading-relaxed">We don&apos;t just style hair, we transform confidence. Every service at MecBill Tech Salon is delivered with precision, care, and a commitment to excellence that sets us apart.</p>
               <div className="space-y-6 mt-10">
                 {[
                   { title: "Expert Stylists", desc: "Our team undergoes continuous training in the latest techniques and trends." },
@@ -324,7 +324,7 @@ export default function HomePage() {
         <div className="relative z-10 max-w-3xl mx-auto px-4 sm:px-6 text-center">
           <span className="text-gold text-xs font-semibold tracking-[0.2em] uppercase">Stay Connected</span>
           <h2 className="font-heading text-3xl md:text-4xl font-bold text-white mt-2 tracking-tight">Join the MecBill Community</h2>
-          <p className="text-white/60 mt-3 max-w-lg mx-auto">Get exclusive offers, hair care tips, and first access to new products — wherever you are in the world.</p>
+          <p className="text-white/60 mt-3 max-w-lg mx-auto">Get exclusive offers, hair care tips, and first access to new products, wherever you are in the world.</p>
           <form onSubmit={handleNewsletter} className="flex flex-col sm:flex-row gap-3 mt-8 max-w-md mx-auto">
             <Input
               type="email"
@@ -379,7 +379,7 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 text-center">
           <span className="inline-block text-gold text-xs font-semibold tracking-[0.2em] uppercase mb-4">Book or Order Today</span>
           <h2 className="font-heading text-3xl md:text-4xl font-bold text-white tracking-tight">Ready for Your <span className="text-gold">Transformation</span>?</h2>
-          <p className="text-white/60 mt-4 max-w-lg mx-auto">Visit us in-salon or shop our premium hair collection — delivered to your door, wherever you are.</p>
+          <p className="text-white/60 mt-4 max-w-lg mx-auto">Visit us in-salon or shop our premium hair collection, delivered to your door, wherever you are.</p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center mt-10">
             <Button asChild size="lg" className="bg-gold text-white hover:bg-gold-dark rounded-full px-10 py-6 text-xs font-semibold tracking-wider uppercase shadow-lg shadow-gold/20">
               <Link href="/book">Book Appointment<ArrowRight className="h-4 w-4 ml-2" /></Link>

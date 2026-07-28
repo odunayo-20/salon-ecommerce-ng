@@ -144,11 +144,11 @@ async function main() {
   console.log("\nSeeding stylists...");
 
   const stylistData = [
-    { name: "Amara Johnson", email: "amara@mecbill.com", phone: "+234 801 234 5678", bio: "Master braider with 12 years of experience. Specializes in knotless braids and protective styles.", specialties: ["Braids", "Knotless Braids", "Feed-in Braids", "Cornrows"], experience: 12, serviceSlugs: ["box-braids", "knotless-braids", "feed-in-braids"] },
-    { name: "Chidinma Okafor", email: "chidinma@mecbill.com", phone: "+234 802 345 6789", bio: "Natural hair specialist and silk press queen. Passionate about helping clients embrace their natural texture.", specialties: ["Silk Press", "Natural Hair", "Deep Conditioning"], experience: 8, serviceSlugs: ["silk-press", "natural-hair-treatment", "blowout-style", "deep-conditioning"] },
-    { name: "Fatima Bello", email: "fatima@mecbill.com", phone: "+234 803 456 7890", bio: "Wig and weave specialist. Expert in HD lace installations and custom wig styling.", specialties: ["Wig Installation", "Wig Maintenance", "Weave", "Lace Frontal"], experience: 6, serviceSlugs: ["wig-installation", "wig-maintenance", "weave-installation"] },
-    { name: "Ngozi Eze", email: "ngozi@mecbill.com", phone: "+234 804 567 8901", bio: "Senior colorist and loc specialist. Creates stunning color transformations and maintains beautiful locs.", specialties: ["Color", "Highlights", "Locs", "Loc Retwist"], experience: 10, serviceSlugs: ["hair-coloring", "loc-installation", "loc-retwist"] },
-    { name: "Yetunde Adams", email: "yetunde@mecbill.com", phone: "+234 805 678 9012", bio: "Creative nail artist with a passion for intricate designs. Certified in acrylics and gel extensions.", specialties: ["Acrylic", "Gel Nails", "Manicure", "Pedicure"], experience: 5, serviceSlugs: ["gel-manicure", "acrylic-nails", "spa-pedicure"] },
+    { name: "Amara Johnson", email: "amara@mecbill.com", phone: "+234 801 234 5678", image: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=400&h=400&fit=crop&q=80", bio: "Master braider with 12 years of experience. Specializes in knotless braids and protective styles.", specialties: ["Braids", "Knotless Braids", "Feed-in Braids", "Cornrows"], experience: 12, serviceSlugs: ["box-braids", "knotless-braids", "feed-in-braids"] },
+    { name: "Chidinma Okafor", email: "chidinma@mecbill.com", phone: "+234 802 345 6789", image: "https://images.unsplash.com/photo-1589156280159-27698a70f29e?w=400&h=400&fit=crop&q=80", bio: "Natural hair specialist and silk press queen. Passionate about helping clients embrace their natural texture.", specialties: ["Silk Press", "Natural Hair", "Deep Conditioning"], experience: 8, serviceSlugs: ["silk-press", "natural-hair-treatment", "blowout-style", "deep-conditioning"] },
+    { name: "Fatima Bello", email: "fatima@mecbill.com", phone: "+234 803 456 7890", image: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&h=400&fit=crop&q=80", bio: "Wig and weave specialist. Expert in HD lace installations and custom wig styling.", specialties: ["Wig Installation", "Wig Maintenance", "Weave", "Lace Frontal"], experience: 6, serviceSlugs: ["wig-installation", "wig-maintenance", "weave-installation"] },
+    { name: "Ngozi Eze", email: "ngozi@mecbill.com", phone: "+234 804 567 8901", image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop&q=80", bio: "Senior colorist and loc specialist. Creates stunning color transformations and maintains beautiful locs.", specialties: ["Color", "Highlights", "Locs", "Loc Retwist"], experience: 10, serviceSlugs: ["hair-coloring", "loc-installation", "loc-retwist"] },
+    { name: "Yetunde Adams", email: "yetunde@mecbill.com", phone: "+234 805 678 9012", image: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&h=400&fit=crop&q=80", bio: "Creative nail artist with a passion for intricate designs. Certified in acrylics and gel extensions.", specialties: ["Acrylic", "Gel Nails", "Manicure", "Pedicure"], experience: 5, serviceSlugs: ["gel-manicure", "acrylic-nails", "spa-pedicure"] },
   ];
 
   for (const s of stylistData) {
@@ -159,7 +159,7 @@ async function main() {
     }
 
     const user = await prisma.user.create({
-      data: { name: s.name, email: s.email, phone: s.phone, role: "STYLIST" },
+      data: { name: s.name, email: s.email, phone: s.phone, role: "STYLIST", image: s.image },
     });
 
     const profile = await prisma.stylistProfile.create({
