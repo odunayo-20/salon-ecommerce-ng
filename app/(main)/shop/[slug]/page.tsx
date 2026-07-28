@@ -150,16 +150,18 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
                 {product.tags.map((tag) => <span key={tag} className="text-[10px] bg-cream px-3 py-1 rounded-full text-muted-foreground font-medium">{tag}</span>)}
               </div>
             )}
-            <div className="flex items-center gap-4">
-              <div className="flex items-center border border-border rounded-full">
-                <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="h-10 w-10 flex items-center justify-center text-muted-foreground hover:text-charcoal"><Minus className="h-4 w-4" /></button>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
+              <div className="flex items-center border border-border rounded-full self-start">
+                <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="h-11 w-11 flex items-center justify-center text-muted-foreground hover:text-charcoal min-h-[44px] min-w-[44px]"><Minus className="h-4 w-4" /></button>
                 <span className="w-12 text-center text-sm font-medium">{quantity}</span>
-                <button onClick={() => setQuantity(Math.min(product.stock, quantity + 1))} className="h-10 w-10 flex items-center justify-center text-muted-foreground hover:text-charcoal"><Plus className="h-4 w-4" /></button>
+                <button onClick={() => setQuantity(Math.min(product.stock, quantity + 1))} className="h-11 w-11 flex items-center justify-center text-muted-foreground hover:text-charcoal min-h-[44px] min-w-[44px]"><Plus className="h-4 w-4" /></button>
               </div>
-              <Button onClick={() => addItem({ productId: product.id, name: product.name, price: product.price, image: product.images?.[0] ?? undefined, quantity, maxStock: product.stock })} disabled={product.stock === 0} className="flex-1 bg-charcoal text-white hover:bg-charcoal-light rounded-full py-6 text-xs font-semibold tracking-wider uppercase">
-                {product.stock === 0 ? "Out of Stock" : `Add to Bag — ₦${(product.price * quantity).toLocaleString()}`}
+              <Button onClick={() => addItem({ productId: product.id, name: product.name, price: product.price, image: product.images?.[0] ?? undefined, quantity, maxStock: product.stock })} disabled={product.stock === 0} className="flex-1 bg-charcoal text-white hover:bg-charcoal-light rounded-full py-6 text-xs font-semibold tracking-wider uppercase min-h-[48px]">
+                {product.stock === 0 ? "Out of Stock" : (
+                  <span className="truncate">Add to Bag — ₦{(product.price * quantity).toLocaleString()}</span>
+                )}
               </Button>
-              <Button onClick={handleWishlistToggle} variant="outline" size="icon" className="h-12 w-12 rounded-full border-border">
+              <Button onClick={handleWishlistToggle} variant="outline" size="icon" className="h-12 w-12 rounded-full border-border shrink-0">
                 <Heart className={cn("h-5 w-5", isInWishlist ? "fill-gold text-gold" : "text-charcoal")} />
               </Button>
             </div>
@@ -175,10 +177,10 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
           </div>
         </div>
         <div className="mt-16">
-          <div className="flex gap-1 border-b border-border">
+          <div className="flex gap-1 border-b border-border overflow-x-auto scrollbar-none">
             {(["details", "reviews", "shipping"] as const).map((tab) => (
-              <button key={tab} onClick={() => setSelectedTab(tab)} className={cn("px-6 py-3 text-sm font-medium capitalize transition-colors border-b-2 -mb-px", selectedTab === tab ? "border-gold text-gold" : "border-transparent text-muted-foreground hover:text-charcoal")}>
-                {tab === "details" ? "Product Details" : tab === "reviews" ? `Reviews (${product.reviewCount})` : "Shipping & Returns"}
+              <button key={tab} onClick={() => setSelectedTab(tab)} className={cn("px-4 sm:px-6 py-3 text-sm font-medium capitalize transition-colors border-b-2 -mb-px whitespace-nowrap min-h-[44px]", selectedTab === tab ? "border-gold text-gold" : "border-transparent text-muted-foreground hover:text-charcoal")}>
+                {tab === "details" ? "Details" : tab === "reviews" ? `Reviews (${product.reviewCount})` : "Shipping"}
               </button>
             ))}
           </div>

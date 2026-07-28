@@ -285,9 +285,9 @@ function BookPageContent() {
 
   return (
     <div className="min-h-screen bg-cream">
-      <div className="bg-charcoal py-12">
+      <div className="bg-charcoal py-8 sm:py-12">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">
-          <h1 className="font-heading text-3xl md:text-4xl font-bold text-white tracking-tight">Book Your Appointment</h1>
+          <h1 className="font-heading text-2xl sm:text-3xl md:text-4xl font-bold text-white tracking-tight">Book Your Appointment</h1>
           <p className="text-white/60 mt-2">Select your service, choose a stylist, and pick a time that works for you.</p>
         </div>
       </div>
@@ -335,7 +335,7 @@ function BookPageContent() {
             )}
             {selectedServiceId && (
               <div className="flex justify-end">
-                <Button onClick={() => setStep(2)} className="bg-charcoal text-white hover:bg-charcoal-light rounded-full px-8 text-xs font-semibold tracking-wider uppercase">Continue</Button>
+                <Button onClick={() => setStep(2)} className="bg-charcoal text-white hover:bg-charcoal-light rounded-full px-8 text-xs font-semibold tracking-wider uppercase min-h-[44px]">Continue</Button>
               </div>
             )}
           </div>
@@ -379,19 +379,19 @@ function BookPageContent() {
               <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">Some stylists are unavailable for {activeService.name} and cannot be selected.</p>
             )}
             <div className="flex justify-between">
-              <Button onClick={() => setStep(1)} variant="outline" className="rounded-full px-8 text-xs font-semibold tracking-wider uppercase">Back</Button>
-              <Button onClick={() => setStep(3)} className="bg-charcoal text-white hover:bg-charcoal-light rounded-full px-8 text-xs font-semibold tracking-wider uppercase">Continue</Button>
+              <Button onClick={() => setStep(1)} variant="outline" className="rounded-full px-8 text-xs font-semibold tracking-wider uppercase min-h-[44px]">Back</Button>
+              <Button onClick={() => setStep(3)} className="bg-charcoal text-white hover:bg-charcoal-light rounded-full px-8 text-xs font-semibold tracking-wider uppercase min-h-[44px]">Continue</Button>
             </div>
           </div>
         )}
 
         {step === 3 && (
           <div className="space-y-8">
-            <div className="bg-white border border-border rounded-xl p-6">
+            <div className="bg-white border border-border rounded-xl p-4 sm:p-6">
               <h3 className="font-heading font-semibold text-charcoal mb-4">Select a Date</h3>
-              <div className="grid grid-cols-7 gap-2">
+              <div className="grid grid-cols-7 gap-1 sm:gap-2">
                 {dayNames.map((day) => (
-                  <div key={day} className="text-center text-xs font-medium text-muted-foreground py-2">{day}</div>
+                  <div key={day} className="text-center text-[10px] sm:text-xs font-medium text-muted-foreground py-1 sm:py-2">{day}</div>
                 ))}
                 {Array.from({ length: calendarDays[0]?.getDay() || 0 }).map((_, i) => (
                   <div key={`empty-${i}`} />
@@ -401,7 +401,7 @@ function BookPageContent() {
                   const isSelected = selectedDate === dateStr;
                   const isToday = date.toDateString() === today.toDateString();
                   return (
-                    <button key={dateStr} onClick={() => setSelectedDate(dateStr)} className={cn("h-10 rounded-lg text-sm font-medium transition-all", isSelected ? "bg-gold text-white" : "hover:bg-cream text-charcoal", isToday && !isSelected && "ring-1 ring-gold")}>
+                    <button key={dateStr} onClick={() => setSelectedDate(dateStr)} className={cn("h-9 sm:h-10 rounded-lg text-xs sm:text-sm font-medium transition-all min-h-[36px]", isSelected ? "bg-gold text-white" : "hover:bg-cream text-charcoal", isToday && !isSelected && "ring-1 ring-gold")}>
                       {date.getDate()}
                     </button>
                   );
@@ -419,14 +419,14 @@ function BookPageContent() {
                     <p className="text-xs text-muted-foreground mt-1">Try selecting a different date or stylist.</p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
                     {slots.map((slot) => (
                       <button
                         key={slot.time}
                         onClick={() => slot.available && setSelectedTime(slot.time)}
                         disabled={!slot.available}
                         className={cn(
-                          "py-2.5 rounded-lg text-sm font-medium border transition-all",
+                          "py-2.5 rounded-lg text-sm font-medium border transition-all min-h-[44px]",
                           !slot.available
                             ? "border-border bg-gray-50 text-gray-300 cursor-not-allowed line-through"
                             : selectedTime === slot.time
@@ -452,8 +452,8 @@ function BookPageContent() {
               <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Any special requests or notes..." className="w-full bg-cream border border-border rounded-lg px-4 py-3 text-sm text-charcoal placeholder:text-muted-foreground focus:outline-none focus:border-gold resize-none h-24" />
             </div>
             <div className="flex justify-between">
-              <Button onClick={() => setStep(2)} variant="outline" className="rounded-full px-8 text-xs font-semibold tracking-wider uppercase">Back</Button>
-              <Button onClick={() => setStep(4)} disabled={!selectedDate || !selectedTime} className="bg-charcoal text-white hover:bg-charcoal-light rounded-full px-8 text-xs font-semibold tracking-wider uppercase disabled:opacity-50">Continue</Button>
+              <Button onClick={() => setStep(2)} variant="outline" className="rounded-full px-8 text-xs font-semibold tracking-wider uppercase min-h-[44px]">Back</Button>
+              <Button onClick={() => setStep(4)} disabled={!selectedDate || !selectedTime} className="bg-charcoal text-white hover:bg-charcoal-light rounded-full px-8 text-xs font-semibold tracking-wider uppercase min-h-[44px] disabled:opacity-50">Continue</Button>
             </div>
           </div>
         )}
@@ -555,8 +555,8 @@ function BookPageContent() {
               <p className="text-sm text-red-600 text-center">{bookingError}</p>
             )}
             <div className="flex justify-between">
-              <Button onClick={() => setStep(3)} variant="outline" className="rounded-full px-8 text-xs font-semibold tracking-wider uppercase">Back</Button>
-              <Button onClick={handleSubmitBooking} disabled={isSubmitting} className="bg-gold text-white hover:bg-gold-dark rounded-full px-8 text-xs font-semibold tracking-wider uppercase disabled:opacity-50">
+              <Button onClick={() => setStep(3)} variant="outline" className="rounded-full px-8 text-xs font-semibold tracking-wider uppercase min-h-[44px]">Back</Button>
+              <Button onClick={handleSubmitBooking} disabled={isSubmitting} className="bg-gold text-white hover:bg-gold-dark rounded-full px-8 text-xs font-semibold tracking-wider uppercase min-h-[44px] disabled:opacity-50">
                 {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing...</> : "Confirm Booking"}
               </Button>
             </div>

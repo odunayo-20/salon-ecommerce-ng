@@ -36,16 +36,16 @@ export function NewsletterForm({ source = "footer" }: { source?: string }) {
 
   return (
     <div>
-      <form onSubmit={handleSubmit} className="flex gap-3">
+      <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3">
         <input
           type="email"
           placeholder="Your email address"
           value={email}
           onChange={(e) => { setEmail(e.target.value); setStatus("idle"); }}
-          className="flex-1 bg-white/10 border border-white/10 rounded-full px-6 py-3 text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-gold transition-colors"
+          className="flex-1 bg-white/10 border border-white/10 rounded-full px-6 py-3 text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-gold transition-colors min-h-[44px]"
           required
         />
-        <Button type="submit" disabled={status === "loading"} className="bg-gold text-white hover:bg-gold-dark rounded-full px-8 text-xs font-semibold tracking-wider uppercase">
+        <Button type="submit" disabled={status === "loading"} className="bg-gold text-white hover:bg-gold-dark rounded-full px-8 text-xs font-semibold tracking-wider uppercase min-h-[44px] shrink-0">
           {status === "loading" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Subscribe"}
         </Button>
       </form>

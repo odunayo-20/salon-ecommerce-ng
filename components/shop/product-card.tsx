@@ -77,7 +77,7 @@ export function ProductCard({ product }: ProductCardProps) {
         <div className="absolute bottom-3 left-3 right-3 flex gap-2 md:opacity-0 md:translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300">
           <Button
             size="sm"
-            className="flex-1 bg-white text-charcoal hover:bg-gold hover:text-white rounded-full text-xs font-semibold h-9"
+            className="flex-1 bg-white text-charcoal hover:bg-gold hover:text-white rounded-full text-xs font-semibold h-10 min-h-[40px]"
             onClick={() =>
               addItem({
                 productId: product.id,
@@ -91,12 +91,12 @@ export function ProductCard({ product }: ProductCardProps) {
             disabled={product.stock === 0}
           >
             <ShoppingBag className="h-3.5 w-3.5 mr-1.5" />
-            Add to Bag
+            Add
           </Button>
           <Button
             size="icon"
             variant="secondary"
-            className="h-9 w-9 rounded-full bg-white/90"
+            className="h-10 w-10 rounded-full bg-white/90 min-h-[40px] min-w-[40px]"
             asChild
           >
             <Link href={`/shop/${product.slug}`}>
@@ -108,7 +108,7 @@ export function ProductCard({ product }: ProductCardProps) {
         {/* Wishlist */}
         <button
           onClick={handleWishlistToggle}
-          className="absolute top-3 right-3 h-8 w-8 rounded-full bg-white/90 flex items-center justify-center hover:bg-white transition-colors"
+          className="absolute top-3 right-3 h-9 w-9 rounded-full bg-white/90 flex items-center justify-center hover:bg-white transition-colors min-h-[40px] min-w-[40px]"
         >
           <Heart
             className={cn(

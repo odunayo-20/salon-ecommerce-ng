@@ -81,7 +81,7 @@ function ShopPageContent() {
               placeholder="Search products..."
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              className="pl-10 bg-cream border-border rounded-full"
+              className="pl-10 bg-cream border-border rounded-full min-h-[44px]"
             />
             {debouncedSearch && (
               <button
@@ -93,7 +93,7 @@ function ShopPageContent() {
             )}
           </div>
           <div className="flex gap-2">
-            <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="px-4 py-2 bg-cream border border-border rounded-full text-sm text-charcoal focus:outline-none focus:border-gold">
+            <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="px-4 py-2 bg-cream border border-border rounded-full text-sm text-charcoal focus:outline-none focus:border-gold min-h-[44px]">
               <option value="newest">Newest</option>
               <option value="price-asc">Price: Low to High</option>
               <option value="price-desc">Price: High to Low</option>
