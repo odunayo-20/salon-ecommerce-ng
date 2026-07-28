@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { Eye, EyeOff, Mail, Lock, User, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { DemoCredentialsModal } from "@/components/ui/demo-credentials-modal";
 import { toast } from "sonner";
 
 export default function SignUpPage() {
@@ -167,6 +168,8 @@ export default function SignUpPage() {
               <span className="bg-white px-3 text-muted-foreground">or continue with</span>
             </div>
           </div>
+
+          <DemoCredentialsModal onFill={(e, p) => { setEmail(e); setPassword(p); }} />
 
           <button
             type="button"
