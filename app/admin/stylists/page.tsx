@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, Pencil, Trash2, X, Loader2, UserCog, Search, Mail, Award } from "lucide-react";
+import { Plus, Pencil, Trash2, X, Loader2, UserCog, Search, Mail, Award, Camera } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAdminStylists, useUpsertStylist, useDeleteStylist, useAdminServices } from "@/hooks/queries";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -17,7 +17,7 @@ const allSpecialties = [
 ];
 
 const emptyForm = {
-  name: "", email: "", phone: "", bio: "", specialties: [] as string[], experience: 0, serviceIds: [] as string[],
+  name: "", email: "", phone: "", image: "" as string, bio: "", specialties: [] as string[], experience: 0, serviceIds: [] as string[],
 };
 
 export default function AdminStylistsPage() {
@@ -30,6 +30,8 @@ export default function AdminStylistsPage() {
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<"all" | "active" | "inactive">("all");
   const [confirmState, setConfirmState] = useState<{ open: boolean; title: string; message: string; onConfirm: () => void }>({ open: false, title: "", message: "", onConfirm: () => {} });
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const { data: stylistsData, isLoading } = useAdminStylists({
     ...(filterStatus === "active" ? { isActive: "true" } : filterStatus === "inactive" ? { isActive: "false" } : {}),
@@ -53,6 +55,7 @@ export default function AdminStylistsPage() {
       name: s.user.name || "",
       email: s.user.email || "",
       phone: s.user.phone || "",
+      image: s.user.image || "",
       bio: s.bio || "",
       specialties: s.specialties,
       experience: s.experience || 0,
@@ -119,6 +122,22 @@ export default function AdminStylistsPage() {
         ? p.serviceIds.filter((id) => id !== serviceId)
         : [...p.serviceIds, serviceId],
     }));
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("folder", "salon/stylists");
+      const res = await fetch("/api/upload", { method: "POST", body: fd });
+      if (!res.ok) throw new Error("Upload failed");
+      const data = await res.json();
+      setForm((p) => ({ ...p, image: data.url }));
+    } catch { setErrorMsg("Image upload failed"); }
+    finally { setUploading(false); if (fileRef.current) fileRef.current.value = ""; }
   };
 
   return (
@@ -221,6 +240,27 @@ export default function AdminStylistsPage() {
             </div>
 
             <div className="px-6 py-5 space-y-5">
+              {/* Profile Image */}
+              <div className="flex items-center gap-4">
+                <button type="button" onClick={() => fileRef.current?.click()} className="relative h-20 w-20 rounded-full bg-cream border-2 border-dashed border-border hover:border-gold transition-colors flex items-center justify-center shrink-0 overflow-hidden group">
+                  {form.image ? (
+                    <img src={form.image} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    <Camera className="h-6 w-6 text-muted-foreground group-hover:text-gold transition-colors" />
+                  )}
+                  {uploading && <div className="absolute inset-0 bg-black/40 flex items-center justify-center rounded-full"><Loader2 className="h-5 w-5 text-white animate-spin" /></div>}
+                </button>
+                <div>
+                  <p className="text-sm font-medium text-charcoal">Profile Photo</p>
+                  <p className="text-xs text-muted-foreground">JPG, PNG or WebP. Max 5MB.</p>
+                  <div className="flex gap-2 mt-1.5">
+                    <button type="button" onClick={() => fileRef.current?.click()} className="text-xs text-gold hover:text-gold-dark font-medium min-h-[44px]">{uploading ? "Uploading..." : "Upload photo"}</button>
+                    {form.image && <button type="button" onClick={() => setForm((p) => ({ ...p, image: "" }))} className="text-xs text-red-500 hover:text-red-600 font-medium min-h-[44px]">Remove</button>}
+                  </div>
+                </div>
+                <input ref={fileRef} type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+              </div>
+
               {/* Name + Email */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>

@@ -50,7 +50,7 @@ export async function PUT(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { name, email, phone, bio, specialties, experience, isActive, serviceIds } = body;
+    const { name, email, phone, image, bio, specialties, experience, isActive, serviceIds } = body;
 
     const existing = await prisma.stylistProfile.findUnique({
       where: { id },
@@ -67,13 +67,14 @@ export async function PUT(
       }
     }
 
-    if (name || email || phone !== undefined) {
+    if (name || email || phone !== undefined || image !== undefined) {
       await prisma.user.update({
         where: { id: existing.userId },
         data: {
           ...(name !== undefined && { name }),
           ...(email !== undefined && { email }),
           ...(phone !== undefined && { phone: phone || null }),
+          ...(image !== undefined && { image: image || null }),
         },
       });
     }

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
-import { Calendar, Package, Heart, Star, LogOut, ChevronRight, Scissors, Menu, X } from "lucide-react";
+import { Calendar, Package, Heart, Star, LogOut, ChevronRight, Scissors, Menu, X, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const sidebarLinks = [
@@ -13,6 +13,7 @@ const sidebarLinks = [
   { label: "Wishlist", href: "/dashboard/wishlist", icon: Heart },
   { label: "Hair Profile", href: "/dashboard/hair-profile", icon: Scissors },
   { label: "Loyalty Points", href: "/dashboard/loyalty", icon: Star },
+  { label: "Profile", href: "/dashboard/profile", icon: User },
 ];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {

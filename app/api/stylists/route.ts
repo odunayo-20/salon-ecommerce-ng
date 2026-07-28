@@ -53,7 +53,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { name, email, phone, bio, specialties, experience, serviceIds } = body;
+    const { name, email, phone, image, bio, specialties, experience, serviceIds } = body;
 
     if (!name || !email) {
       return NextResponse.json({ error: "Name and email are required" }, { status: 400 });
@@ -69,6 +69,7 @@ export async function POST(request: Request) {
         name,
         email,
         phone: phone || null,
+        image: image || null,
         role: "STYLIST",
       },
     });
