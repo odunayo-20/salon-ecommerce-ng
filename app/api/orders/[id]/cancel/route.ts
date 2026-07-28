@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { notifyAdmins } from "@/lib/notifications";
 import { logAudit } from "@/lib/audit";
+import { reverseLoyaltyPoints } from "@/lib/loyalty";
 
 const CANCELLABLE_STATUSES = ["PENDING", "PROCESSING"];
 
@@ -89,6 +90,18 @@ export async function POST(
         data: { status: "REFUNDED" },
       });
     });
+
+    // Reverse earned loyalty points if any
+    if (order.loyaltyPointsEarned > 0) {
+      try {
+        await reverseLoyaltyPoints(
+          session.user.id,
+          order.loyaltyPointsEarned,
+          order.orderNumber,
+          `Reversed — customer cancelled order ${order.orderNumber}`
+        );
+      } catch { /* non-critical */ }
+    }
 
     await logAudit({
       userId: session.user.id,

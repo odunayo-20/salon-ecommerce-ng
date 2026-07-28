@@ -3,6 +3,7 @@ import { verifyTransaction, verifyWebhookSignature } from "@/lib/paystack";
 import { prisma } from "@/lib/prisma";
 import { notify, notifyAdmins } from "@/lib/notifications";
 import { releaseReservation } from "@/lib/orders";
+import { redeemLoyaltyPoints } from "@/lib/loyalty";
 
 export async function POST(request: NextRequest) {
   try {
@@ -150,55 +151,14 @@ export async function POST(request: NextRequest) {
           // Redeem deferred loyalty points
           if (order.pointsRedeemed > 0) {
             try {
-              const [totalEarned, totalRedeemed] = await Promise.all([
-                prisma.loyaltyPoint.aggregate({
-                  where: { userId: order.customerProfile.user.id, type: "earned" },
-                  _sum: { points: true },
-                }),
-                prisma.loyaltyPoint.aggregate({
-                  where: { userId: order.customerProfile.user.id, type: "redeemed" },
-                  _sum: { points: true },
-                }),
-              ]);
-              const balance = (totalEarned._sum.points || 0) - (totalRedeemed._sum.points || 0);
-              const effectiveRedeemed = Math.min(order.pointsRedeemed, balance);
-              if (effectiveRedeemed > 0) {
-                await prisma.loyaltyPoint.create({
-                  data: {
-                    userId: order.customerProfile.user.id,
-                    points: effectiveRedeemed,
-                    type: "redeemed",
-                    reference: order.orderNumber,
-                    note: `Redeemed for order ${order.orderNumber}`,
-                  },
-                });
-              }
+              await redeemLoyaltyPoints(
+                order.customerProfile.user.id,
+                order.pointsRedeemed,
+                order.orderNumber,
+                `Redeemed for order ${order.orderNumber}`
+              );
             } catch { /* non-critical */ }
           }
-
-          // Award earned loyalty points
-          try {
-            const POINTS_PER_Naira = 100;
-            const earned = Math.floor(
-              (Number(order.total) - order.pointsRedeemed) / POINTS_PER_Naira
-            );
-            if (earned > 0) {
-              await prisma.loyaltyPoint.create({
-                data: {
-                  userId: order.customerProfile.user.id,
-                  points: earned,
-                  type: "earned",
-                  reference: order.orderNumber,
-                  note: `Order: ${order.orderNumber}`,
-                  expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
-                },
-              });
-              await prisma.order.update({
-                where: { id: order.id },
-                data: { loyaltyPointsEarned: earned },
-              });
-            }
-          } catch { /* non-critical */ }
 
           try {
             await notify({

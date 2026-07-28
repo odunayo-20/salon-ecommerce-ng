@@ -283,7 +283,7 @@ describe("Orders POST /api/orders", () => {
     expect(response.status).toBe(400);
   });
 
-  it("caps loyalty points redemption at 50% of subtotal", async () => {
+  it("caps loyalty points redemption at 30% of subtotal", async () => {
     mockPrisma.loyaltyPoint.aggregate.mockImplementation(({ where }: { where: Record<string, string> }) => {
       if (where?.type === "earned") return Promise.resolve({ _sum: { points: 10000 } });
       return Promise.resolve({ _sum: { points: 0 } });
@@ -298,6 +298,8 @@ describe("Orders POST /api/orders", () => {
 
     expect(response.status).toBe(201);
     const data = await response.json();
-    expect(data.order.discount).toBeGreaterThanOrEqual(5000);
+    // 30% of 10000 = 3000 max
+    expect(data.order.discount).toBeGreaterThanOrEqual(3000);
+    expect(data.order.discount).toBeLessThanOrEqual(3000);
   });
 });

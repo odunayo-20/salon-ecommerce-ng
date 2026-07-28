@@ -182,7 +182,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: `Insufficient points. You have ${balance} points available.` }, { status: 400 });
       }
 
-      const maxRedeemable = Math.floor(subtotal * 0.5);
+      const maxRedeemable = Math.floor(subtotal * 0.3);
       if (pointsRedeemed > maxRedeemable) {
         pointsRedeemed = maxRedeemable;
       }

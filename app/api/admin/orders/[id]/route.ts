@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { notify } from "@/lib/notifications";
 import { logAudit, diffObjects } from "@/lib/audit";
+import { awardLoyaltyPoints, reverseLoyaltyPoints } from "@/lib/loyalty";
 
 const STATUSES_THAT_RESTORE_STOCK = new Set(["CANCELLED", "REFUNDED"]);
 
@@ -109,6 +110,36 @@ export async function PATCH(
         where: { orderId: id, status: "PENDING" },
         data: { status: "REFUNDED" },
       });
+
+      // Reverse earned loyalty points on full refund
+      if (order.loyaltyPointsEarned > 0 && order.customerProfile?.user?.id) {
+        try {
+          await reverseLoyaltyPoints(
+            order.customerProfile.user.id,
+            order.loyaltyPointsEarned,
+            order.orderNumber,
+            `Reversed — order ${order.orderNumber} cancelled/refunded`
+          );
+        } catch { /* non-critical */ }
+      }
+    }
+
+    // Award loyalty points on delivery (order only — appointments award on payment)
+    if (newStatus === "DELIVERED" && existing.status !== "DELIVERED" && order.customerProfile?.user?.id) {
+      try {
+        const earned = await awardLoyaltyPoints(
+          order.customerProfile.user.id,
+          Number(order.total) - order.pointsRedeemed,
+          order.orderNumber,
+          `Order delivered: ${order.orderNumber}`
+        );
+        if (earned > 0) {
+          await prisma.order.update({
+            where: { id },
+            data: { loyaltyPointsEarned: earned },
+          });
+        }
+      } catch { /* non-critical */ }
     }
 
     const changes = diffObjects(
