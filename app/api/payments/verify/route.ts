@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { verifyTransaction } from "@/lib/paystack";
 import { notify, notifyAdmins } from "@/lib/notifications";
 import { paymentLimiter } from "@/lib/rate-limit";
+import { expireIfOverdue } from "@/lib/orders";
 
 const POINTS_PER_Naira = 100;
 const TIER_THRESHOLDS = [
@@ -131,6 +132,13 @@ export async function POST(request: NextRequest) {
 
     if (payment.status === "PAID") {
       return NextResponse.json({ success: true, message: "Already paid" });
+    }
+
+    if (payment.orderId) {
+      const expired = await expireIfOverdue(payment.orderId);
+      if (expired) {
+        return NextResponse.json({ error: "Order has expired" }, { status: 410 });
+      }
     }
 
     const verification = await verifyTransaction(payment.reference);

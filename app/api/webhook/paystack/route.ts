@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifyTransaction, verifyWebhookSignature } from "@/lib/paystack";
 import { prisma } from "@/lib/prisma";
 import { notify, notifyAdmins } from "@/lib/notifications";
+import { releaseReservation } from "@/lib/orders";
 
 export async function POST(request: NextRequest) {
   try {
@@ -62,20 +63,25 @@ export async function POST(request: NextRequest) {
             data: { status: "CONFIRMED" },
           });
         } else if (payment.orderId) {
-          await tx.order.update({
-            where: { id: payment.orderId },
-            data: { status: "PROCESSING" },
-          });
-
           const order = await tx.order.findUnique({
             where: { id: payment.orderId },
-            select: { orderNumber: true },
+            select: { orderNumber: true, status: true },
           });
-          if (order) {
-            await tx.stockMovement.updateMany({
-              where: { reference: order.orderNumber, type: "RESERVATION" },
-              data: { type: "SALE", note: `Sold via order ${order.orderNumber}` },
+
+          if (order?.status === "PENDING") {
+            await tx.order.update({
+              where: { id: payment.orderId },
+              data: { status: "PROCESSING" },
             });
+
+            if (order) {
+              await tx.stockMovement.updateMany({
+                where: { reference: order.orderNumber, type: "RESERVATION" },
+                data: { type: "SALE", note: `Sold via order ${order.orderNumber}` },
+              });
+            }
+          } else if (order?.status === "CANCELLED") {
+            console.warn(`[Paystack Webhook] Payment for expired order ${order.orderNumber} — stock already released. Marking for manual review.`);
           }
         }
       });

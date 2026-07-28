@@ -434,6 +434,7 @@ model Order {
   @@index([customerProfileId])
   @@index([status])
   @@index([orderNumber])
+  @@index([status, expiresAt])
 }
 
 model OrderItem {

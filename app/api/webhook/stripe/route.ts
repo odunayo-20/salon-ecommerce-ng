@@ -269,27 +269,31 @@ export async function POST(request: NextRequest) {
               },
             });
 
-            await tx.order.update({
-              where: { id: orderId },
-              data: { status: "PROCESSING" },
-            });
-
-            // Convert RESERVATION → SALE
             const order = await tx.order.findUnique({
               where: { id: orderId },
-              select: { orderNumber: true },
+              select: { orderNumber: true, status: true },
             });
-            if (order) {
-              await tx.stockMovement.updateMany({
-                where: {
-                  reference: order.orderNumber,
-                  type: "RESERVATION",
-                },
-                data: {
-                  type: "SALE",
-                  note: `Sold via order ${order.orderNumber}`,
-                },
+
+            if (order?.status === "PENDING") {
+              await tx.order.update({
+                where: { id: orderId },
+                data: { status: "PROCESSING" },
               });
+
+              if (order) {
+                await tx.stockMovement.updateMany({
+                  where: {
+                    reference: order.orderNumber,
+                    type: "RESERVATION",
+                  },
+                  data: {
+                    type: "SALE",
+                    note: `Sold via order ${order.orderNumber}`,
+                  },
+                });
+              }
+            } else if (order?.status === "CANCELLED") {
+              console.warn(`[Stripe Webhook] Payment for expired order ${order.orderNumber} — stock already released. Marking for manual review.`);
             }
           });
 

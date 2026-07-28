@@ -5,6 +5,7 @@ import { generateOrderNumber } from "@/utils/helpers";
 import { notify, notifyAdmins } from "@/lib/notifications";
 import { checkAndNotifyLowStock } from "@/lib/inventory";
 import { orderLimiter } from "@/lib/rate-limit";
+import { releaseReservation } from "@/lib/orders";
 import { z } from "zod";
 
 const RESERVATION_TTL_MS = 30 * 60 * 1000; // 30 minutes
@@ -340,58 +341,6 @@ export async function POST(request: NextRequest) {
   }
 }
 
-/** Release a reservation: restore stock + cancel order */
-async function releaseReservation(orderId: string) {
-  try {
-    const order = await prisma.order.findUnique({
-      where: { id: orderId },
-      include: { items: true, payments: true },
-    });
-    if (!order || order.status !== "PENDING") return;
-
-    await prisma.$transaction(async (tx) => {
-      // Restore stock for each reserved item
-      for (const item of order.items) {
-        const product = await tx.product.findUnique({
-          where: { id: item.productId },
-          select: { stock: true },
-        });
-        if (!product) continue;
-
-        const newQty = product.stock + item.quantity;
-        await tx.product.update({
-          where: { id: item.productId },
-          data: { stock: newQty },
-        });
-        await tx.stockMovement.create({
-          data: {
-            productId: item.productId,
-            type: "RELEASE",
-            quantity: item.quantity,
-            previousQty: product.stock,
-            newQty,
-            reference: order.orderNumber,
-            note: `Released reservation for expired order ${order.orderNumber}`,
-          },
-        });
-      }
-
-      await tx.order.update({
-        where: { id: orderId },
-        data: { status: "CANCELLED" },
-      });
-
-      // Void pending payments
-      await tx.payment.updateMany({
-        where: { orderId, status: "PENDING" },
-        data: { status: "FAILED" },
-      });
-    });
-  } catch (err) {
-    console.error("[Reservation] Release failed:", err);
-  }
-}
-
 export async function GET(request: NextRequest) {
   try {
     const session = await auth();
@@ -424,16 +373,32 @@ export async function GET(request: NextRequest) {
       orderBy: { createdAt: "desc" },
     });
 
-    return NextResponse.json({
-      orders: orders.map((o) => ({
+    const now = new Date();
+    const expiredIds: string[] = [];
+    const ordersWithStatus = orders.map((o) => {
+      let status = o.status;
+      if (o.status === "PENDING" && o.expiresAt && now > o.expiresAt) {
+        status = "CANCELLED";
+        expiredIds.push(o.id);
+      }
+      return {
         ...o,
+        status,
         subtotal: Number(o.subtotal),
         shippingCost: Number(o.shippingCost),
         discount: Number(o.discount),
         total: Number(o.total),
         items: o.items.map((i) => ({ ...i, price: Number(i.price), slug: i.product.slug })),
-      })),
+      };
     });
+
+    if (expiredIds.length > 0) {
+      for (const id of expiredIds) {
+        releaseReservation(id).catch(() => {});
+      }
+    }
+
+    return NextResponse.json({ orders: ordersWithStatus });
   } catch (error) {
     console.error("Fetch orders error:", error);
     return NextResponse.json({ error: "Failed to fetch orders" }, { status: 500 });

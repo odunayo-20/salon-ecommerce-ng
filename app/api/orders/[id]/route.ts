@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import { expireIfOverdue } from "@/lib/orders";
 
 export async function GET(
   request: NextRequest,
@@ -42,11 +43,17 @@ export async function GET(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    let displayStatus = order.status;
+    if (order.status === "PENDING" && order.expiresAt && new Date() > order.expiresAt) {
+      await expireIfOverdue(order.id);
+      displayStatus = "CANCELLED";
+    }
+
     return NextResponse.json({
       order: {
         id: order.id,
         orderNumber: order.orderNumber,
-        status: order.status,
+        status: displayStatus,
         subtotal: Number(order.subtotal),
         shippingCost: Number(order.shippingCost),
         discount: Number(order.discount),
@@ -63,6 +70,7 @@ export async function GET(
         loyaltyPointsEarned: order.loyaltyPointsEarned,
         createdAt: order.createdAt.toISOString(),
         updatedAt: order.updatedAt.toISOString(),
+        expiresAt: order.expiresAt?.toISOString() || null,
         items: order.items.map((i) => ({
           id: i.id,
           name: i.name,

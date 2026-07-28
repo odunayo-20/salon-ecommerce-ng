@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { initializeTransaction } from "@/lib/paystack";
 import { createPaymentIntent } from "@/lib/stripe";
 import { paymentLimiter } from "@/lib/rate-limit";
+import { expireIfOverdue } from "@/lib/orders";
 
 function generateRef() {
   return `PAY-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 8)}`;
@@ -37,6 +38,12 @@ export async function POST(request: NextRequest) {
       }
       if (payment.status === "PAID") {
         return NextResponse.json({ error: "Payment already completed" }, { status: 400 });
+      }
+      if (payment.orderId) {
+        const expired = await expireIfOverdue(payment.orderId);
+        if (expired) {
+          return NextResponse.json({ error: "Order has expired. Please place a new order." }, { status: 410 });
+        }
       }
     } else if (appointmentId) {
       const apt = await prisma.appointment.findUnique({

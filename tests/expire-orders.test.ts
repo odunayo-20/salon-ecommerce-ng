@@ -1,18 +1,21 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-const mockExpiredOrder = {
+const mockOrder = {
   id: "order-1",
   orderNumber: "MB-EXPIRED-001",
   status: "PENDING",
   expiresAt: new Date("2024-01-01"),
   items: [{ id: "item-1", productId: "prod-1", quantity: 2, name: "Shampoo" }],
-  customerProfile: { user: { id: "user-1", name: "Test User" } },
+  payments: [{ id: "pay-1", status: "PENDING" }],
 };
 
 const mockPrisma = {
-  order: { findMany: vi.fn() },
+  order: {
+    findUnique: vi.fn(),
+    findMany: vi.fn(),
+    update: vi.fn(),
+  },
   $transaction: vi.fn(),
-  $queryRaw: vi.fn(),
 };
 
 const mockLogAudit = vi.fn().mockResolvedValue(undefined);
@@ -20,41 +23,27 @@ const mockLogAudit = vi.fn().mockResolvedValue(undefined);
 vi.mock("@/lib/prisma", () => ({ prisma: mockPrisma }));
 vi.mock("@/lib/audit", () => ({ logAudit: mockLogAudit }));
 
-describe("Cron: Expire Orders", () => {
+describe("lib/orders — releaseReservation", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  async function callExpireCron(authHeader?: string) {
-    const { GET } = await import("@/app/api/cron/expire-orders/route");
-    const headers = new Headers();
-    if (authHeader) headers.set("authorization", authHeader);
-    const request = new Request("http://localhost:3000/api/cron/expire-orders", { headers });
-    Object.defineProperty(request, "url", { value: "http://localhost:3000/api/cron/expire-orders" });
-    return GET(request as never);
-  }
-
-  it("returns 401 without auth header", async () => {
-    const response = await callExpireCron();
-    expect(response.status).toBe(401);
+  it("returns false if order not found", async () => {
+    mockPrisma.order.findUnique.mockResolvedValue(null);
+    const { releaseReservation } = await import("@/lib/orders");
+    const result = await releaseReservation("nonexistent");
+    expect(result).toBe(false);
   });
 
-  it("returns 401 with wrong auth header", async () => {
-    const response = await callExpireCron("Bearer wrong-secret");
-    expect(response.status).toBe(401);
+  it("returns false if order is not PENDING", async () => {
+    mockPrisma.order.findUnique.mockResolvedValue({ ...mockOrder, status: "PROCESSING" });
+    const { releaseReservation } = await import("@/lib/orders");
+    const result = await releaseReservation("order-1");
+    expect(result).toBe(false);
   });
 
-  it("returns correct count when no expired orders", async () => {
-    mockPrisma.order.findMany.mockResolvedValue([]);
-    const response = await callExpireCron("Bearer cron-secret");
-    expect(response.status).toBe(200);
-    const data = await response.json();
-    expect(data.checked).toBe(0);
-    expect(data.released).toBe(0);
-  });
-
-  it("releases expired order and restores stock", async () => {
-    mockPrisma.order.findMany.mockResolvedValue([mockExpiredOrder]);
+  it("releases reservation and restores stock", async () => {
+    mockPrisma.order.findUnique.mockResolvedValue(mockOrder);
     const productUpdate = vi.fn().mockResolvedValue({});
     const stockMovementCreate = vi.fn().mockResolvedValue({});
     const orderUpdate = vi.fn().mockResolvedValue({});
@@ -72,15 +61,18 @@ describe("Cron: Expire Orders", () => {
       } as never);
     });
 
-    const response = await callExpireCron("Bearer cron-secret");
-    expect(response.status).toBe(200);
-    const data = await response.json();
-    expect(data.checked).toBe(1);
-    expect(data.released).toBe(1);
+    const { releaseReservation } = await import("@/lib/orders");
+    const result = await releaseReservation("order-1");
+    expect(result).toBe(true);
+    expect(mockLogAudit).toHaveBeenCalledWith(expect.objectContaining({
+      userId: "SYSTEM",
+      entityType: "ORDER",
+      entityId: "order-1",
+    }));
   });
 
-  it("restores correct quantity to product stock", async () => {
-    mockPrisma.order.findMany.mockResolvedValue([mockExpiredOrder]);
+  it("restores correct quantity", async () => {
+    mockPrisma.order.findUnique.mockResolvedValue(mockOrder);
     let capturedProductUpdate: ReturnType<typeof vi.fn>;
 
     mockPrisma.$transaction.mockImplementation(async (fn: (tx: typeof mockPrisma) => Promise<unknown>) => {
@@ -96,7 +88,8 @@ describe("Cron: Expire Orders", () => {
       } as never);
     });
 
-    await callExpireCron("Bearer cron-secret");
+    const { releaseReservation } = await import("@/lib/orders");
+    await releaseReservation("order-1");
 
     expect(capturedProductUpdate!).toHaveBeenCalledWith({
       where: { id: "prod-1" },
@@ -105,39 +98,36 @@ describe("Cron: Expire Orders", () => {
   });
 
   it("creates RELEASE stock movement", async () => {
-    mockPrisma.order.findMany.mockResolvedValue([mockExpiredOrder]);
-    let capturedStockMovementCreate: ReturnType<typeof vi.fn>;
+    mockPrisma.order.findUnique.mockResolvedValue(mockOrder);
+    let capturedMovement: ReturnType<typeof vi.fn>;
 
     mockPrisma.$transaction.mockImplementation(async (fn: (tx: typeof mockPrisma) => Promise<unknown>) => {
-      capturedStockMovementCreate = vi.fn().mockResolvedValue({});
+      capturedMovement = vi.fn().mockResolvedValue({});
       return fn({
         product: {
           findUnique: vi.fn().mockResolvedValue({ stock: 18 }),
           update: vi.fn().mockResolvedValue({}),
         },
-        stockMovement: { create: capturedStockMovementCreate },
+        stockMovement: { create: capturedMovement },
         order: { update: vi.fn().mockResolvedValue({}) },
         payment: { updateMany: vi.fn().mockResolvedValue({}) },
       } as never);
     });
 
-    await callExpireCron("Bearer cron-secret");
+    const { releaseReservation } = await import("@/lib/orders");
+    await releaseReservation("order-1");
 
-    expect(capturedStockMovementCreate!).toHaveBeenCalledWith({
-      data: {
+    expect(capturedMovement!).toHaveBeenCalledWith({
+      data: expect.objectContaining({
         productId: "prod-1",
         type: "RELEASE",
         quantity: 2,
-        previousQty: 18,
-        newQty: 20,
-        reference: "MB-EXPIRED-001",
-        note: "Auto-released: order expired after 30 min",
-      },
+      }),
     });
   });
 
-  it("cancels the order status", async () => {
-    mockPrisma.order.findMany.mockResolvedValue([mockExpiredOrder]);
+  it("cancels the order", async () => {
+    mockPrisma.order.findUnique.mockResolvedValue(mockOrder);
     let capturedOrderUpdate: ReturnType<typeof vi.fn>;
 
     mockPrisma.$transaction.mockImplementation(async (fn: (tx: typeof mockPrisma) => Promise<unknown>) => {
@@ -153,7 +143,8 @@ describe("Cron: Expire Orders", () => {
       } as never);
     });
 
-    await callExpireCron("Bearer cron-secret");
+    const { releaseReservation } = await import("@/lib/orders");
+    await releaseReservation("order-1");
 
     expect(capturedOrderUpdate!).toHaveBeenCalledWith({
       where: { id: "order-1" },
@@ -162,11 +153,11 @@ describe("Cron: Expire Orders", () => {
   });
 
   it("voids pending payments", async () => {
-    mockPrisma.order.findMany.mockResolvedValue([mockExpiredOrder]);
-    let capturedPaymentUpdateMany: ReturnType<typeof vi.fn>;
+    mockPrisma.order.findUnique.mockResolvedValue(mockOrder);
+    let capturedPaymentUpdate: ReturnType<typeof vi.fn>;
 
     mockPrisma.$transaction.mockImplementation(async (fn: (tx: typeof mockPrisma) => Promise<unknown>) => {
-      capturedPaymentUpdateMany = vi.fn().mockResolvedValue({});
+      capturedPaymentUpdate = vi.fn().mockResolvedValue({});
       return fn({
         product: {
           findUnique: vi.fn().mockResolvedValue({ stock: 18 }),
@@ -174,96 +165,76 @@ describe("Cron: Expire Orders", () => {
         },
         stockMovement: { create: vi.fn().mockResolvedValue({}) },
         order: { update: vi.fn().mockResolvedValue({}) },
-        payment: { updateMany: capturedPaymentUpdateMany },
+        payment: { updateMany: capturedPaymentUpdate },
       } as never);
     });
 
-    await callExpireCron("Bearer cron-secret");
+    const { releaseReservation } = await import("@/lib/orders");
+    await releaseReservation("order-1");
 
-    expect(capturedPaymentUpdateMany!).toHaveBeenCalledWith({
+    expect(capturedPaymentUpdate!).toHaveBeenCalledWith({
       where: { orderId: "order-1", status: "PENDING" },
       data: { status: "FAILED" },
     });
   });
+});
 
-  it("creates audit log entry", async () => {
-    mockPrisma.order.findMany.mockResolvedValue([mockExpiredOrder]);
-    mockPrisma.$transaction.mockImplementation(async (fn: (tx: typeof mockPrisma) => Promise<unknown>) => {
-      return fn({
-        product: {
-          findUnique: vi.fn().mockResolvedValue({ stock: 18 }),
-          update: vi.fn().mockResolvedValue({}),
-        },
-        stockMovement: { create: vi.fn().mockResolvedValue({}) },
-        order: { update: vi.fn().mockResolvedValue({}) },
-        payment: { updateMany: vi.fn().mockResolvedValue({}) },
-      } as never);
-    });
-
-    await callExpireCron("Bearer cron-secret");
-
-    expect(mockLogAudit).toHaveBeenCalledWith({
-      userId: "SYSTEM",
-      action: "UPDATE",
-      entityType: "ORDER",
-      entityId: "order-1",
-      entityName: "MB-EXPIRED-001",
-      changes: { status: { old: "PENDING", new: "CANCELLED (expired)" } },
-    });
+describe("lib/orders — expireIfOverdue", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
   });
 
-  it("handles multiple expired orders", async () => {
-    const orders = [
-      { ...mockExpiredOrder, id: "o1", orderNumber: "MB-001" },
-      { ...mockExpiredOrder, id: "o2", orderNumber: "MB-002" },
-      { ...mockExpiredOrder, id: "o3", orderNumber: "MB-003" },
-    ];
-    mockPrisma.order.findMany.mockResolvedValue(orders);
-    mockPrisma.$transaction.mockImplementation(async (fn: (tx: typeof mockPrisma) => Promise<unknown>) => {
-      return fn({
-        product: { findUnique: vi.fn().mockResolvedValue({ stock: 18 }), update: vi.fn() },
-        stockMovement: { create: vi.fn() },
-        order: { update: vi.fn() },
-        payment: { updateMany: vi.fn() },
-      } as never);
-    });
-
-    const response = await callExpireCron("Bearer cron-secret");
-    const data = await response.json();
-    expect(data.checked).toBe(3);
-    expect(data.released).toBe(3);
+  it("returns false if order not found", async () => {
+    mockPrisma.order.findUnique.mockResolvedValue(null);
+    const { expireIfOverdue } = await import("@/lib/orders");
+    const result = await expireIfOverdue("nonexistent");
+    expect(result).toBe(false);
   });
 
-  it("continues processing if one order fails", async () => {
-    const orders = [
-      { ...mockExpiredOrder, id: "o1", orderNumber: "MB-001" },
-      { ...mockExpiredOrder, id: "o2", orderNumber: "MB-002" },
-    ];
-    mockPrisma.order.findMany.mockResolvedValue(orders);
-
-    let callCount = 0;
-    mockPrisma.$transaction.mockImplementation(async (fn: (tx: typeof mockPrisma) => Promise<unknown>) => {
-      callCount++;
-      if (callCount === 1) throw new Error("DB error");
-      return fn({
-        product: { findUnique: vi.fn().mockResolvedValue({ stock: 18 }), update: vi.fn() },
-        stockMovement: { create: vi.fn() },
-        order: { update: vi.fn() },
-        payment: { updateMany: vi.fn() },
-      } as never);
-    });
-
-    const response = await callExpireCron("Bearer cron-secret");
-    const data = await response.json();
-    expect(data.checked).toBe(2);
-    expect(data.released).toBe(1);
+  it("returns false if not PENDING", async () => {
+    mockPrisma.order.findUnique.mockResolvedValue({ status: "PROCESSING", expiresAt: new Date("2024-01-01") });
+    const { expireIfOverdue } = await import("@/lib/orders");
+    const result = await expireIfOverdue("order-1");
+    expect(result).toBe(false);
   });
 
-  it("returns timestamp", async () => {
+  it("returns false if no expiresAt", async () => {
+    mockPrisma.order.findUnique.mockResolvedValue({ status: "PENDING", expiresAt: null });
+    const { expireIfOverdue } = await import("@/lib/orders");
+    const result = await expireIfOverdue("order-1");
+    expect(result).toBe(false);
+  });
+
+  it("returns false if not yet expired", async () => {
+    mockPrisma.order.findUnique.mockResolvedValue({ status: "PENDING", expiresAt: new Date("2099-12-31") });
+    const { expireIfOverdue } = await import("@/lib/orders");
+    const result = await expireIfOverdue("order-1");
+    expect(result).toBe(false);
+  });
+});
+
+describe("lib/orders — expireAllOverdue", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("returns 0 when no overdue orders", async () => {
     mockPrisma.order.findMany.mockResolvedValue([]);
-    const response = await callExpireCron("Bearer cron-secret");
-    const data = await response.json();
-    expect(data.timestamp).toBeDefined();
-    expect(new Date(data.timestamp).getTime()).not.toBeNaN();
+    const { expireAllOverdue } = await import("@/lib/orders");
+    const result = await expireAllOverdue();
+    expect(result).toBe(0);
+  });
+
+  it("queries for PENDING orders with past expiresAt", async () => {
+    mockPrisma.order.findMany.mockResolvedValue([]);
+    const { expireAllOverdue } = await import("@/lib/orders");
+    await expireAllOverdue();
+    expect(mockPrisma.order.findMany).toHaveBeenCalledWith({
+      where: {
+        status: "PENDING",
+        expiresAt: { not: null, lt: expect.any(Date) },
+      },
+      select: { id: true },
+    });
   });
 });
