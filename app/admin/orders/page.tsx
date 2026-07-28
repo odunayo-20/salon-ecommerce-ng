@@ -109,50 +109,51 @@ export default function AdminOrdersPage() {
   const formatDateTime = (d: string) => new Date(d).toLocaleString("en-NG", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" });
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-start justify-between">
+    <div className="space-y-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="font-heading text-2xl font-bold text-charcoal tracking-tight">Orders</h1>
+          <h1 className="font-heading text-xl sm:text-2xl font-bold text-charcoal tracking-tight">Orders</h1>
           <p className="text-sm text-muted-foreground mt-1">Manage customer orders</p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={handleExport} className="rounded-full text-xs font-semibold tracking-wider uppercase min-h-[44px] px-4">
-            <Download className="h-3.5 w-3.5 mr-1.5" />Export CSV
+            <Download className="h-3.5 w-3.5 mr-1.5" />Export
           </Button>
           <Button variant={bulkMode ? "default" : "outline"} size="sm" onClick={() => { setBulkMode(!bulkMode); setSelectedIds(new Set()); }} className={cn("rounded-full text-xs font-semibold tracking-wider uppercase min-h-[44px] px-4", bulkMode && "bg-charcoal text-white")}>
-            <CheckSquare className="h-3.5 w-3.5 mr-1.5" />Bulk Edit
+            <CheckSquare className="h-3.5 w-3.5 mr-1.5" />Bulk
           </Button>
         </div>
       </div>
 
-      {successMsg && <div className="bg-green-50 border border-green-200 text-green-700 text-sm rounded-lg px-4 py-3 flex items-center justify-between"><span>{successMsg}</span><button onClick={() => setSuccessMsg("")} className="p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center"><X className="h-4 w-4" /></button></div>}
-      {errorMsg && <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3 flex items-center justify-between"><span>{errorMsg}</span><button onClick={() => setErrorMsg("")} className="p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center"><X className="h-4 w-4" /></button></div>}
+      {successMsg && <div className="bg-green-50 border border-green-200 text-green-700 text-sm rounded-lg px-4 py-3 flex items-center justify-between"><span>{successMsg}</span><button onClick={() => setSuccessMsg("")} className="min-h-[44px] min-w-[44px] flex items-center justify-center"><X className="h-4 w-4" /></button></div>}
+      {errorMsg && <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3 flex items-center justify-between"><span>{errorMsg}</span><button onClick={() => setErrorMsg("")} className="min-h-[44px] min-w-[44px] flex items-center justify-center"><X className="h-4 w-4" /></button></div>}
 
       {/* Bulk action bar */}
       {bulkMode && selectedIds.size > 0 && (
         <div className="bg-charcoal text-white rounded-lg px-4 py-3 flex items-center gap-3 flex-wrap">
           <span className="text-sm font-medium">{selectedIds.size} selected</span>
-          <select value={bulkStatus} onChange={(e) => setBulkStatus(e.target.value)} className="bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-gold">
+          <select value={bulkStatus} onChange={(e) => setBulkStatus(e.target.value)} className="bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-gold min-h-[44px]">
             <option value="">Select status...</option>
             {Object.entries(statusLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </select>
-          <Button size="sm" disabled={!bulkStatus || updatingId === "bulk"} onClick={handleBulkUpdate} className="bg-gold text-white hover:bg-gold-dark rounded-full text-xs font-semibold min-h-[36px]">
+          <Button size="sm" disabled={!bulkStatus || updatingId === "bulk"} onClick={handleBulkUpdate} className="bg-gold text-white hover:bg-gold-dark rounded-full text-xs font-semibold min-h-[44px]">
             {updatingId === "bulk" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Apply"}
           </Button>
-          <Button size="sm" variant="ghost" onClick={() => { setBulkMode(false); setSelectedIds(new Set()); }} className="text-white/70 hover:text-white rounded-full text-xs min-h-[36px]">Cancel</Button>
+          <Button size="sm" variant="ghost" onClick={() => { setBulkMode(false); setSelectedIds(new Set()); }} className="text-white/70 hover:text-white rounded-full text-xs min-h-[44px]">Cancel</Button>
         </div>
       )}
 
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <input type="text" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} placeholder="Search by order number, customer name, or email..." className="w-full bg-white border border-border rounded-lg pl-10 pr-4 py-2.5 text-sm text-charcoal placeholder:text-muted-foreground focus:outline-none focus:border-gold" />
-        </div>
-        <div className="flex gap-1 bg-white border border-border rounded-lg p-1 overflow-x-auto">
-          {allStatuses.map((s) => (
-            <button key={s} onClick={() => { setFilterStatus(s); setPage(1); }} className={cn("px-3 py-2.5 rounded-md text-xs font-medium transition-all capitalize min-h-[44px] whitespace-nowrap", filterStatus === s ? "bg-charcoal text-white" : "text-muted-foreground hover:text-charcoal")}>{s === "all" ? "All" : statusLabels[s.toUpperCase()] || s}</button>
-          ))}
-        </div>
+      {/* Search */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <input type="text" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} placeholder="Search orders..." className="w-full bg-white border border-border rounded-lg pl-10 pr-4 py-2.5 text-sm text-charcoal placeholder:text-muted-foreground focus:outline-none focus:border-gold min-h-[44px]" />
+      </div>
+
+      {/* Status Filter */}
+      <div className="flex gap-1 bg-white border border-border rounded-lg p-1 overflow-x-auto">
+        {allStatuses.map((s) => (
+          <button key={s} onClick={() => { setFilterStatus(s); setPage(1); }} className={cn("px-3 py-2.5 rounded-md text-xs font-medium transition-all capitalize min-h-[44px] whitespace-nowrap shrink-0", filterStatus === s ? "bg-charcoal text-white" : "text-muted-foreground hover:text-charcoal")}>{s === "all" ? "All" : statusLabels[s.toUpperCase()] || s}</button>
+        ))}
       </div>
 
       {isLoading ? (

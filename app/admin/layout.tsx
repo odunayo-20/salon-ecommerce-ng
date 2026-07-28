@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LayoutDashboard, Scissors, Package, Calendar, Users, UserCog, Star, PenTool, BarChart3, Menu, X, FolderTree, Clock, Tag, MessageSquare, Warehouse, ClipboardList, LogOut, Globe, ChevronDown } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useState, useRef, useEffect } from "react";
 import { NotificationBell } from "@/components/notifications/notification-bell";
@@ -53,36 +52,51 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [userMenuOpen]);
 
+  // Lock body scroll when sidebar is open on mobile
+  useEffect(() => {
+    if (sidebarOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => { document.body.style.overflow = ""; };
+  }, [sidebarOpen]);
+
+  // Close sidebar on route change
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [pathname]);
+
   return (
     <div className="min-h-screen bg-cream">
-      {/* Premium Glassmorphic Header */}
-      <div className="bg-charcoal/95 backdrop-blur-md py-3.5 px-4 sm:px-6 flex items-center justify-between sticky top-0 z-50 border-b border-white/10">
-        <div className="flex items-center gap-4">
+      {/* Header */}
+      <div className="bg-charcoal/95 backdrop-blur-md py-3 px-4 sm:px-6 flex items-center justify-between sticky top-0 z-50 border-b border-white/10">
+        <div className="flex items-center gap-3">
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="lg:hidden text-white/85 hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition-colors"
+            className="lg:hidden text-white/85 hover:text-white min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg hover:bg-white/10 transition-colors"
             aria-label="Toggle menu"
           >
             {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
           <Link href="/admin" className="flex items-center group">
-            <span className="font-heading text-xl font-semibold text-white tracking-tight group-hover:text-gold transition-colors">MecBill</span>
-            <span className="font-heading text-xl font-light text-gold ml-0.5">Admin</span>
+            <span className="font-heading text-lg sm:text-xl font-semibold text-white tracking-tight group-hover:text-gold transition-colors">MecBill</span>
+            <span className="font-heading text-lg sm:text-xl font-light text-gold ml-0.5">Admin</span>
           </Link>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <NotificationBell variant="admin" />
           
           {/* User Menu Dropdown */}
           <div className="relative" ref={userMenuRef}>
             <button
               onClick={() => setUserMenuOpen(!userMenuOpen)}
-              className="flex items-center gap-2 focus:outline-none group p-1 rounded-lg hover:bg-white/5 transition-colors"
+              className="flex items-center gap-2 focus:outline-none group p-1 min-h-[44px] min-w-[44px] items-center justify-center rounded-lg hover:bg-white/5 transition-colors"
             >
               <div className="h-8 w-8 rounded-full bg-gold/10 border border-gold/30 flex items-center justify-center text-xs font-bold text-gold shadow-inner transition-colors group-hover:border-gold/50">
                 {userInitials || "AD"}
               </div>
-              <ChevronDown className="h-3.5 w-3.5 text-white/50 group-hover:text-white transition-colors" />
+              <ChevronDown className="h-3.5 w-3.5 text-white/50 group-hover:text-white transition-colors hidden sm:block" />
             </button>
 
             {userMenuOpen && (
@@ -94,7 +108,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 
                 <Link
                   href="/"
-                  className="flex items-center gap-2.5 px-3 py-2 text-sm text-charcoal hover:bg-cream/60 hover:text-gold rounded-lg transition-colors"
+                  className="flex items-center gap-2.5 px-3 py-2.5 text-sm text-charcoal hover:bg-cream/60 hover:text-gold rounded-lg transition-colors"
                   onClick={() => setUserMenuOpen(false)}
                 >
                   <Globe className="h-4 w-4 text-charcoal/40" />
@@ -103,7 +117,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 
                 <button
                   onClick={() => signOut({ callbackUrl: "/" })}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-red-500 hover:bg-red-50 rounded-lg transition-colors text-left"
+                  className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-red-500 hover:bg-red-50 rounded-lg transition-colors text-left"
                 >
                   <LogOut className="h-4 w-4 text-red-400" />
                   <span>Sign Out</span>
@@ -115,14 +129,23 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </div>
 
       <div className="flex">
-        {/* Sidebar with elegant spacing and transitions */}
+        {/* Mobile Sidebar Backdrop */}
+        {sidebarOpen && (
+          <div
+            className="fixed inset-0 bg-black/40 z-30 lg:hidden backdrop-blur-sm"
+            onClick={() => setSidebarOpen(false)}
+            aria-hidden="true"
+          />
+        )}
+
+        {/* Sidebar */}
         <aside
           className={cn(
-            "fixed lg:sticky top-[57px] left-0 z-40 h-[calc(100vh-57px)] w-64 bg-white border-r border-border/80 shadow-[1px_0_10px_rgba(0,0,0,0.01)] overflow-y-auto transition-transform duration-300 lg:translate-x-0",
+            "fixed lg:sticky top-[53px] sm:top-[57px] left-0 z-40 h-[calc(100vh-53px)] sm:h-[calc(100vh-57px)] w-64 bg-white border-r border-border/80 shadow-xl lg:shadow-none overflow-y-auto transition-transform duration-300 lg:translate-x-0",
             sidebarOpen ? "translate-x-0" : "-translate-x-full"
           )}
         >
-          <nav className="p-4 space-y-1">
+          <nav className="p-3 space-y-0.5">
             {adminLinks.map((link) => {
               const isActive = link.href === "/admin" ? pathname === "/admin" : pathname.startsWith(link.href);
               return (
@@ -131,25 +154,27 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   href={link.href}
                   onClick={() => setSidebarOpen(false)}
                   className={cn(
-                    "group flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all duration-200 ease-out",
+                    "group flex items-center gap-3 px-3 py-2.5 text-sm font-medium transition-all duration-200 ease-out min-h-[44px] rounded-lg",
                     isActive
-                      ? "bg-gold/5 text-gold border-l-2 border-gold pl-5 rounded-r-lg"
-                      : "text-charcoal/80 hover:bg-cream/60 hover:text-gold hover:pl-5 rounded-lg"
+                      ? "bg-gold/5 text-gold border-l-2 border-gold pl-4"
+                      : "text-charcoal/80 hover:bg-cream/60 hover:text-gold hover:pl-4"
                   )}
                 >
                   <link.icon
                     className={cn(
-                      "h-4 w-4 transition-colors duration-200",
+                      "h-4 w-4 transition-colors duration-200 shrink-0",
                       isActive ? "text-gold" : "text-charcoal/40 group-hover:text-gold"
                     )}
                   />
-                  <span>{link.label}</span>
+                  <span className="truncate">{link.label}</span>
                 </Link>
               );
             })}
           </nav>
         </aside>
-        <main className="flex-1 p-6 lg:p-8 max-w-7xl">{children}</main>
+
+        {/* Main Content */}
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl min-w-0">{children}</main>
       </div>
     </div>
   );

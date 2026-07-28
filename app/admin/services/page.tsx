@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, Pencil, Trash2, X, Loader2, Scissors, Star, Search, ChevronDown } from "lucide-react";
+import { Plus, Pencil, Trash2, X, Loader2, Scissors, Star, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAdminServices, useUpsertService, useDeleteService, useAdminCategories } from "@/hooks/queries";
 
@@ -149,11 +149,11 @@ export default function AdminServicesPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="space-y-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="font-heading text-2xl font-bold text-charcoal tracking-tight">Services</h1>
-          <p className="text-sm text-muted-foreground mt-1">Manage your salon services and pricing</p>
+          <h1 className="font-heading text-xl sm:text-2xl font-bold text-charcoal tracking-tight">Services</h1>
+          <p className="text-sm text-muted-foreground mt-1">{services.length} service{services.length !== 1 ? "s" : ""}</p>
         </div>
         <Button onClick={openAdd} className="bg-gold text-white hover:bg-gold-dark rounded-full text-xs font-semibold tracking-wider uppercase px-6 min-h-[44px]">
           <Plus className="h-4 w-4 mr-2" />Add Service
@@ -173,41 +173,44 @@ export default function AdminServicesPage() {
         </div>
       )}
 
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search services..."
-            className="w-full bg-white border border-border rounded-lg pl-10 pr-4 py-2.5 text-sm text-charcoal placeholder:text-muted-foreground focus:outline-none focus:border-gold"
-          />
-        </div>
-        <select
-          value={filterCategory}
-          onChange={(e) => setFilterCategory(e.target.value)}
-          className="bg-white border border-border rounded-lg px-4 py-2.5 text-sm text-charcoal focus:outline-none focus:border-gold"
-        >
-          <option value="all">All Categories</option>
-          {categories.map((cat) => (
-            <option key={cat.id} value={cat.id}>{cat.name}</option>
-          ))}
-        </select>
-        <div className="flex gap-1 bg-white border border-border rounded-lg p-1">
-          {(["all", "active", "inactive"] as const).map((status) => (
-            <button
-              key={status}
-              onClick={() => setFilterStatus(status)}
-              className={cn(
-                "px-3 py-1.5 rounded-md text-xs font-medium transition-all capitalize min-h-[44px] min-w-[44px] flex items-center justify-center",
-                filterStatus === status ? "bg-charcoal text-white" : "text-muted-foreground hover:text-charcoal"
-              )}
-            >
-              {status}
-            </button>
-          ))}
-        </div>
+      {/* Search */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search services..."
+          className="w-full bg-white border border-border rounded-lg pl-10 pr-4 py-2.5 text-sm text-charcoal placeholder:text-muted-foreground focus:outline-none focus:border-gold min-h-[44px]"
+        />
+      </div>
+
+      {/* Category Filter */}
+      <select
+        value={filterCategory}
+        onChange={(e) => setFilterCategory(e.target.value)}
+        className="w-full bg-white border border-border rounded-lg px-4 py-2.5 text-sm text-charcoal focus:outline-none focus:border-gold min-h-[44px]"
+      >
+        <option value="all">All Categories</option>
+        {categories.map((cat) => (
+          <option key={cat.id} value={cat.id}>{cat.name}</option>
+        ))}
+      </select>
+
+      {/* Status Filter */}
+      <div className="flex gap-1 bg-white border border-border rounded-lg p-1">
+        {(["all", "active", "inactive"] as const).map((status) => (
+          <button
+            key={status}
+            onClick={() => setFilterStatus(status)}
+            className={cn(
+              "flex-1 py-2.5 rounded-md text-xs font-medium transition-all capitalize min-h-[44px] flex items-center justify-center",
+              filterStatus === status ? "bg-charcoal text-white" : "text-muted-foreground hover:text-charcoal"
+            )}
+          >
+            {status}
+          </button>
+        ))}
       </div>
 
       {isLoading ? (
@@ -225,6 +228,7 @@ export default function AdminServicesPage() {
         </div>
       ) : (
         <>
+          {/* Mobile Cards */}
           <div className="sm:hidden space-y-3">
             {services.map((s) => (
               <div key={s.id} className="bg-white border border-border rounded-2xl p-4 space-y-3">
@@ -234,10 +238,10 @@ export default function AdminServicesPage() {
                       <Scissors className="h-4 w-4 text-gold" />
                     </div>
                     <div className="min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
+                      <div className="flex items-center gap-2">
                         <p className="text-sm font-medium text-charcoal truncate">{s.name}</p>
                         {s.isPopular && (
-                          <span className="text-[10px] bg-gold/10 text-gold px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
+                          <span className="text-[10px] bg-gold/10 text-gold px-2 py-0.5 rounded-full font-bold flex items-center gap-1 shrink-0">
                             <Star className="h-2.5 w-2.5 fill-gold" />Popular
                           </span>
                         )}
@@ -245,19 +249,19 @@ export default function AdminServicesPage() {
                       <span className="text-[10px] bg-cream px-2.5 py-1 rounded-full text-muted-foreground font-medium">{s.category.name}</span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <button onClick={() => openEdit(s)} className="p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg text-muted-foreground hover:text-gold hover:bg-gold/10 transition-colors">
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button onClick={() => openEdit(s)} className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg text-muted-foreground hover:text-gold hover:bg-gold/10 transition-colors">
                       <Pencil className="h-4 w-4" />
                     </button>
-                    <button onClick={() => handleDelete(s)} className="p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg text-muted-foreground hover:text-red-500 hover:bg-red-50 transition-colors">
+                    <button onClick={() => handleDelete(s)} className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg text-muted-foreground hover:text-red-500 hover:bg-red-50 transition-colors">
                       <Trash2 className="h-4 w-4" />
                     </button>
                   </div>
                 </div>
-                <div className="flex items-center gap-4 text-sm">
+                <div className="flex items-center gap-3 text-sm">
                   <span className="font-semibold text-charcoal">₦{s.price.toLocaleString()}</span>
-                  <span className="text-muted-foreground">{formatDuration(s.duration)}</span>
-                  <span className="text-muted-foreground">{s.appointmentCount} bookings</span>
+                  <span className="text-muted-foreground text-xs">{formatDuration(s.duration)}</span>
+                  <span className="text-muted-foreground text-xs">{s.appointmentCount} bookings</span>
                 </div>
                 <div className="flex items-center gap-4 pt-1">
                   <div className="min-h-[44px] flex items-center gap-2">
@@ -283,11 +287,9 @@ export default function AdminServicesPage() {
                 </div>
               </div>
             ))}
-            <div className="px-1 py-1">
-              <p className="text-xs text-muted-foreground">{services.length} services</p>
-            </div>
           </div>
 
+          {/* Desktop Table */}
           <div className="hidden sm:block bg-white border border-border rounded-2xl overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full">
@@ -372,17 +374,14 @@ export default function AdminServicesPage() {
                 </tbody>
               </table>
             </div>
-            <div className="px-6 py-3 border-t border-border bg-cream/30">
-              <p className="text-xs text-muted-foreground">{services.length} services</p>
-            </div>
           </div>
         </>
       )}
 
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4">
           <div className="fixed inset-0 bg-black/50" onClick={() => setShowModal(false)} />
-          <div className="relative bg-white rounded-2xl max-w-lg w-full shadow-xl max-h-[90vh] overflow-y-auto">
+          <div className="relative bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg shadow-xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between px-6 py-4 border-b border-border sticky top-0 bg-white z-10">
               <h2 className="font-heading text-lg font-semibold text-charcoal">
                 {editingService ? "Edit Service" : "Add Service"}
@@ -403,7 +402,7 @@ export default function AdminServicesPage() {
                     setFormData((prev) => ({ ...prev, name, slug: editingService ? prev.slug : slugify(name) }));
                   }}
                   placeholder="e.g. Knotless Braids"
-                  className="mt-1.5 w-full bg-cream border border-border rounded-lg px-4 py-2.5 text-sm text-charcoal placeholder:text-muted-foreground focus:outline-none focus:border-gold"
+                  className="mt-1.5 w-full bg-cream border border-border rounded-lg px-4 py-2.5 text-sm text-charcoal placeholder:text-muted-foreground focus:outline-none focus:border-gold min-h-[44px]"
                 />
               </div>
 
@@ -426,7 +425,7 @@ export default function AdminServicesPage() {
                 <select
                   value={formData.categoryId}
                   onChange={(e) => setFormData((prev) => ({ ...prev, categoryId: e.target.value }))}
-                  className="mt-1.5 w-full bg-cream border border-border rounded-lg px-4 py-2.5 text-sm text-charcoal focus:outline-none focus:border-gold"
+                  className="mt-1.5 w-full bg-cream border border-border rounded-lg px-4 py-2.5 text-sm text-charcoal focus:outline-none focus:border-gold min-h-[44px]"
                 >
                   <option value="">Select category</option>
                   {categories.map((cat) => (
@@ -454,7 +453,7 @@ export default function AdminServicesPage() {
                     value={formData.price || ""}
                     onChange={(e) => setFormData((prev) => ({ ...prev, price: Number(e.target.value) }))}
                     min={0}
-                    className="mt-1.5 w-full bg-cream border border-border rounded-lg px-4 py-2.5 text-sm text-charcoal focus:outline-none focus:border-gold"
+                    className="mt-1.5 w-full bg-cream border border-border rounded-lg px-4 py-2.5 text-sm text-charcoal focus:outline-none focus:border-gold min-h-[44px]"
                   />
                 </div>
                 <div>
@@ -465,7 +464,7 @@ export default function AdminServicesPage() {
                     onChange={(e) => setFormData((prev) => ({ ...prev, duration: Number(e.target.value) }))}
                     min={15}
                     step={15}
-                    className="mt-1.5 w-full bg-cream border border-border rounded-lg px-4 py-2.5 text-sm text-charcoal focus:outline-none focus:border-gold"
+                    className="mt-1.5 w-full bg-cream border border-border rounded-lg px-4 py-2.5 text-sm text-charcoal focus:outline-none focus:border-gold min-h-[44px]"
                   />
                 </div>
               </div>
@@ -478,7 +477,7 @@ export default function AdminServicesPage() {
                   onChange={(e) => setFormData((prev) => ({ ...prev, depositAmount: Number(e.target.value) }))}
                   min={0}
                   placeholder="Optional"
-                  className="mt-1.5 w-full bg-cream border border-border rounded-lg px-4 py-2.5 text-sm text-charcoal placeholder:text-muted-foreground focus:outline-none focus:border-gold"
+                  className="mt-1.5 w-full bg-cream border border-border rounded-lg px-4 py-2.5 text-sm text-charcoal placeholder:text-muted-foreground focus:outline-none focus:border-gold min-h-[44px]"
                 />
                 <p className="text-[10px] text-muted-foreground mt-1">Leave 0 for no deposit requirement</p>
               </div>
@@ -507,7 +506,7 @@ export default function AdminServicesPage() {
                     value={formData.sortOrder}
                     onChange={(e) => setFormData((prev) => ({ ...prev, sortOrder: parseInt(e.target.value) || 0 }))}
                     min={0}
-                    className="mt-1.5 w-full bg-cream border border-border rounded-lg px-4 py-2.5 text-sm text-charcoal focus:outline-none focus:border-gold"
+                    className="mt-1.5 w-full bg-cream border border-border rounded-lg px-4 py-2.5 text-sm text-charcoal focus:outline-none focus:border-gold min-h-[44px]"
                   />
                 </div>
               </div>

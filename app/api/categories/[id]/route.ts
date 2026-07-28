@@ -26,7 +26,7 @@ export async function GET(
   }
 }
 
-export async function PUT(
+async function handleUpdate(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
@@ -77,6 +77,9 @@ export async function PUT(
     return NextResponse.json({ error: "Failed to update category" }, { status: 500 });
   }
 }
+
+export const PUT = handleUpdate;
+export const PATCH = handleUpdate;
 
 export async function DELETE(
   _request: Request,

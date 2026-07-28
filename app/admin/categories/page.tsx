@@ -157,12 +157,12 @@ export default function AdminCategoriesPage() {
     : categories.filter((c) => c.type === filterType);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="font-heading text-2xl font-bold text-charcoal tracking-tight">Categories</h1>
-          <p className="text-sm text-muted-foreground mt-1">Manage service and product categories</p>
+          <h1 className="font-heading text-xl sm:text-2xl font-bold text-charcoal tracking-tight">Categories</h1>
+          <p className="text-sm text-muted-foreground mt-1">{filteredCategories.length} categor{filteredCategories.length !== 1 ? "ies" : "y"}</p>
         </div>
         <Button onClick={openAdd} className="bg-gold text-white hover:bg-gold-dark rounded-full text-xs font-semibold tracking-wider uppercase px-6 min-h-[44px]">
           <Plus className="h-4 w-4 mr-2" />Add Category

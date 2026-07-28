@@ -88,30 +88,31 @@ export default function AdminAppointmentsPage() {
   const formatDate = (d: string) => new Date(d).toLocaleDateString("en-NG", { weekday: "short", year: "numeric", month: "short", day: "numeric" });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div>
-        <h1 className="font-heading text-2xl font-bold text-charcoal tracking-tight">Appointments</h1>
+        <h1 className="font-heading text-xl sm:text-2xl font-bold text-charcoal tracking-tight">Appointments</h1>
         <p className="text-sm text-muted-foreground mt-1">Manage all customer bookings</p>
       </div>
 
-      {successMsg && <div className="bg-green-50 border border-green-200 text-green-700 text-sm rounded-lg px-4 py-3 flex items-center justify-between"><span>{successMsg}</span><button onClick={() => setSuccessMsg("")} className="p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center"><X className="h-4 w-4" /></button></div>}
-      {errorMsg && <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3 flex items-center justify-between"><span>{errorMsg}</span><button onClick={() => setErrorMsg("")} className="p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center"><X className="h-4 w-4" /></button></div>}
+      {successMsg && <div className="bg-green-50 border border-green-200 text-green-700 text-sm rounded-lg px-4 py-3 flex items-center justify-between"><span>{successMsg}</span><button onClick={() => setSuccessMsg("")} className="min-h-[44px] min-w-[44px] flex items-center justify-center"><X className="h-4 w-4" /></button></div>}
+      {errorMsg && <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3 flex items-center justify-between"><span>{errorMsg}</span><button onClick={() => setErrorMsg("")} className="min-h-[44px] min-w-[44px] flex items-center justify-center"><X className="h-4 w-4" /></button></div>}
 
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3 overflow-x-auto">
-        <div className="relative flex-1 min-w-0">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by ref, customer, or service..." className="w-full bg-white border border-border rounded-lg pl-10 pr-4 py-2.5 text-sm text-charcoal placeholder:text-muted-foreground focus:outline-none focus:border-gold" />
-        </div>
-        <input type="date" value={filterDate} onChange={(e) => setFilterDate(e.target.value)} className="bg-white border border-border rounded-lg px-4 py-2.5 text-sm text-charcoal focus:outline-none focus:border-gold shrink-0" />
-        <div className="flex gap-1 bg-white border border-border rounded-lg p-1 overflow-x-auto">
-          {["all", "pending", "confirmed", "in_progress", "completed", "cancelled"].map((s) => (
-            <button key={s} onClick={() => setFilterStatus(s)} className={cn("px-3 py-2.5 min-h-[44px] rounded-md text-xs font-medium transition-all capitalize whitespace-nowrap shrink-0", filterStatus === s ? "bg-charcoal text-white" : "text-muted-foreground hover:text-charcoal")}>{s === "all" ? "All" : statusLabels[s] || s}</button>
-          ))}
-        </div>
+      {/* Search */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by ref, customer, or service..." className="w-full bg-white border border-border rounded-lg pl-10 pr-4 py-2.5 text-sm text-charcoal placeholder:text-muted-foreground focus:outline-none focus:border-gold min-h-[44px]" />
       </div>
 
-      {/* Loading / Empty */}
+      {/* Date Filter */}
+      <input type="date" value={filterDate} onChange={(e) => setFilterDate(e.target.value)} className="w-full bg-white border border-border rounded-lg px-4 py-2.5 text-sm text-charcoal focus:outline-none focus:border-gold min-h-[44px]" />
+
+      {/* Status Filter */}
+      <div className="flex gap-1 bg-white border border-border rounded-lg p-1 overflow-x-auto">
+        {["all", "pending", "confirmed", "in_progress", "completed", "cancelled"].map((s) => (
+          <button key={s} onClick={() => setFilterStatus(s)} className={cn("px-3 py-2.5 min-h-[44px] rounded-md text-xs font-medium transition-all capitalize whitespace-nowrap shrink-0", filterStatus === s ? "bg-charcoal text-white" : "text-muted-foreground hover:text-charcoal")}>{s === "all" ? "All" : statusLabels[s] || s}</button>
+        ))}
+      </div>
+
       {isLoading ? (
         <div className="bg-white border border-border rounded-2xl p-12 text-center">
           <Loader2 className="h-6 w-6 text-gold animate-spin mx-auto" />
@@ -145,18 +146,18 @@ export default function AdminAppointmentsPage() {
                   <p className="text-muted-foreground text-xs pl-5">{a.stylist?.user.name || "No stylist"}</p>
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <Clock className="h-3 w-3 shrink-0" />
-                    <span className="text-xs">{formatDate(a.date)} &middot; {a.startTime} — {a.endTime}</span>
+                    <span className="text-xs">{formatDate(a.date)} · {a.startTime} — {a.endTime}</span>
                   </div>
                 </div>
                 <div className="flex items-center justify-between pt-1 border-t border-border/50">
                   <p className="text-sm font-medium text-charcoal">₦{a.totalAmount.toLocaleString()}</p>
                   <div className="flex items-center gap-1">
-                    <button onClick={() => { setSelected(a); setShowDetail(true); }} className="p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg text-muted-foreground hover:text-charcoal hover:bg-cream transition-colors" title="View details"><Eye className="h-4 w-4" /></button>
+                    <button onClick={() => { setSelected(a); setShowDetail(true); }} className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg text-muted-foreground hover:text-charcoal hover:bg-cream transition-colors" title="View details"><Eye className="h-4 w-4" /></button>
                     {a.status === "PENDING" && (
-                      <button onClick={() => updateStatus(a.id, "CONFIRMED")} disabled={updatingId === a.id} className="p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg text-emerald-600 hover:bg-emerald-50 transition-colors" title="Confirm"><CheckCircle className="h-4 w-4" /></button>
+                      <button onClick={() => updateStatus(a.id, "CONFIRMED")} disabled={updatingId === a.id} className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg text-emerald-600 hover:bg-emerald-50 transition-colors" title="Confirm"><CheckCircle className="h-4 w-4" /></button>
                     )}
                     {["PENDING", "CONFIRMED"].includes(a.status) && (
-                      <button onClick={() => updateStatus(a.id, "CANCELLED")} disabled={updatingId === a.id} className="p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg text-red-500 hover:bg-red-50 transition-colors" title="Cancel"><XCircle className="h-4 w-4" /></button>
+                      <button onClick={() => updateStatus(a.id, "CANCELLED")} disabled={updatingId === a.id} className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg text-red-500 hover:bg-red-50 transition-colors" title="Cancel"><XCircle className="h-4 w-4" /></button>
                     )}
                   </div>
                 </div>
@@ -224,9 +225,9 @@ export default function AdminAppointmentsPage() {
 
       {/* Detail Modal */}
       {showDetail && selected && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4">
           <div className="fixed inset-0 bg-black/50" onClick={() => setShowDetail(false)} />
-          <div className="relative bg-white rounded-2xl max-w-lg w-full shadow-xl max-h-[90vh] overflow-y-auto">
+          <div className="relative bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg shadow-xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between px-6 py-4 border-b border-border sticky top-0 bg-white z-10">
               <div>
                 <h2 className="font-heading text-lg font-semibold text-charcoal">Appointment Details</h2>
@@ -236,14 +237,12 @@ export default function AdminAppointmentsPage() {
             </div>
 
             <div className="px-6 py-5 space-y-5">
-              {/* Status */}
               <div className="flex items-center gap-3">
                 <span className={cn("inline-flex px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider", statusColors[selected.status])}>{statusLabels[selected.status]}</span>
                 {selected.isRescheduled && <span className="text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-medium">Rescheduled</span>}
               </div>
 
-              {/* Info Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="bg-cream rounded-lg p-3">
                   <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Service</p>
                   <p className="text-sm font-medium text-charcoal mt-0.5">{selected.service.name}</p>
@@ -265,7 +264,6 @@ export default function AdminAppointmentsPage() {
                 </div>
               </div>
 
-              {/* Payment History */}
               {selected.payments && selected.payments.length > 0 && (
                 <div>
                   <p className="text-xs font-semibold text-charcoal uppercase tracking-wider mb-2">Payment History</p>
@@ -287,22 +285,20 @@ export default function AdminAppointmentsPage() {
                 </div>
               )}
 
-              {/* Customer */}
               <div>
                 <p className="text-xs font-semibold text-charcoal uppercase tracking-wider mb-2">Customer</p>
                 <div className="flex items-center gap-3 bg-cream rounded-lg p-3">
                   <div className="h-10 w-10 rounded-full bg-white flex items-center justify-center text-xs font-bold text-charcoal shrink-0">
                     {selected.customerProfile.user.image ? <img src={selected.customerProfile.user.image} alt="" className="h-full w-full rounded-full object-cover" /> : (selected.customerProfile.user.name || "?").charAt(0)}
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <p className="text-sm font-medium text-charcoal">{selected.customerProfile.user.name}</p>
-                    <p className="text-xs text-muted-foreground">{selected.customerProfile.user.email}</p>
+                    <p className="text-xs text-muted-foreground truncate">{selected.customerProfile.user.email}</p>
                     {selected.customerProfile.user.phone && <p className="text-xs text-muted-foreground">{selected.customerProfile.user.phone}</p>}
                   </div>
                 </div>
               </div>
 
-              {/* Notes */}
               {selected.notes && (
                 <div>
                   <p className="text-xs font-semibold text-charcoal uppercase tracking-wider mb-1">Notes</p>
@@ -310,7 +306,6 @@ export default function AdminAppointmentsPage() {
                 </div>
               )}
 
-              {/* Cancellation */}
               {selected.cancelledAt && selected.cancelReason && (
                 <div className="bg-red-50 rounded-lg p-3">
                   <p className="text-xs font-semibold text-red-600 uppercase tracking-wider mb-1">Cancellation Reason</p>
@@ -318,35 +313,29 @@ export default function AdminAppointmentsPage() {
                 </div>
               )}
 
-              {/* Actions */}
               <div className="flex flex-wrap gap-2 pt-2">
                 {selected.status === "PENDING" && (
-                  <Button onClick={() => updateStatus(selected.id, "CONFIRMED")} disabled={updatingId === selected.id} className="bg-emerald-600 text-white hover:bg-emerald-700 rounded-full text-xs font-semibold tracking-wider uppercase">
+                  <Button onClick={() => updateStatus(selected.id, "CONFIRMED")} disabled={updatingId === selected.id} className="bg-emerald-600 text-white hover:bg-emerald-700 rounded-full text-xs font-semibold tracking-wider uppercase min-h-[44px]">
                     <CheckCircle className="h-3 w-3 mr-1" />Confirm
                   </Button>
                 )}
                 {selected.status === "CONFIRMED" && (
-                  <Button onClick={() => updateStatus(selected.id, "IN_PROGRESS")} disabled={updatingId === selected.id} className="bg-blue-600 text-white hover:bg-blue-700 rounded-full text-xs font-semibold tracking-wider uppercase">
+                  <Button onClick={() => updateStatus(selected.id, "IN_PROGRESS")} disabled={updatingId === selected.id} className="bg-blue-600 text-white hover:bg-blue-700 rounded-full text-xs font-semibold tracking-wider uppercase min-h-[44px]">
                     <RefreshCw className="h-3 w-3 mr-1" />Start
                   </Button>
                 )}
                 {selected.status === "IN_PROGRESS" && (
-                  <Button onClick={() => updateStatus(selected.id, "COMPLETED")} disabled={updatingId === selected.id} className="bg-charcoal text-white hover:bg-charcoal-light rounded-full text-xs font-semibold tracking-wider uppercase">
+                  <Button onClick={() => updateStatus(selected.id, "COMPLETED")} disabled={updatingId === selected.id} className="bg-charcoal text-white hover:bg-charcoal-light rounded-full text-xs font-semibold tracking-wider uppercase min-h-[44px]">
                     <CheckCircle className="h-3 w-3 mr-1" />Complete
                   </Button>
                 )}
                 {["PENDING", "CONFIRMED"].includes(selected.status) && (
-                  <Button onClick={() => updateStatus(selected.id, "NO_SHOW")} disabled={updatingId === selected.id} variant="outline" className="rounded-full text-xs font-semibold tracking-wider uppercase text-orange-600 border-orange-200 hover:bg-orange-50">
-                    No Show
-                  </Button>
-                )}
-                {["PENDING", "CONFIRMED"].includes(selected.status) && (
-                  <Button onClick={() => { const r = prompt("Cancel reason:"); if (r !== null) updateStatus(selected.id, "CANCELLED", r); }} disabled={updatingId === selected.id} variant="outline" className="rounded-full text-xs font-semibold tracking-wider uppercase text-red-500 border-red-200 hover:bg-red-50">
+                  <Button onClick={() => { const r = prompt("Cancel reason:"); if (r !== null) updateStatus(selected.id, "CANCELLED", r); }} disabled={updatingId === selected.id} variant="outline" className="rounded-full text-xs font-semibold tracking-wider uppercase text-red-500 border-red-200 hover:bg-red-50 min-h-[44px]">
                     <XCircle className="h-3 w-3 mr-1" />Cancel
                   </Button>
                 )}
                 {!selected.payments?.length && (
-                  <Button onClick={() => handleDelete(selected.id)} variant="outline" className="rounded-full text-xs font-semibold tracking-wider uppercase text-red-500 border-red-200 hover:bg-red-50 ml-auto">
+                  <Button onClick={() => handleDelete(selected.id)} variant="outline" className="rounded-full text-xs font-semibold tracking-wider uppercase text-red-500 border-red-200 hover:bg-red-50 ml-auto min-h-[44px]">
                     <Trash2 className="h-3 w-3 mr-1" />Delete
                   </Button>
                 )}
@@ -358,7 +347,7 @@ export default function AdminAppointmentsPage() {
                     }}
                     disabled={sendingReceiptId !== null}
                     variant="outline"
-                    className="rounded-full text-xs font-semibold tracking-wider uppercase text-gold border-gold/30 hover:bg-gold/5 ml-auto"
+                    className="rounded-full text-xs font-semibold tracking-wider uppercase text-gold border-gold/30 hover:bg-gold/5 ml-auto min-h-[44px]"
                   >
                     {sendingReceiptId ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Mail className="h-3 w-3 mr-1" />}
                     Send Receipt
