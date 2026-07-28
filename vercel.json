@@ -18,13 +18,13 @@
     }
   ],
   "crons": [
-    {
-      "path": "/api/cron/appointment-reminders",
-      "schedule": "0 8 * * *"
-    },
-    {
-      "path": "/api/cron/expire-orders",
-      "schedule": "*/5 * * * *"
-    }
-  ]
+  {
+    "path": "/api/cron/appointment-reminders",
+    "schedule": "0 8 * * *"
+  },
+  {
+    "path": "/api/cron/expire-orders",
+    "schedule": "0 0 * * *"
+  }
+]
 }
